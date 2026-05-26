@@ -328,3 +328,59 @@ Quando a internet voltar:
 - o Apps Script grava em Sheets e Drive;
 - o app marca os itens como sincronizados;
 - falhas permanecem pendentes para nova tentativa.
+
+---
+
+# Workspace Corporativo
+
+## Conta do Projeto
+
+E-mail corporativo que deve operar/publicar o projeto:
+
+```text
+apppcu@uel.br
+```
+
+Observacao:
+
+```text
+O repositorio GitHub pode estar em usuario/e-mail diferente. Nao confundir com a conta corporativa do projeto.
+```
+
+## Google Sheets
+
+Planilha principal:
+
+```text
+https://docs.google.com/spreadsheets/d/1UB_oVX-V_GXjuwmgP6u9DybpaPcaEThhBMOprPpPHFQ/edit?gid=0#gid=0
+```
+
+ID da planilha:
+
+```text
+1UB_oVX-V_GXjuwmgP6u9DybpaPcaEThhBMOprPpPHFQ
+```
+
+## Google Apps Script
+
+Projeto vinculado/criacao pelo Workspace:
+
+```text
+https://script.google.com/u/0/home/projects/create?parent=1UB_oVX-V_GXjuwmgP6u9DybpaPcaEThhBMOprPpPHFQ&emtoken=AUvJqTU7e9z3EEUjCaoWi1tBsLDp%3A1779806575073
+```
+
+ID do script:
+
+```text
+1uBHnZ1xnzE00dXMqHDfxcrXC5p9Lm06-l9cecTTfoPr8irzLz6_bWBKZ
+```
+
+ID do projeto Apps Script:
+
+```text
+1uBHnZ1xnzE00dXMqHDfxcrXC5p9Lm06-l9cecTTfoPr8irzLz6_bWBKZ
+```
+
+## Prioridade Atual
+
+Comecar pelo dashboard do painel web usando Google Apps Script HTML Service.
