@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ink: #10201b;
+      --muted: #66726d;
+      --line: #dce6e1;
+      --panel: #f8fbf8;
+      --mist: #e8f1ec;
+      --leaf: #0b6b57;
+      --leaf-dark: #06493e;
+      --rain: #2f6f8f;
+      --warning: #8a5a00;
+      --danger: #9d2d20;
+      --white: #ffffff;
+      --shadow: 0 26px 70px rgba(20, 38, 32, 0.16);
+      color-scheme: light;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "IBM Plex Sans", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 18%, rgba(47, 111, 143, 0.12), transparent 31%),
+        linear-gradient(135deg, #edf4f0 0%, #f7faf6 48%, #ddeae5 100%);
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(360px, 0.9fr) minmax(420px, 1.1fr);
+      padding: 24px;
+      gap: 24px;
+    }
+
+    .login-panel {
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid rgba(255, 255, 255, 0.75);
+      box-shadow: var(--shadow);
+      padding: clamp(28px, 5vw, 64px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: calc(100vh - 48px);
+    }
+
+    .brand {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 46px;
+    }
+
+    .brand-mark {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--leaf);
+      color: var(--white);
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .brand-text strong {
+      display: block;
+      font-weight: 700;
+    }
+
+    .brand-text span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    h1 {
+      font-family: "Fraunces", serif;
+      font-size: clamp(40px, 5vw, 64px);
+      line-height: 0.96;
+      letter-spacing: 0;
+      margin: 0 0 18px;
+      max-width: 620px;
+    }
+
+    .lead {
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.6;
+      max-width: 560px;
+      margin: 0 0 34px;
+    }
+
+    .access-card {
+      max-width: 560px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .session-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--white);
+      color: var(--muted);
+      min-height: 48px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--rain);
+      flex: 0 0 auto;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      min-height: 46px;
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    .btn:disabled {
+      cursor: wait;
+      opacity: 0.68;
+    }
+
+    .btn-primary {
+      background: var(--leaf);
+      color: var(--white);
+      box-shadow: 0 12px 24px rgba(11, 107, 87, 0.22);
+    }
+
+    .btn-secondary {
+      background: var(--mist);
+      color: var(--leaf-dark);
+    }
+
+    .btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    .message {
+      margin-top: 14px;
+      min-height: 22px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .message.error {
+      color: var(--danger);
+    }
+
+    .message.warning {
+      color: var(--warning);
+    }
+
+    .photo-panel {
+      position: relative;
+      overflow: hidden;
+      min-height: calc(100vh - 48px);
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(5, 19, 25, 0.08), rgba(5, 19, 25, 0.58)),
+        url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=85") center/cover;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: flex-end;
+      padding: clamp(28px, 5vw, 58px);
+      color: var(--white);
+    }
+
+    .photo-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(110deg, rgba(9, 61, 55, 0.55), transparent 52%),
+        linear-gradient(0deg, rgba(4, 13, 18, 0.74), rgba(4, 13, 18, 0.08) 62%);
+    }
+
+    .photo-copy {
+      position: relative;
+      max-width: 560px;
+    }
+
+    .photo-copy p {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 48px);
+      font-family: "Fraunces", serif;
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    .photo-copy span {
+      display: block;
+      margin-top: 16px;
+      color: rgba(255, 255, 255, 0.78);
+      line-height: 1.55;
+      max-width: 460px;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background: rgba(10, 24, 21, 0.42);
+      z-index: 10;
+    }
+
+    .modal.open {
+      display: grid;
+    }
+
+    .modal-card {
+      width: min(680px, 100%);
+      max-height: min(760px, calc(100vh - 40px));
+      overflow: auto;
+      background: var(--white);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .modal h2 {
+      margin: 0;
+      font-family: "Fraunces", serif;
+      font-size: 30px;
+      letter-spacing: 0;
+    }
+
+    .close {
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--white);
+      cursor: pointer;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 13px;
+      background: #fbfdfb;
+      color: var(--ink);
+      outline: none;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--leaf);
+      box-shadow: 0 0 0 3px rgba(11, 107, 87, 0.12);
+    }
+
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    .dashboard {
+      display: none;
+      min-height: 100vh;
+      padding: 34px;
+      background: #f3f7f4;
+    }
+
+    .dashboard.active {
+      display: block;
+    }
+
+    .dash-band {
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    .dash-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    .dash-head h2 {
+      margin: 0;
+      font-family: "Fraunces", serif;
+      font-size: clamp(34px, 4vw, 54px);
+      letter-spacing: 0;
+    }
+
+    .dash-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .metric {
+      min-height: 132px;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .metric strong {
+      font-size: 34px;
+    }
+
+    .metric span {
+      color: var(--muted);
+    }
+
+    @media (max-width: 900px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .login-panel,
+      .photo-panel {
+        min-height: auto;
+      }
+
+      .photo-panel {
+        min-height: 360px;
+      }
+
+      .dash-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 620px) {
+      .shell {
+        padding: 0;
+        gap: 0;
+      }
+
+      .login-panel,
+      .photo-panel {
+        border-radius: 0;
+      }
+
+      .actions,
+      .form-grid,
+      .dash-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main id="loginView" class="shell">
+    <section class="login-panel">
+      <div class="brand">
+        <div class="brand-mark">UEL</div>
+        <div class="brand-text">
+          <strong>Sistema de Telhados</strong>
+          <span>Prefeitura do Campus Universitario</span>
+        </div>
+      </div>
+
+      <h1>Manutencao predial com rastreio pos-chuva.</h1>
+      <p class="lead">
+        Acesso restrito para equipes e gestores autorizados da Universidade Estadual de Londrina.
+      </p>
+
+      <div class="access-card">
+        <div class="session-line">
+          <span id="sessionEmail">Verificando conta institucional...</span>
+          <span class="status-dot" aria-hidden="true"></span>
+        </div>
+        <div class="actions">
+          <button id="loginButton" class="btn btn-primary" type="button">Entrar com e-mail institucional</button>
+          <button id="registerButton" class="btn btn-secondary" type="button">Registrar acesso</button>
+        </div>
+        <div id="loginMessage" class="message"></div>
+      </div>
+    </section>
+
+    <section class="photo-panel" aria-label="Imagem de chuva e paisagem com agua">
+      <div class="photo-copy">
+        <p>Cada chuva vira dado. Cada reparo vira historico.</p>
+        <span>O painel centraliza chamados, registros tecnicos e validacoes para reduzir reincidencias nos predios da UEL.</span>
+      </div>
+    </section>
+  </main>
+
+  <section id="dashboardView" class="dashboard">
+    <div class="dash-band">
+      <div class="dash-head">
+        <div>
+          <h2>Dashboard</h2>
+          <p id="dashboardGreeting" class="lead">Entrada autorizada.</p>
+        </div>
+      </div>
+      <div class="dash-grid">
+        <div class="metric"><span>Chamados abertos</span><strong>0</strong></div>
+        <div class="metric"><span>Em execucao</span><strong>0</strong></div>
+        <div class="metric"><span>Concluidos</span><strong>0</strong></div>
+        <div class="metric"><span>Alertas de chuva</span><strong>0</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <div id="registerModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="registerTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h2 id="registerTitle">Registrar acesso</h2>
+          <p class="lead">A solicitacao sera enviada para aprovacao. Apenas e-mails @uel.br sao aceitos.</p>
+        </div>
+        <button id="closeModalButton" class="close" type="button" aria-label="Fechar">x</button>
+      </div>
+
+      <form id="registerForm" class="form-grid">
+        <div class="field">
+          <label for="nome">Nome</label>
+          <input id="nome" name="nome" autocomplete="name" required>
+        </div>
+        <div class="field">
+          <label for="email">E-mail institucional</label>
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="nome@uel.br" required>
+        </div>
+        <div class="field">
+          <label for="telefone">Telefone</label>
+          <input id="telefone" name="telefone" autocomplete="tel">
+        </div>
+        <div class="field">
+          <label for="centro_sigla">Centro</label>
+          <select id="centro_sigla" name="centro_sigla" required>
+            <option value="">Carregando centros...</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label for="perfil_solicitado">Perfil solicitado</label>
+          <select id="perfil_solicitado" name="perfil_solicitado">
+            <option value="VISUALIZACAO">Visualizacao</option>
+            <option value="CHEFE_SETOR">Chefe de setor</option>
+            <option value="MANUTENCAO">Manutencao</option>
+            <option value="GESTOR">Gestor</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label for="observacao">Observacao</label>
+          <textarea id="observacao" name="observacao" placeholder="Informe setor, funcao ou justificativa do acesso."></textarea>
+        </div>
+        <div class="field full">
+          <button id="submitRegisterButton" class="btn btn-primary" type="submit">Enviar solicitacao</button>
+          <div id="registerMessage" class="message"></div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      session: null,
+      centrosLoaded: false
+    };
+
+    const els = {
+      loginView: document.getElementById('loginView'),
+      dashboardView: document.getElementById('dashboardView'),
+      sessionEmail: document.getElementById('sessionEmail'),
+      loginMessage: document.getElementById('loginMessage'),
+      loginButton: document.getElementById('loginButton'),
+      registerButton: document.getElementById('registerButton'),
+      registerModal: document.getElementById('registerModal'),
+      closeModalButton: document.getElementById('closeModalButton'),
+      registerForm: document.getElementById('registerForm'),
+      registerMessage: document.getElementById('registerMessage'),
+      submitRegisterButton: document.getElementById('submitRegisterButton'),
+      centroSelect: document.getElementById('centro_sigla'),
+      emailInput: document.getElementById('email'),
+      dashboardGreeting: document.getElementById('dashboardGreeting')
+    };
+
+    function callServer(fnName, ...args) {
+      return new Promise((resolve, reject) => {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject)[fnName](...args);
+      });
+    }
+
+    function setMessage(element, text, tone) {
+      element.textContent = text || '';
+      element.className = 'message' + (tone ? ' ' + tone : '');
+    }
+
+    function loadSession() {
+      setMessage(els.loginMessage, 'Verificando sua conta Google...', '');
+      els.loginButton.disabled = true;
+
+      callServer('getSessionContext')
+        .then((response) => {
+          state.session = response.data;
+          renderAccessState(response.data);
+        })
+        .catch((error) => {
+          setMessage(els.loginMessage, error.message || 'Nao foi possivel verificar o acesso.', 'error');
+        })
+        .finally(() => {
+          els.loginButton.disabled = false;
+        });
+    }
+
+    function renderAccessState(session) {
+      const email = session && session.email ? session.email : 'Conta Google nao identificada';
+      els.sessionEmail.textContent = email;
+
+      if (!session || session.accessState === 'UNKNOWN_EMAIL') {
+        setMessage(els.loginMessage, 'Nao foi possivel identificar o e-mail. Confirme se o Web App esta publicado para executar como usuario acessando.', 'warning');
+        return;
+      }
+
+      if (session.accessState === 'DOMAIN_DENIED') {
+        setMessage(els.loginMessage, 'Acesso restrito a contas institucionais @uel.br.', 'error');
+        return;
+      }
+
+      if (session.accessState === 'NOT_REGISTERED') {
+        setMessage(els.loginMessage, 'Conta institucional reconhecida. Registre seu acesso para solicitar aprovacao.', '');
+        els.emailInput.value = session.email;
+        return;
+      }
+
+      if (session.accessState === 'PENDING') {
+        setMessage(els.loginMessage, 'Seu cadastro foi recebido e aguarda aprovacao.', 'warning');
+        return;
+      }
+
+      if (session.accessState === 'ACTIVE') {
+        showDashboard(session.user);
+      }
+    }
+
+    function showDashboard(user) {
+      els.loginView.style.display = 'none';
+      els.dashboardView.classList.add('active');
+      els.dashboardGreeting.textContent = 'Bem-vindo, ' + (user && user.nome ? user.nome : 'usuario autorizado') + '.';
+    }
+
+    function openRegisterModal() {
+      els.registerModal.classList.add('open');
+      if (state.session && state.session.email) {
+        els.emailInput.value = state.session.email;
+      }
+      loadCentros();
+    }
+
+    function closeRegisterModal() {
+      els.registerModal.classList.remove('open');
+    }
+
+    function loadCentros() {
+      if (state.centrosLoaded) {
+        return;
+      }
+
+      callServer('getCentrosAtivos')
+        .then((response) => {
+          const centros = response.data || [];
+          els.centroSelect.innerHTML = '<option value="">Selecione um centro</option>' + centros.map((centro) => {
+            return '<option value="' + centro.sigla + '">' + centro.sigla + ' - ' + centro.nome + '</option>';
+          }).join('');
+          state.centrosLoaded = true;
+        })
+        .catch(() => {
+          els.centroSelect.innerHTML = '<option value="">Nao foi possivel carregar centros</option>';
+        });
+    }
+
+    function handleRegister(event) {
+      event.preventDefault();
+      const formData = new FormData(els.registerForm);
+      const payload = Object.fromEntries(formData.entries());
+
+      if (!String(payload.email || '').toLowerCase().endsWith('@uel.br')) {
+        setMessage(els.registerMessage, 'Use obrigatoriamente um e-mail @uel.br.', 'error');
+        return;
+      }
+
+      els.submitRegisterButton.disabled = true;
+      setMessage(els.registerMessage, 'Enviando solicitacao...', '');
+
+      callServer('registrarAcesso', payload)
+        .then((response) => {
+          if (!response.success) {
+            setMessage(els.registerMessage, response.error.message, 'error');
+            return;
+          }
+          setMessage(els.registerMessage, 'Solicitacao registrada. Aguarde aprovacao.', 'warning');
+          setMessage(els.loginMessage, 'Seu cadastro foi recebido e aguarda aprovacao.', 'warning');
+          setTimeout(closeRegisterModal, 900);
+        })
+        .catch((error) => {
+          setMessage(els.registerMessage, error.message || 'Erro ao registrar acesso.', 'error');
+        })
+        .finally(() => {
+          els.submitRegisterButton.disabled = false;
+        });
+    }
+
+    els.loginButton.addEventListener('click', loadSession);
+    els.registerButton.addEventListener('click', openRegisterModal);
+    els.closeModalButton.addEventListener('click', closeRegisterModal);
+    els.registerForm.addEventListener('submit', handleRegister);
+    els.registerModal.addEventListener('click', (event) => {
+      if (event.target === els.registerModal) {
+        closeRegisterModal();
+      }
+    });
+
+    loadSession();
+  </script>
+</body>
+</html>
