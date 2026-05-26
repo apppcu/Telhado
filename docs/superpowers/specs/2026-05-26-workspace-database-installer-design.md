@@ -57,133 +57,302 @@ centros.id -> predios.centro_id -> chamados.predio_id
 
 ## Abas
 
+As colunas abaixo definem nome e tipo esperado. Tipos usam a convencao:
+
+```text
+TEXT
+NUMBER
+DATE
+DATETIME
+BOOLEAN
+ENUM
+```
+
 ### centros
 
 ```text
-id
-sigla
-nome
-ativo
-observacao
-created_at
-updated_at
+id | TEXT
+sigla | TEXT
+nome | TEXT
+codigo_siga | TEXT
+ativo | BOOLEAN
+observacao | TEXT
+created_at | DATETIME
+updated_at | DATETIME
 ```
 
 ### predios
 
 ```text
-id
-centro_id
-centro_sigla
-nome
-tipo
-observacao
-ativo
-created_at
-updated_at
+id | TEXT
+centro_id | TEXT
+centro_sigla | TEXT
+nome | TEXT
+tipo | ENUM
+area_coberta_m2 | NUMBER
+tipo_cobertura | ENUM
+observacao | TEXT
+ativo | BOOLEAN
+created_at | DATETIME
+updated_at | DATETIME
 ```
 
 ### usuarios
 
 ```text
-id
-nome
-email
-perfil
-centro_sigla
-ativo
-created_at
-updated_at
+id | TEXT
+nome | TEXT
+email | TEXT
+perfil | ENUM
+centro_sigla | TEXT
+telefone | TEXT
+ativo | BOOLEAN
+created_at | DATETIME
+updated_at | DATETIME
 ```
 
 ### chamados
 
 ```text
-id
-numero
-predio_id
-centro_sigla
-solicitante_id
-descricao
-prioridade
-status
-executante_id
-data_abertura
-data_fechamento
-observacao
-created_at
-updated_at
+id | TEXT
+numero | TEXT
+predio_id | TEXT
+centro_sigla | TEXT
+solicitante_id | TEXT
+descricao | TEXT
+categoria | ENUM
+prioridade | ENUM
+status | ENUM
+executante_id | TEXT
+data_abertura | DATETIME
+data_fechamento | DATETIME
+observacao | TEXT
+created_at | DATETIME
+updated_at | DATETIME
 ```
 
 ### historico_chamado
 
 ```text
-id
-chamado_id
-usuario_id
-acao
-status_anterior
-status_novo
-observacao
-created_at
+id | TEXT
+chamado_id | TEXT
+usuario_id | TEXT
+acao | TEXT
+origem | ENUM
+status_anterior | TEXT
+status_novo | TEXT
+observacao | TEXT
+created_at | DATETIME
 ```
 
 ### fotos_chamado
 
 ```text
-id
-chamado_id
-drive_file_id
-drive_url
-tipo
-observacao
-created_at
+id | TEXT
+chamado_id | TEXT
+drive_file_id | TEXT
+drive_url | TEXT
+tipo | ENUM
+observacao | TEXT
+created_at | DATETIME
 ```
 
 ### eventos_chuva
 
 ```text
-id
-data_evento
-volume_mm
-origem_api
-processado
-created_at
+id | TEXT
+data_referencia | DATE
+data_hora_inicio | DATETIME
+data_hora_fim | DATETIME
+janela_horas | NUMBER
+volume_mm | NUMBER
+origem_api | ENUM
+latitude | NUMBER
+longitude | NUMBER
+cidade | TEXT
+processado | BOOLEAN
+created_at | DATETIME
 ```
 
 ### validacoes_pos_chuva
 
 ```text
-id
-chamado_id
-evento_chuva_id
-predio_id
-status_validacao
-observacao
-responsavel_id
-created_at
-updated_at
+id | TEXT
+chamado_id | TEXT
+evento_chuva_id | TEXT
+predio_id | TEXT
+status_validacao | ENUM
+observacao | TEXT
+responsavel_id | TEXT
+created_at | DATETIME
+updated_at | DATETIME
 ```
 
 ### configuracoes
 
 ```text
-chave
-valor
-descricao
-updated_at
+chave | TEXT
+valor | TEXT
+descricao | TEXT
+updated_at | DATETIME
 ```
 
 ### sync_logs
 
 ```text
-id
-origem
-acao
-status
-mensagem
-payload_resumo
-created_at
+id | TEXT
+origem | TEXT
+acao | TEXT
+status | ENUM
+referencia_tipo | TEXT
+referencia_id | TEXT
+mensagem | TEXT
+payload_resumo | TEXT
+created_at | DATETIME
+```
+
+## Dicionarios E Valores Permitidos
+
+### predios.tipo
+
+```text
+CAMPUS
+PREDIO
+DEPARTAMENTO
+SETOR
+LABORATORIO
+ANEXO
+OUTRO
+```
+
+Na carga inicial, todos os registros importados da lista institucional devem usar `DEPARTAMENTO`.
+
+### predios.tipo_cobertura
+
+```text
+TELHA_FIBROCIMENTO
+TELHA_METALICA
+TELHA_CERAMICA
+LAJE
+MISTA
+DESCONHECIDA
+OUTRA
+```
+
+Na carga inicial, usar `DESCONHECIDA`.
+
+### usuarios.perfil
+
+```text
+CHEFE_SETOR
+MANUTENCAO
+GESTOR
+ADMIN
+VISUALIZACAO
+```
+
+### chamados.prioridade
+
+```text
+BAIXA
+MEDIA
+ALTA
+EMERGENCIAL
+```
+
+### chamados.status
+
+```text
+ABERTO
+EM_ANALISE
+EM_EXECUCAO
+CONCLUIDO
+CANCELADO
+VALIDACAO_POS_CHUVA
+REINCIDENCIA
+```
+
+### chamados.categoria
+
+```text
+INFILTRACAO_TELHADO
+GOTEIRA_JANELA
+ALAGAMENTO_SALA
+UMIDADE_PAREDE
+CALHA_ENTUPIDA
+RALO_ENTUPIDO
+OUTRO
+```
+
+### historico_chamado.origem
+
+```text
+MANUAL
+API
+SCRIPT_AUTOMATICO
+IMPORTACAO
+```
+
+### fotos_chamado.tipo
+
+```text
+ABERTURA
+EXECUCAO
+CONCLUSAO
+VALIDACAO_POS_CHUVA
+OUTROS
+```
+
+### eventos_chuva.origem_api
+
+```text
+OPEN_METEO
+MANUAL
+```
+
+### validacoes_pos_chuva.status_validacao
+
+```text
+PENDENTE
+EVENTO_CONFIRMADO
+EVENTO_NAO_CONFIRMADO
+IMPACTO_DESCONHECIDO
+REINCIDENCIA_CONFIRMADA
+REINCIDENCIA_NAO_CONFIRMADA
+```
+
+### sync_logs.status
+
+```text
+SUCESSO
+ERRO
+AVISO
+```
+
+## Padroes De Identificacao
+
+IDs institucionais devem ser estaveis, deterministicos, em ASCII, caixa alta e com hifen.
+
+Exemplos:
+
+```text
+CENTRO-CCA
+PRED-CCA-ZOOTECNIA
+```
+
+O numero do chamado deve ser sequencial, estavel e usado tambem como nome da pasta do chamado no Drive:
+
+```text
+CH-000001
+CH-000002
+CH-000003
+```
+
+Configuracoes iniciais relacionadas:
+
+```text
+padrao_numero_chamado_prefixo | CH-
+padrao_numero_chamado_digits | 6
 ```
 
 ## Seed Inicial
@@ -191,18 +360,19 @@ created_at
 O instalador deve criar os centros:
 
 ```text
-CCA | Centro de Ciencias Agrarias
-CCB | Centro de Ciencias Biologicas
-CCE | Centro de Ciencias Exatas
-CCS | Centro de Ciencias da Saude
-CECA | Centro de Educacao, Comunicacao e Artes
-CEFE | Centro de Educacao Fisica e Esportes
-CESA | Centro de Estudos Sociais Aplicados
-CLCH | Centro de Letras e Ciencias Humanas
-CTU | Centro de Tecnologia e Urbanismo
+CENTRO-CCA | CCA | Centro de Ciencias Agrarias
+CENTRO-CCB | CCB | Centro de Ciencias Biologicas
+CENTRO-CCE | CCE | Centro de Ciencias Exatas
+CENTRO-CCS | CCS | Centro de Ciencias da Saude
+CENTRO-CECA | CECA | Centro de Educacao, Comunicacao e Artes
+CENTRO-CEFE | CEFE | Centro de Educacao Fisica e Esportes
+CENTRO-CESA | CESA | Centro de Estudos Sociais Aplicados
+CENTRO-CLCH | CLCH | Centro de Letras e Ciencias Humanas
+CENTRO-CTU | CTU | Centro de Tecnologia e Urbanismo
 ```
 
 O instalador deve criar os predios/departamentos informados pelo usuario vinculados aos centros correspondentes. O campo `tipo` deve iniciar como `DEPARTAMENTO`.
+Campos tecnicos opcionais como `area_coberta_m2` e `tipo_cobertura` devem iniciar vazios ou com valor padrao seguro, sem bloquear a carga inicial.
 
 Catalogo inicial de predios/departamentos:
 
@@ -276,6 +446,19 @@ PRED-CCA-ZOOTECNIA
 
 Nomes com acentos podem aparecer no campo `nome`. IDs devem usar ASCII, caixa alta e hifen.
 
+A aba `configuracoes` deve iniciar com:
+
+```text
+chuva_mm_minima_relevante | 5
+pasta_drive_raiz_id | 197iqHWkSoFRKYKrckPhhTfLvuctBhMg_
+padrao_numero_chamado_prefixo | CH-
+padrao_numero_chamado_digits | 6
+open_meteo_latitude | -23.3045
+open_meteo_longitude | -51.1696
+open_meteo_cidade | Londrina
+open_meteo_timezone | America/Sao_Paulo
+```
+
 ## Estrutura Do Drive
 
 Na pasta raiz informada, o instalador deve validar/criar:
@@ -298,6 +481,17 @@ Chamados/
     conclusao/
     validacao_pos_chuva/
 ```
+
+Os nomes das subpastas de fase devem permanecer exatamente em minusculas:
+
+```text
+abertura
+execucao
+conclusao
+validacao_pos_chuva
+```
+
+Esses nomes devem casar com `fotos_chamado.tipo` por regra de negocio, mas o nome fisico da pasta continua em minusculas para evitar variacao visual no Drive.
 
 ## Comportamento Do Instalador
 
@@ -364,9 +558,13 @@ Formato recomendado:
 
 - Ao rodar `instalarBancoWorkspace()`, todas as abas existem.
 - Todas as abas possuem os cabecalhos definidos.
+- Todas as colunas seguem os tipos esperados na spec.
+- Os campos de enum possuem listas de valores permitidos documentadas.
 - A aba `centros` contem os 9 centros iniciais.
 - A aba `predios` contem os departamentos informados como predios.
+- A aba `configuracoes` contem os parametros iniciais de chuva, Drive e numeracao.
 - A estrutura basica do Drive existe.
+- As subpastas de chamado usam exatamente os nomes `abertura`, `execucao`, `conclusao` e `validacao_pos_chuva`.
 - A execucao aparece em `sync_logs`.
 - Rodar a funcao duas vezes nao duplica registros.
 - O resultado pode ser usado pelo dashboard web sem ajustes manuais.
