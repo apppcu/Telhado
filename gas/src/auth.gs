@@ -53,6 +53,26 @@ function getSessionContext() {
   }
 }
 
+function diagnosticarSessao() {
+  try {
+    const activeEmail = normalizeEmail_(Session.getActiveUser().getEmail());
+    const effectiveEmail = normalizeEmail_(Session.getEffectiveUser().getEmail());
+    const user = activeEmail ? findUsuarioByEmail_(activeEmail) : null;
+
+    return success_({
+      activeEmail: activeEmail,
+      effectiveEmail: effectiveEmail,
+      domainAllowed: isUelEmail_(activeEmail),
+      usuarioEncontrado: Boolean(user),
+      usuarioAtivo: user ? (String(user.ativo).toUpperCase() === 'TRUE' || user.ativo === true) : false,
+      usuarioPerfil: user ? user.perfil : '',
+      usuarioCentro: user ? user.centro_sigla : ''
+    });
+  } catch (error) {
+    return accessError_('SESSION_DIAGNOSTIC_ERROR', error.message);
+  }
+}
+
 function registrarAcesso(payload) {
   try {
     const data = payload || {};
@@ -191,11 +211,19 @@ function readSheetObjects_(sheet) {
       const item = {};
       headers.forEach(function(header, index) {
         if (header) {
-          item[String(header).trim()] = row[index];
+          item[String(header).trim()] = normalizeSheetValue_(row[index]);
         }
       });
       return item;
     });
+}
+
+function normalizeSheetValue_(value) {
+  if (Object.prototype.toString.call(value) === '[object Date]') {
+    return Utilities.formatDate(value, CONFIG.TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss");
+  }
+
+  return value;
 }
 
 function getCurrentUserEmail_() {

@@ -5,6 +5,14 @@ function handleGet(e) {
     return jsonResponse_({ success: true, data: listarChamados(), error: null });
   }
 
+  if (action === 'dashboard') {
+    return jsonResponse_(getDashboardData());
+  }
+
+  if (action === 'historico_chamado') {
+    return jsonResponse_(getHistoricoChamado(getParam_(e, 'id')));
+  }
+
   if (action === 'config') {
     return jsonResponse_({ success: true, data: { timezone: CONFIG.TIMEZONE }, error: null });
   }
@@ -18,6 +26,14 @@ function handlePost(e) {
 
   if (action === 'sync') {
     return jsonResponse_({ success: true, data: processarSync(body.items || []), error: null });
+  }
+
+  if (action === 'criar_chamado') {
+    return jsonResponse_(criarChamado(body.payload || body));
+  }
+
+  if (action === 'atualizar_chamado') {
+    return jsonResponse_(atualizarChamado(body.payload || body));
   }
 
   if (action === 'upload_foto') {

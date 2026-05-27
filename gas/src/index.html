@@ -28,6 +28,18 @@
       box-sizing: border-box;
     }
 
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
     body {
       margin: 0;
       min-height: 100vh;
@@ -190,6 +202,13 @@
       color: var(--warning);
     }
 
+    .signature {
+      margin-top: 18px;
+      color: rgba(102, 114, 109, 0.72);
+      font-size: 11px;
+      line-height: 1.3;
+    }
+
     .photo-panel {
       position: relative;
       overflow: hidden;
@@ -197,7 +216,7 @@
       border-radius: 8px;
       background:
         linear-gradient(180deg, rgba(5, 19, 25, 0.08), rgba(5, 19, 25, 0.58)),
-        url("https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1600&q=85") center/cover;
+        url("https://drive.google.com/thumbnail?id=1tbIF2vHNuyA3bOtipzo4z2EgHZyMPGWh&sz=w1600") center/cover;
       box-shadow: var(--shadow);
       display: flex;
       align-items: flex-end;
@@ -221,7 +240,7 @@
 
     .photo-copy p {
       margin: 0;
-      font-size: clamp(28px, 4vw, 48px);
+      font-size: clamp(24px, 3vw, 36px);
       font-family: "Fraunces", serif;
       line-height: 1.04;
       letter-spacing: 0;
@@ -361,6 +380,17 @@
       letter-spacing: 0;
     }
 
+    .dash-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn-compact {
+      min-height: 42px;
+      padding: 0 16px;
+    }
+
     .dash-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -386,6 +416,183 @@
       color: var(--muted);
     }
 
+    .dashboard-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+      gap: 16px;
+      margin-top: 16px;
+      align-items: start;
+    }
+
+    .dash-card {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+
+    .dash-card h3 {
+      margin: 0 0 14px;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .weather-card {
+      min-height: 214px;
+      background:
+        linear-gradient(135deg, rgba(11, 107, 87, 0.92), rgba(47, 111, 143, 0.9)),
+        #0b6b57;
+      color: var(--white);
+    }
+
+    .weather-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .weather-top h3 {
+      margin-bottom: 4px;
+    }
+
+    .weather-top span,
+    .weather-day span,
+    .empty-state {
+      color: var(--muted);
+    }
+
+    .weather-card .weather-top span,
+    .weather-card .weather-day span {
+      color: rgba(255, 255, 255, 0.76);
+    }
+
+    .risk-pill {
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      background: rgba(255, 255, 255, 0.16);
+      white-space: nowrap;
+    }
+
+    .weather-value {
+      font-size: 42px;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 14px;
+    }
+
+    .weather-days {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .weather-day {
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 8px;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .weather-day strong {
+      display: block;
+      margin-top: 4px;
+    }
+
+    .data-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .list-row {
+      display: grid;
+      grid-template-columns: minmax(92px, 0.55fr) minmax(0, 1.35fr) minmax(82px, 0.55fr) minmax(96px, 0.55fr) minmax(98px, 0.55fr);
+      gap: 12px;
+      align-items: center;
+      min-height: 58px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfdfb;
+    }
+
+    .list-row strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .list-row span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status-badge {
+      justify-self: start;
+      border-radius: 999px;
+      padding: 6px 9px;
+      background: var(--mist);
+      color: var(--leaf-dark);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .row-action {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--white);
+      color: var(--leaf-dark);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 0 10px;
+    }
+
+    .history-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .history-item {
+      border-left: 3px solid var(--leaf);
+      background: #fbfdfb;
+      border-radius: 0 8px 8px 0;
+      padding: 10px 12px;
+    }
+
+    .history-item strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .history-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .side-stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .empty-state {
+      min-height: 72px;
+      display: grid;
+      place-items: center;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      text-align: center;
+      padding: 14px;
+    }
+
     @media (max-width: 900px) {
       .shell {
         grid-template-columns: 1fr;
@@ -403,6 +610,10 @@
       .dash-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
+
+      .dashboard-layout {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media (max-width: 620px) {
@@ -418,7 +629,9 @@
 
       .actions,
       .form-grid,
-      .dash-grid {
+      .dash-grid,
+      .weather-days,
+      .list-row {
         grid-template-columns: 1fr;
       }
     }
@@ -435,9 +648,9 @@
         </div>
       </div>
 
-      <h1>Manutencao predial com rastreio pos-chuva.</h1>
+      <h1 class="sr-only">Sistema de Telhados</h1>
       <p class="lead">
-        Acesso restrito para equipes e gestores autorizados da Universidade Estadual de Londrina.
+        Acesso restrito Universidade Estadual de Londrina.
       </p>
 
       <div class="access-card">
@@ -451,11 +664,12 @@
         </div>
         <div id="loginMessage" class="message"></div>
       </div>
+      <div class="signature">Desenvolvido: Fabio Dias - DMPE</div>
     </section>
 
     <section class="photo-panel" aria-label="Imagem de chuva e paisagem com agua">
       <div class="photo-copy">
-        <p>Cada chuva vira dado. Cada reparo vira historico.</p>
+        <p>Chuva se transforma em dados,<br>Dados em histórico.</p>
         <span>O painel centraliza chamados, registros tecnicos e validacoes para reduzir reincidencias nos predios da UEL.</span>
       </div>
     </section>
@@ -468,12 +682,46 @@
           <h2>Dashboard</h2>
           <p id="dashboardGreeting" class="lead">Entrada autorizada.</p>
         </div>
+        <div class="dash-actions">
+          <button id="newCallButton" class="btn btn-primary btn-compact" type="button">Novo chamado</button>
+          <button id="refreshDashboardButton" class="btn btn-secondary btn-compact" type="button">Atualizar</button>
+        </div>
       </div>
       <div class="dash-grid">
-        <div class="metric"><span>Chamados abertos</span><strong>0</strong></div>
-        <div class="metric"><span>Em execucao</span><strong>0</strong></div>
-        <div class="metric"><span>Concluidos</span><strong>0</strong></div>
-        <div class="metric"><span>Alertas de chuva</span><strong>0</strong></div>
+        <div class="metric"><span>Chamados abertos</span><strong id="metricOpen">0</strong></div>
+        <div class="metric"><span>Em execucao</span><strong id="metricProgress">0</strong></div>
+        <div class="metric"><span>Concluidos</span><strong id="metricDone">0</strong></div>
+        <div class="metric"><span>Alertas de chuva</span><strong id="metricRain">0</strong></div>
+      </div>
+
+      <div class="dashboard-layout">
+        <section class="dash-card">
+          <h3>Chamados recentes</h3>
+          <div id="recentCallsList" class="data-list">
+            <div class="empty-state">Carregando chamados...</div>
+          </div>
+        </section>
+
+        <aside class="side-stack">
+          <section class="dash-card weather-card">
+            <div class="weather-top">
+              <div>
+                <h3>Previsao de chuva</h3>
+                <span id="weatherCity">Londrina/PR</span>
+              </div>
+              <div id="weatherRisk" class="risk-pill">Carregando</div>
+            </div>
+            <div id="weatherValue" class="weather-value">-- mm</div>
+            <div id="weatherDays" class="weather-days"></div>
+          </section>
+
+          <section id="pendingAccessCard" class="dash-card" hidden>
+            <h3>Solicitacoes pendentes</h3>
+            <div id="pendingAccessList" class="data-list">
+              <div class="empty-state">Nenhuma solicitacao pendente.</div>
+            </div>
+          </section>
+        </aside>
       </div>
     </div>
   </section>
@@ -512,6 +760,8 @@
           <select id="perfil_solicitado" name="perfil_solicitado">
             <option value="VISUALIZACAO">Visualizacao</option>
             <option value="CHEFE_SETOR">Chefe de setor</option>
+            <option value="CHEFE_DIVISAO">Chefe de Divisão</option>
+            <option value="DIRETOR_CENTRO">Diretor de Centro</option>
             <option value="MANUTENCAO">Manutencao</option>
             <option value="GESTOR">Gestor</option>
           </select>
@@ -528,10 +778,114 @@
     </div>
   </div>
 
+  <div id="callModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="callTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h2 id="callTitle">Novo chamado</h2>
+          <p class="lead">Registre uma ocorrencia de telhado para acompanhamento da equipe.</p>
+        </div>
+        <button id="closeCallModalButton" class="close" type="button" aria-label="Fechar">x</button>
+      </div>
+
+      <form id="callForm" class="form-grid">
+        <div class="field">
+          <label for="call_centro_sigla">Centro ou unidade</label>
+          <select id="call_centro_sigla" name="centro_sigla" required>
+            <option value="">Carregando centros...</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="call_predio_id">Predio ou local</label>
+          <input id="call_predio_id" name="predio_id" placeholder="Ex.: Bloco A, cobertura central">
+        </div>
+        <div class="field">
+          <label for="call_categoria">Categoria</label>
+          <select id="call_categoria" name="categoria">
+            <option value="VAZAMENTO">Vazamento</option>
+            <option value="CALHA">Calha</option>
+            <option value="TELHA">Telha</option>
+            <option value="INFILTRACAO">Infiltracao</option>
+            <option value="OUTROS">Outros</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="call_prioridade">Prioridade</label>
+          <select id="call_prioridade" name="prioridade">
+            <option value="NORMAL">Normal</option>
+            <option value="ALTA">Alta</option>
+            <option value="URGENTE">Urgente</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label for="call_descricao">Descricao</label>
+          <textarea id="call_descricao" name="descricao" placeholder="Descreva o ponto de vazamento, ambiente afetado e sinais visiveis." required></textarea>
+        </div>
+        <div class="field full">
+          <label for="call_observacao">Observacao</label>
+          <textarea id="call_observacao" name="observacao" placeholder="Opcional: inclua detalhes adicionais para triagem."></textarea>
+        </div>
+        <div class="field full">
+          <button id="submitCallButton" class="btn btn-primary" type="submit">Abrir chamado</button>
+          <div id="callMessage" class="message"></div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="manageCallModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="manageCallTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h2 id="manageCallTitle">Gerenciar chamado</h2>
+          <p id="manageCallSubtitle" class="lead">Atualize o andamento e registre o historico tecnico.</p>
+        </div>
+        <button id="closeManageCallModalButton" class="close" type="button" aria-label="Fechar">x</button>
+      </div>
+
+      <form id="manageCallForm" class="form-grid">
+        <input id="manage_call_id" name="id" type="hidden">
+        <div class="field">
+          <label for="manage_call_status">Status</label>
+          <select id="manage_call_status" name="status" required>
+            <option value="ABERTO">Aberto</option>
+            <option value="EM_ANALISE">Em analise</option>
+            <option value="EM_EXECUCAO">Em execucao</option>
+            <option value="CONCLUIDO">Concluido</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="manage_call_priority">Prioridade</label>
+          <input id="manage_call_priority" readonly>
+        </div>
+        <div class="field full">
+          <label for="manage_call_description">Descricao</label>
+          <textarea id="manage_call_description" readonly></textarea>
+        </div>
+        <div class="field full">
+          <label for="manage_call_observation">Observacao tecnica</label>
+          <textarea id="manage_call_observation" name="observacao" placeholder="Registre a analise, execucao, materiais ou encaminhamentos."></textarea>
+        </div>
+        <div class="field full">
+          <label>Historico</label>
+          <div id="manageCallHistory" class="history-list">
+            <div class="empty-state">Carregando historico...</div>
+          </div>
+        </div>
+        <div class="field full">
+          <button id="submitManageCallButton" class="btn btn-primary" type="submit">Salvar alteracao</button>
+          <div id="manageCallMessage" class="message"></div>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script>
     const state = {
       session: null,
-      centrosLoaded: false
+      centrosLoaded: false,
+      centros: [],
+      chamados: []
     };
 
     const els = {
@@ -541,14 +895,45 @@
       loginMessage: document.getElementById('loginMessage'),
       loginButton: document.getElementById('loginButton'),
       registerButton: document.getElementById('registerButton'),
+      newCallButton: document.getElementById('newCallButton'),
       registerModal: document.getElementById('registerModal'),
+      callModal: document.getElementById('callModal'),
+      manageCallModal: document.getElementById('manageCallModal'),
       closeModalButton: document.getElementById('closeModalButton'),
+      closeCallModalButton: document.getElementById('closeCallModalButton'),
+      closeManageCallModalButton: document.getElementById('closeManageCallModalButton'),
       registerForm: document.getElementById('registerForm'),
+      callForm: document.getElementById('callForm'),
+      manageCallForm: document.getElementById('manageCallForm'),
       registerMessage: document.getElementById('registerMessage'),
+      callMessage: document.getElementById('callMessage'),
+      manageCallMessage: document.getElementById('manageCallMessage'),
       submitRegisterButton: document.getElementById('submitRegisterButton'),
+      submitCallButton: document.getElementById('submitCallButton'),
+      submitManageCallButton: document.getElementById('submitManageCallButton'),
+      manageCallId: document.getElementById('manage_call_id'),
+      manageCallStatus: document.getElementById('manage_call_status'),
+      manageCallPriority: document.getElementById('manage_call_priority'),
+      manageCallDescription: document.getElementById('manage_call_description'),
+      manageCallObservation: document.getElementById('manage_call_observation'),
+      manageCallSubtitle: document.getElementById('manageCallSubtitle'),
+      manageCallHistory: document.getElementById('manageCallHistory'),
       centroSelect: document.getElementById('centro_sigla'),
+      callCentroSelect: document.getElementById('call_centro_sigla'),
       emailInput: document.getElementById('email'),
-      dashboardGreeting: document.getElementById('dashboardGreeting')
+      dashboardGreeting: document.getElementById('dashboardGreeting'),
+      refreshDashboardButton: document.getElementById('refreshDashboardButton'),
+      metricOpen: document.getElementById('metricOpen'),
+      metricProgress: document.getElementById('metricProgress'),
+      metricDone: document.getElementById('metricDone'),
+      metricRain: document.getElementById('metricRain'),
+      recentCallsList: document.getElementById('recentCallsList'),
+      weatherCity: document.getElementById('weatherCity'),
+      weatherRisk: document.getElementById('weatherRisk'),
+      weatherValue: document.getElementById('weatherValue'),
+      weatherDays: document.getElementById('weatherDays'),
+      pendingAccessCard: document.getElementById('pendingAccessCard'),
+      pendingAccessList: document.getElementById('pendingAccessList')
     };
 
     function callServer(fnName, ...args) {
@@ -564,20 +949,56 @@
       element.className = 'message' + (tone ? ' ' + tone : '');
     }
 
+    function requireResponse(response, fallbackMessage) {
+      if (!response) {
+        throw new Error(fallbackMessage || 'O servidor nao retornou dados.');
+      }
+
+      if (response.success === false) {
+        const code = response.error && response.error.code ? response.error.code + ': ' : '';
+        throw new Error(code + (response.error && response.error.message ? response.error.message : fallbackMessage));
+      }
+
+      return response;
+    }
+
     function loadSession() {
       setMessage(els.loginMessage, 'Verificando sua conta Google...', '');
       els.loginButton.disabled = true;
 
       callServer('getSessionContext')
         .then((response) => {
+          response = requireResponse(response, 'Nao foi possivel verificar o acesso.');
           state.session = response.data;
           renderAccessState(response.data);
         })
         .catch((error) => {
-          setMessage(els.loginMessage, error.message || 'Nao foi possivel verificar o acesso.', 'error');
+          showSessionDiagnostic(error.message || 'Nao foi possivel verificar o acesso.');
         })
         .finally(() => {
           els.loginButton.disabled = false;
+        });
+    }
+
+    function showSessionDiagnostic(baseMessage) {
+      callServer('diagnosticarSessao')
+        .then((response) => {
+          if (!response || !response.success) {
+            setMessage(els.loginMessage, baseMessage, 'error');
+            return;
+          }
+
+          const data = response.data || {};
+          const details = [
+            baseMessage,
+            'Conta detectada: ' + (data.activeEmail || 'nao identificada'),
+            'Usuario na planilha: ' + (data.usuarioEncontrado ? 'sim' : 'nao'),
+            'Ativo: ' + (data.usuarioAtivo ? 'sim' : 'nao')
+          ];
+          setMessage(els.loginMessage, details.join(' | '), 'error');
+        })
+        .catch(() => {
+          setMessage(els.loginMessage, baseMessage, 'error');
         });
     }
 
@@ -615,6 +1036,161 @@
       els.loginView.style.display = 'none';
       els.dashboardView.classList.add('active');
       els.dashboardGreeting.textContent = 'Bem-vindo, ' + (user && user.nome ? user.nome : 'usuario autorizado') + '.';
+      loadDashboard();
+    }
+
+    function loadDashboard() {
+      setDashboardLoading();
+      els.refreshDashboardButton.disabled = true;
+
+      callServer('getDashboardData')
+        .then((response) => {
+          response = requireResponse(response, 'Nao foi possivel carregar o dashboard.');
+          renderDashboard(response.data || {});
+        })
+        .catch((error) => {
+          renderDashboardError(error.message || 'Erro ao carregar dashboard.');
+        })
+        .finally(() => {
+          els.refreshDashboardButton.disabled = false;
+        });
+    }
+
+    function setDashboardLoading() {
+      els.recentCallsList.innerHTML = '<div class="empty-state">Carregando chamados...</div>';
+      els.weatherRisk.textContent = 'Carregando';
+      els.weatherValue.textContent = '-- mm';
+      els.weatherDays.innerHTML = '';
+    }
+
+    function renderDashboard(data) {
+      const metrics = data.metrics || {};
+      els.metricOpen.textContent = metrics.abertos || 0;
+      els.metricProgress.textContent = metrics.em_execucao || 0;
+      els.metricDone.textContent = metrics.concluidos || 0;
+      els.metricRain.textContent = metrics.alertas_chuva || 0;
+
+      renderWeather(data.weather || {});
+      renderChamados(data.chamados || []);
+      renderPendingAccess(data.pendingAccess || [], Boolean(data.canManageAccess));
+    }
+
+    function renderDashboardError(message) {
+      els.recentCallsList.innerHTML = '<div class="empty-state">' + escapeHtml(message) + '</div>';
+      els.weatherRisk.textContent = 'Indisponivel';
+    }
+
+    function renderWeather(weather) {
+      els.weatherCity.textContent = weather.city || 'Londrina/PR';
+
+      if (!weather.available) {
+        els.weatherRisk.textContent = 'Indisponivel';
+        els.weatherValue.textContent = '-- mm';
+        els.weatherDays.innerHTML = '<div class="weather-day"><span>Previsao</span><strong>Indisponivel</strong></div>';
+        return;
+      }
+
+      els.weatherRisk.textContent = riskLabel(weather.risk);
+      els.weatherValue.textContent = formatNumber(weather.max_precipitation_mm) + ' mm';
+      els.weatherDays.innerHTML = (weather.days || []).map((day) => {
+        return '<div class="weather-day">' +
+          '<span>' + escapeHtml(day.label) + '</span>' +
+          '<strong>' + formatNumber(day.precipitation_mm) + ' mm</strong>' +
+        '</div>';
+      }).join('');
+    }
+
+    function renderChamados(chamados) {
+      state.chamados = chamados;
+
+      if (!chamados.length) {
+        els.recentCallsList.innerHTML = '<div class="empty-state">Nenhum chamado registrado ainda.</div>';
+        return;
+      }
+
+      els.recentCallsList.innerHTML = chamados.map((chamado) => {
+        return '<div class="list-row">' +
+          '<div><strong>' + escapeHtml(chamado.numero || '-') + '</strong><span>' + formatDate(chamado.data_abertura) + '</span></div>' +
+          '<div><strong>' + escapeHtml(chamado.descricao || '-') + '</strong><span>' + escapeHtml((chamado.predio_id || 'Local nao informado') + ' - ' + (chamado.centro_sigla || '-')) + '</span></div>' +
+          '<div><strong>' + escapeHtml(chamado.prioridade || 'NORMAL') + '</strong><span>Prioridade</span></div>' +
+          '<div class="status-badge">' + escapeHtml(statusLabel(chamado.status)) + '</div>' +
+          '<button class="row-action" type="button" data-call-id="' + escapeHtml(chamado.id) + '">Gerenciar</button>' +
+        '</div>';
+      }).join('');
+    }
+
+    function renderPendingAccess(items, canManageAccess) {
+      els.pendingAccessCard.hidden = !canManageAccess;
+
+      if (!canManageAccess) {
+        return;
+      }
+
+      if (!items.length) {
+        els.pendingAccessList.innerHTML = '<div class="empty-state">Nenhuma solicitacao pendente.</div>';
+        return;
+      }
+
+      els.pendingAccessList.innerHTML = items.map((item) => {
+        return '<div class="list-row">' +
+          '<div><strong>' + escapeHtml(item.nome || '-') + '</strong><span>' + escapeHtml(item.centro_sigla || '-') + '</span></div>' +
+          '<div><strong>' + escapeHtml(item.email || '-') + '</strong><span>' + formatDate(item.created_at) + '</span></div>' +
+          '<div><strong>' + escapeHtml(profileLabel(item.perfil)) + '</strong><span>Perfil</span></div>' +
+          '<div class="status-badge">Pendente</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function riskLabel(value) {
+      const labels = {
+        BAIXO: 'Baixo',
+        ATENCAO: 'Atencao',
+        CRITICO: 'Critico',
+        INDISPONIVEL: 'Indisponivel'
+      };
+      return labels[value] || 'Baixo';
+    }
+
+    function statusLabel(value) {
+      return String(value || 'ABERTO').replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+    }
+
+    function profileLabel(value) {
+      const labels = {
+        VISUALIZACAO: 'Visualizacao',
+        CHEFE_SETOR: 'Chefe de setor',
+        CHEFE_DIVISAO: 'Chefe de Divisão',
+        DIRETOR_CENTRO: 'Diretor de Centro',
+        MANUTENCAO: 'Manutencao',
+        GESTOR: 'Gestor'
+      };
+      return labels[value] || value || '-';
+    }
+
+    function formatNumber(value) {
+      return Number(value || 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+    }
+
+    function formatDate(value) {
+      if (!value) {
+        return '-';
+      }
+
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return String(value).slice(0, 10);
+      }
+
+      return date.toLocaleDateString('pt-BR');
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
     }
 
     function openRegisterModal() {
@@ -629,21 +1205,63 @@
       els.registerModal.classList.remove('open');
     }
 
-    function loadCentros() {
-      if (state.centrosLoaded) {
+    function openCallModal() {
+      els.callModal.classList.add('open');
+      setMessage(els.callMessage, '', '');
+      loadCentros().then(() => {
+        if (state.session && state.session.user && state.session.user.centro_sigla) {
+          els.callCentroSelect.value = state.session.user.centro_sigla;
+        }
+      });
+    }
+
+    function closeCallModal() {
+      els.callModal.classList.remove('open');
+    }
+
+    function openManageCallModal(chamadoId) {
+      const chamado = state.chamados.find((item) => item.id === chamadoId);
+      if (!chamado) {
         return;
       }
 
-      callServer('getCentrosAtivos')
+      els.manageCallId.value = chamado.id;
+      els.manageCallStatus.value = normalizeStatusValue(chamado.status);
+      els.manageCallPriority.value = chamado.prioridade || 'NORMAL';
+      els.manageCallDescription.value = chamado.descricao || '';
+      els.manageCallObservation.value = '';
+      els.manageCallSubtitle.textContent = (chamado.numero || '-') + ' - ' + (chamado.predio_id || chamado.centro_sigla || 'Local nao informado');
+      setMessage(els.manageCallMessage, '', '');
+      loadCallHistory(chamado.id);
+      els.manageCallModal.classList.add('open');
+    }
+
+    function closeManageCallModal() {
+      els.manageCallModal.classList.remove('open');
+    }
+
+    function loadCentros() {
+      if (state.centrosLoaded) {
+        return Promise.resolve(state.centros);
+      }
+
+      return callServer('getCentrosAtivos')
         .then((response) => {
+          response = requireResponse(response, 'Nao foi possivel carregar centros.');
           const centros = response.data || [];
-          els.centroSelect.innerHTML = '<option value="">Selecione um centro</option>' + centros.map((centro) => {
+          state.centros = centros;
+          const options = '<option value="">Selecione um centro</option>' + centros.map((centro) => {
             return '<option value="' + centro.sigla + '">' + centro.sigla + ' - ' + centro.nome + '</option>';
           }).join('');
+          els.centroSelect.innerHTML = options;
+          els.callCentroSelect.innerHTML = options;
           state.centrosLoaded = true;
+          return centros;
         })
         .catch(() => {
           els.centroSelect.innerHTML = '<option value="">Nao foi possivel carregar centros</option>';
+          els.callCentroSelect.innerHTML = '<option value="">Nao foi possivel carregar centros</option>';
+          return [];
         });
     }
 
@@ -662,10 +1280,7 @@
 
       callServer('registrarAcesso', payload)
         .then((response) => {
-          if (!response.success) {
-            setMessage(els.registerMessage, response.error.message, 'error');
-            return;
-          }
+          response = requireResponse(response, 'Erro ao registrar acesso.');
           setMessage(els.registerMessage, 'Solicitacao registrada. Aguarde aprovacao.', 'warning');
           setMessage(els.loginMessage, 'Seu cadastro foi recebido e aguarda aprovacao.', 'warning');
           setTimeout(closeRegisterModal, 900);
@@ -678,13 +1293,157 @@
         });
     }
 
+    function handleCreateCall(event) {
+      event.preventDefault();
+      const formData = new FormData(els.callForm);
+      const payload = Object.fromEntries(formData.entries());
+
+      if (!String(payload.descricao || '').trim()) {
+        setMessage(els.callMessage, 'Informe a descricao do chamado.', 'error');
+        return;
+      }
+
+      if (!String(payload.centro_sigla || '').trim()) {
+        setMessage(els.callMessage, 'Selecione o centro ou unidade.', 'error');
+        return;
+      }
+
+      els.submitCallButton.disabled = true;
+      setMessage(els.callMessage, 'Abrindo chamado...', '');
+
+      callServer('criarChamado', payload)
+        .then((response) => {
+          response = requireResponse(response, 'Erro ao abrir chamado.');
+          setMessage(els.callMessage, 'Chamado ' + response.data.numero + ' aberto com sucesso.', '');
+          els.callForm.reset();
+          setTimeout(() => {
+            closeCallModal();
+            loadDashboard();
+          }, 700);
+        })
+        .catch((error) => {
+          setMessage(els.callMessage, error.message || 'Erro ao abrir chamado.', 'error');
+        })
+        .finally(() => {
+          els.submitCallButton.disabled = false;
+        });
+    }
+
+    function handleManageCall(event) {
+      event.preventDefault();
+      const formData = new FormData(els.manageCallForm);
+      const payload = Object.fromEntries(formData.entries());
+
+      els.submitManageCallButton.disabled = true;
+      setMessage(els.manageCallMessage, 'Salvando alteracao...', '');
+
+      callServer('atualizarChamado', payload)
+        .then((response) => {
+          response = requireResponse(response, 'Erro ao atualizar chamado.');
+          setMessage(els.manageCallMessage, 'Chamado atualizado com sucesso.', '');
+          loadCallHistory(payload.id);
+          setTimeout(() => {
+            closeManageCallModal();
+            loadDashboard();
+          }, 600);
+        })
+        .catch((error) => {
+          setMessage(els.manageCallMessage, error.message || 'Erro ao atualizar chamado.', 'error');
+        })
+        .finally(() => {
+          els.submitManageCallButton.disabled = false;
+        });
+    }
+
+    function normalizeStatusValue(value) {
+      const status = String(value || 'ABERTO').toUpperCase().replace(/\s+/g, '_').replace(/-/g, '_');
+      const allowed = ['ABERTO', 'EM_ANALISE', 'EM_EXECUCAO', 'CONCLUIDO'];
+      return allowed.includes(status) ? status : 'ABERTO';
+    }
+
+    function loadCallHistory(chamadoId) {
+      els.manageCallHistory.innerHTML = '<div class="empty-state">Carregando historico...</div>';
+
+      callServer('getHistoricoChamado', chamadoId)
+        .then((response) => {
+          response = requireResponse(response, 'Nao foi possivel carregar o historico.');
+          renderCallHistory(response.data || []);
+        })
+        .catch((error) => {
+          els.manageCallHistory.innerHTML = '<div class="empty-state">' + escapeHtml(error.message || 'Erro ao carregar historico.') + '</div>';
+        });
+    }
+
+    function renderCallHistory(items) {
+      if (!items.length) {
+        els.manageCallHistory.innerHTML = '<div class="empty-state">Nenhum historico registrado.</div>';
+        return;
+      }
+
+      els.manageCallHistory.innerHTML = items.map((item) => {
+        const statusFlow = item.status_anterior || item.status_novo
+          ? escapeHtml(statusLabel(item.status_anterior || '-')) + ' -> ' + escapeHtml(statusLabel(item.status_novo || '-'))
+          : 'Sem mudanca de status';
+
+        return '<div class="history-item">' +
+          '<strong>' + escapeHtml(actionLabel(item.acao)) + ' · ' + formatDateTime(item.created_at) + '</strong>' +
+          '<span>' + statusFlow + '</span>' +
+          '<span>' + escapeHtml(item.observacao || '-') + '</span>' +
+          '<span>Usuario: ' + escapeHtml(item.usuario_id || '-') + '</span>' +
+        '</div>';
+      }).join('');
+    }
+
+    function actionLabel(value) {
+      const labels = {
+        ABERTURA: 'Abertura',
+        ALTERACAO_STATUS: 'Alteracao de status'
+      };
+      return labels[value] || statusLabel(value || 'Registro');
+    }
+
+    function formatDateTime(value) {
+      if (!value) {
+        return '-';
+      }
+
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return String(value).replace('T', ' ');
+      }
+
+      return date.toLocaleString('pt-BR');
+    }
+
     els.loginButton.addEventListener('click', loadSession);
+    els.refreshDashboardButton.addEventListener('click', loadDashboard);
+    els.newCallButton.addEventListener('click', openCallModal);
     els.registerButton.addEventListener('click', openRegisterModal);
     els.closeModalButton.addEventListener('click', closeRegisterModal);
+    els.closeCallModalButton.addEventListener('click', closeCallModal);
+    els.closeManageCallModalButton.addEventListener('click', closeManageCallModal);
     els.registerForm.addEventListener('submit', handleRegister);
+    els.callForm.addEventListener('submit', handleCreateCall);
+    els.manageCallForm.addEventListener('submit', handleManageCall);
+    els.recentCallsList.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-call-id]');
+      if (button) {
+        openManageCallModal(button.getAttribute('data-call-id'));
+      }
+    });
     els.registerModal.addEventListener('click', (event) => {
       if (event.target === els.registerModal) {
         closeRegisterModal();
+      }
+    });
+    els.callModal.addEventListener('click', (event) => {
+      if (event.target === els.callModal) {
+        closeCallModal();
+      }
+    });
+    els.manageCallModal.addEventListener('click', (event) => {
+      if (event.target === els.manageCallModal) {
+        closeManageCallModal();
       }
     });
 

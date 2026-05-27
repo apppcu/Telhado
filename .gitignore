@@ -43,3 +43,8 @@ temp/
 # Generated docs / exports
 *.pdf
 *.docx
+
+# Local agent/preview artifacts
+.agents/
+.superpowers/
+skills-lock.json

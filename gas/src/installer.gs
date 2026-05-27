@@ -117,14 +117,25 @@ const WORKSPACE_SCHEMA = {
 };
 
 const WORKSPACE_CENTROS = [
+  ['CENTRO-PROGRAD', 'PROGRAD', 'Pro-Reitoria de Graduacao'],
+  ['CENTRO-PRORH', 'PRORH', 'Pro-Reitoria de Recursos Humanos'],
+  ['CENTRO-PROAF', 'PROAF', 'Pro-Reitoria de Administracao e Financas'],
+  ['CENTRO-PROEX', 'PROEX', 'Pro-Reitoria de Extensao, Cultura e Sociedade'],
+  ['CENTRO-PROPPG', 'PROPPG', 'Pro-Reitoria de Pesquisa e Pos-Graduacao'],
+  ['CENTRO-PROPLAN', 'PROPLAN', 'Pro-Reitoria de Planejamento'],
+  ['CENTRO-PROAE', 'PROAE', 'Pro-Reitoria de Assuntos Estudantis'],
+  ['CENTRO-PCU', 'PCU', 'Prefeitura do Campus Universitario'],
+  ['CENTRO-DSG', 'DSG', 'Diretoria de Servicos Gerais'],
+  ['CENTRO-DOM', 'DOM', 'Diretoria de Obras e Manutencao'],
+  ['CENTRO-DME', 'DME', 'Diretoria de Moveis e Equipamentos'],
   ['CENTRO-CCA', 'CCA', 'Centro de Ciencias Agrarias'],
   ['CENTRO-CCB', 'CCB', 'Centro de Ciencias Biologicas'],
   ['CENTRO-CCE', 'CCE', 'Centro de Ciencias Exatas'],
   ['CENTRO-CCS', 'CCS', 'Centro de Ciencias da Saude'],
   ['CENTRO-CECA', 'CECA', 'Centro de Educacao, Comunicacao e Artes'],
   ['CENTRO-CEFE', 'CEFE', 'Centro de Educacao Fisica e Esportes'],
-  ['CENTRO-CESA', 'CESA', 'Centro de Estudos Sociais Aplicados'],
-  ['CENTRO-CLCH', 'CLCH', 'Centro de Letras e Ciencias Humanas'],
+  ['CENTRO-CCSA', 'CCSA', 'Centro de Ciencias Sociais Aplicadas'],
+  ['CENTRO-CCH', 'CCH', 'Centro de Letras e Ciencias Humanas'],
   ['CENTRO-CTU', 'CTU', 'Centro de Tecnologia e Urbanismo']
 ];
 
@@ -172,17 +183,17 @@ const WORKSPACE_PREDIOS = [
   ['CEFE', 'Departamento de Ciencias do Esporte'],
   ['CEFE', 'Departamento de Educacao Fisica'],
   ['CEFE', 'Departamento de Estudos do Movimento Humano'],
-  ['CESA', 'Departamento de Administracao'],
-  ['CESA', 'Departamento de Ciencias Contabeis'],
-  ['CESA', 'Departamento de Ciencias Economicas'],
-  ['CESA', 'Departamento de Direito Privado'],
-  ['CESA', 'Departamento de Direito Publico'],
-  ['CESA', 'Departamento de Servico Social'],
-  ['CLCH', 'Departamento de Ciencias Sociais'],
-  ['CLCH', 'Departamento de Filosofia'],
-  ['CLCH', 'Departamento de Historia'],
-  ['CLCH', 'Departamento de Letras Estrangeiras Modernas'],
-  ['CLCH', 'Departamento de Letras Vernaculas e Classicas'],
+  ['CCSA', 'Departamento de Administracao'],
+  ['CCSA', 'Departamento de Ciencias Contabeis'],
+  ['CCSA', 'Departamento de Ciencias Economicas'],
+  ['CCSA', 'Departamento de Direito Privado'],
+  ['CCSA', 'Departamento de Direito Publico'],
+  ['CCSA', 'Departamento de Servico Social'],
+  ['CCH', 'Departamento de Ciencias Sociais'],
+  ['CCH', 'Departamento de Filosofia'],
+  ['CCH', 'Departamento de Historia'],
+  ['CCH', 'Departamento de Letras Estrangeiras Modernas'],
+  ['CCH', 'Departamento de Letras Vernaculas e Classicas'],
   ['CTU', 'Departamento de Arquitetura e Urbanismo'],
   ['CTU', 'Departamento de Construcao Civil'],
   ['CTU', 'Departamento de Engenharia Eletrica'],
@@ -237,6 +248,36 @@ function instalarBancoWorkspace() {
       data: null,
       error: {
         code: 'WORKSPACE_SETUP_ERROR',
+        message: error.message
+      }
+    };
+  }
+}
+
+function atualizarCentrosInstitucionais() {
+  const summary = {
+    centros_inserted: 0,
+    centros_updated: 0,
+    predios_updated: 0
+  };
+
+  try {
+    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    ensureWorkspaceSheets_(spreadsheet, { sheets: [] });
+    syncCentrosInstitucionais_(spreadsheet, summary);
+    syncPrediosLegacyCentros_(spreadsheet, summary);
+    appendSyncLog_(spreadsheet, 'SUCESSO', 'Centros institucionais atualizados.', summary);
+    return {
+      success: true,
+      data: summary,
+      error: null
+    };
+  } catch (error) {
+    return {
+      success: false,
+      data: null,
+      error: {
+        code: 'CENTROS_UPDATE_ERROR',
         message: error.message
       }
     };
@@ -319,6 +360,125 @@ function seedCentros_(spreadsheet, summary) {
 
   appendRows_(sheet, rows);
   summary.centros_inserted = rows.length;
+}
+
+function syncCentrosInstitucionais_(spreadsheet, summary) {
+  const sheet = spreadsheet.getSheetByName('centros');
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const index = headerIndex_(headers);
+  const lastRow = sheet.getLastRow();
+  const rows = lastRow > 1 ? sheet.getRange(2, 1, lastRow - 1, headers.length).getValues() : [];
+  const now = now_();
+  const bySigla = {};
+  const byId = {};
+  const legacySiglas = {
+    CESA: 'CCSA',
+    CLCH: 'CCH'
+  };
+
+  rows.forEach(function(row, offset) {
+    const rowNumber = offset + 2;
+    const id = String(row[index.id] || '').trim();
+    const sigla = String(row[index.sigla] || '').trim().toUpperCase();
+
+    if (id) {
+      byId[id] = { row: row, rowNumber: rowNumber };
+    }
+    if (sigla) {
+      bySigla[sigla] = { row: row, rowNumber: rowNumber };
+    }
+  });
+
+  Object.keys(legacySiglas).forEach(function(legacy) {
+    const canonicalSigla = legacySiglas[legacy];
+    const canonical = findCentroSeedBySigla_(canonicalSigla);
+    const legacyEntry = bySigla[legacy];
+
+    if (!legacyEntry || !canonical) {
+      return;
+    }
+
+    sheet.getRange(legacyEntry.rowNumber, index.id + 1).setValue(canonical[0]);
+    sheet.getRange(legacyEntry.rowNumber, index.sigla + 1).setValue(canonical[1]);
+    sheet.getRange(legacyEntry.rowNumber, index.nome + 1).setValue(canonical[2]);
+    sheet.getRange(legacyEntry.rowNumber, index.ativo + 1).setValue(true);
+    sheet.getRange(legacyEntry.rowNumber, index.updated_at + 1).setValue(now);
+    summary.centros_updated++;
+
+    byId[canonical[0]] = legacyEntry;
+    bySigla[canonical[1]] = legacyEntry;
+    delete bySigla[legacy];
+  });
+
+  WORKSPACE_CENTROS.forEach(function(centro) {
+    const entry = bySigla[centro[1]] || byId[centro[0]];
+
+    if (entry) {
+      sheet.getRange(entry.rowNumber, index.id + 1).setValue(centro[0]);
+      sheet.getRange(entry.rowNumber, index.sigla + 1).setValue(centro[1]);
+      sheet.getRange(entry.rowNumber, index.nome + 1).setValue(centro[2]);
+      sheet.getRange(entry.rowNumber, index.ativo + 1).setValue(true);
+      sheet.getRange(entry.rowNumber, index.updated_at + 1).setValue(now);
+      summary.centros_updated++;
+      return;
+    }
+
+    appendRows_(sheet, [[
+      centro[0],
+      centro[1],
+      centro[2],
+      '',
+      true,
+      '',
+      now,
+      now
+    ]]);
+    summary.centros_inserted++;
+  });
+}
+
+function syncPrediosLegacyCentros_(spreadsheet, summary) {
+  const sheet = spreadsheet.getSheetByName('predios');
+  if (!sheet || sheet.getLastRow() < 2) {
+    return;
+  }
+
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const index = headerIndex_(headers);
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues();
+  const replacements = {
+    CESA: { id: 'CENTRO-CCSA', sigla: 'CCSA' },
+    CLCH: { id: 'CENTRO-CCH', sigla: 'CCH' }
+  };
+
+  values.forEach(function(row, offset) {
+    const sigla = String(row[index.centro_sigla] || '').trim().toUpperCase();
+    const replacement = replacements[sigla];
+
+    if (!replacement) {
+      return;
+    }
+
+    const rowNumber = offset + 2;
+    sheet.getRange(rowNumber, index.centro_id + 1).setValue(replacement.id);
+    sheet.getRange(rowNumber, index.centro_sigla + 1).setValue(replacement.sigla);
+    if (index.updated_at >= 0) {
+      sheet.getRange(rowNumber, index.updated_at + 1).setValue(now_());
+    }
+    summary.predios_updated++;
+  });
+}
+
+function findCentroSeedBySigla_(sigla) {
+  const target = String(sigla || '').trim().toUpperCase();
+
+  for (var i = 0; i < WORKSPACE_CENTROS.length; i++) {
+    if (WORKSPACE_CENTROS[i][1] === target) {
+      return WORKSPACE_CENTROS[i];
+    }
+  }
+
+  return null;
 }
 
 function seedPredios_(spreadsheet, summary) {
@@ -423,6 +583,14 @@ function appendRows_(sheet, rows) {
     return;
   }
   sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+}
+
+function headerIndex_(headers) {
+  const index = {};
+  headers.forEach(function(header, position) {
+    index[String(header || '').trim()] = position;
+  });
+  return index;
 }
 
 function appendSyncLog_(spreadsheet, status, message, payload) {

@@ -384,3 +384,290 @@ ID do projeto Apps Script:
 ## Prioridade Atual
 
 Comecar pelo dashboard do painel web usando Google Apps Script HTML Service.
+
+---
+
+# Entrega do Painel Web - 2026-05-27
+
+## Escopo Implementado
+
+Foi implementado o primeiro fluxo operacional completo do painel web em Google Apps Script HTML Service.
+
+Principais entregas:
+
+- login institucional via conta UEL;
+- cadastro de acesso pelo painel;
+- ativacao de usuarios via aba `usuarios`;
+- dashboard pos-login;
+- card de previsao de chuva para Londrina/PR;
+- abertura de chamados pelo painel web;
+- listagem de chamados recentes;
+- gerenciamento de status do chamado;
+- historico visivel no modal do chamado;
+- registro de auditoria na aba `historico_chamado`;
+- seed/atualizacao de centros institucionais;
+- perfis adicionais de acesso.
+
+---
+
+## Web App
+
+O Apps Script passou a usar manifesto com configuracao de Web App:
+
+```json
+"webapp": {
+  "executeAs": "USER_ACCESSING",
+  "access": "DOMAIN"
+}
+```
+
+Motivo:
+
+- executar como usuario acessando permite identificar corretamente o e-mail institucional;
+- acesso limitado ao dominio UEL;
+- login validado contra a aba `usuarios`.
+
+Ultima implantacao funcional:
+
+```text
+Versao 16 - historico visivel chamado 2026-05-27
+```
+
+URL:
+
+```text
+https://script.google.com/a/macros/uel.br/s/AKfycbzO6gN7sGzPuI3hlswYMq8IeLqnBQA_CtdOeH5yuH9fmxImYywfzAUcG2TfGvGGysmgWA/exec
+```
+
+---
+
+## Autenticacao e Usuarios
+
+A validacao do acesso usa:
+
+```text
+Session.getActiveUser().getEmail()
+```
+
+Regra:
+
+- e-mail precisa terminar com `@uel.br`;
+- e-mail precisa existir na aba `usuarios`;
+- coluna `ativo` precisa estar `TRUE`.
+
+Foi adicionado diagnostico temporario de sessao para identificar:
+
+- conta detectada;
+- usuario encontrado na planilha;
+- status ativo/inativo.
+
+Observacao tecnica:
+
+- datas vindas do Google Sheets precisam ser normalizadas para texto antes de retornar via `google.script.run`;
+- a funcao `normalizeSheetValue_` foi adicionada para evitar erro de serializacao.
+
+---
+
+## Dashboard Pos-Login
+
+O dashboard exibe:
+
+- chamados abertos;
+- chamados em execucao;
+- chamados concluidos;
+- alertas de chuva;
+- lista de chamados recentes;
+- previsao de chuva;
+- solicitacoes pendentes para perfis administrativos.
+
+Servico criado:
+
+```text
+gas/src/dashboard.gs
+```
+
+Funcao principal:
+
+```javascript
+getDashboardData()
+```
+
+---
+
+## Previsao do Tempo
+
+O dashboard consulta Open-Meteo para os proximos 4 dias.
+
+Arquivo:
+
+```text
+gas/src/clima.gs
+```
+
+Configuracao atual:
+
+```text
+Latitude: -23.3045
+Longitude: -51.1696
+Timezone: America/Sao_Paulo
+Variavel: precipitation_sum
+forecast_days=4
+```
+
+Risco operacional:
+
+```text
+BAIXO: abaixo do threshold
+ATENCAO: igual ou acima do threshold
+CRITICO: igual ou acima de 2x threshold
+```
+
+Threshold atual:
+
+```text
+5 mm
+```
+
+---
+
+## Chamados
+
+Arquivo principal:
+
+```text
+gas/src/chamados.gs
+```
+
+Funcionalidades implementadas:
+
+- `listarChamados()`;
+- `criarChamado(payload)`;
+- `atualizarChamado(item)`;
+- `getHistoricoChamado(chamadoId)`.
+
+Criacao de chamado:
+
+- gera ID `CHAM-<uuid>`;
+- gera numero sequencial `CH-000001`;
+- grava na aba `chamados`;
+- registra abertura na aba `historico_chamado`;
+- atualiza dashboard apos salvar.
+
+Status suportados:
+
+```text
+ABERTO
+EM_ANALISE
+EM_EXECUCAO
+CONCLUIDO
+```
+
+Ao concluir:
+
+- grava `data_fechamento` se ainda estiver vazia;
+- registra alteracao no historico.
+
+---
+
+## Historico de Chamados
+
+O modal `Gerenciar chamado` agora mostra uma linha do tempo com:
+
+- acao;
+- data/hora;
+- status anterior;
+- status novo;
+- observacao;
+- usuario.
+
+Aba usada:
+
+```text
+historico_chamado
+```
+
+Acoes atuais:
+
+```text
+ABERTURA
+ALTERACAO_STATUS
+```
+
+---
+
+## Centros e Perfis
+
+Foram adicionados ao seed:
+
+Pro-Reitorias:
+
+```text
+PROGRAD
+PRORH
+PROAF
+PROEX
+PROPPG
+PROPLAN
+PROAE
+```
+
+PCU e diretorias:
+
+```text
+PCU
+DSG
+DOM
+DME
+```
+
+Centros corrigidos:
+
+```text
+CESA -> CCSA
+CLCH -> CCH
+```
+
+Perfis adicionados:
+
+```text
+CHEFE_DIVISAO
+DIRETOR_CENTRO
+```
+
+Funcao de manutencao:
+
+```javascript
+atualizarCentrosInstitucionais()
+```
+
+Arquivo:
+
+```text
+gas/src/installer.gs
+```
+
+---
+
+## Observacoes de Deploy
+
+O `clasp deploy` so passou a gerar URL de Web App correta depois da inclusao da secao `webapp` no `appsscript.json`.
+
+URLs com `/library/d/...` indicam implantacao como biblioteca, nao App da Web.
+
+URL correta deve ter formato:
+
+```text
+https://script.google.com/a/macros/uel.br/s/<deployment-id>/exec
+```
+
+---
+
+## Proximo Passo Recomendado
+
+Implementar aprovacao de usuarios direto pelo painel:
+
+- listar usuarios com `ativo = FALSE`;
+- botao aprovar;
+- selecao/ajuste de perfil;
+- gravar `ativo = TRUE`;
+- registrar log da aprovacao.
