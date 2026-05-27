@@ -9,9 +9,9 @@ const ACCESS_STATES = {
   UNKNOWN_EMAIL: 'UNKNOWN_EMAIL'
 };
 
-function getSessionContext() {
+function getSessionContext(payload) {
   try {
-    const email = getCurrentUserEmail_();
+    const email = getAccessEmailFromPayload_(payload);
 
     if (!email) {
       return success_({
@@ -228,6 +228,20 @@ function normalizeSheetValue_(value) {
 
 function getCurrentUserEmail_() {
   return normalizeEmail_(Session.getActiveUser().getEmail());
+}
+
+function getAccessEmailFromPayload_(payload) {
+  const data = payload || {};
+  return normalizeEmail_(data.auth_email || data.email);
+}
+
+function getAuthorizedUserFromPayload_(payload) {
+  const email = getAccessEmailFromPayload_(payload);
+  if (!email || !isUelEmail_(email)) {
+    return null;
+  }
+
+  return findUsuarioByEmail_(email);
 }
 
 function isUelEmail_(email) {

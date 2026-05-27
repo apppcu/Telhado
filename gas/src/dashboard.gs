@@ -2,10 +2,9 @@
 
 const DASHBOARD_ADMIN_PROFILES = ['GESTOR', 'ADMIN', 'DIRETOR_CENTRO', 'CHEFE_DIVISAO'];
 
-function getDashboardData() {
+function getDashboardData(payload) {
   try {
-    const email = getCurrentUserEmail_();
-    const user = findUsuarioByEmail_(email);
+    const user = getAuthorizedUserFromPayload_(payload);
 
     if (!user) {
       return accessError_('USUARIO_NAO_ENCONTRADO', 'Usuario nao encontrado.');

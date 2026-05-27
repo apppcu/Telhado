@@ -6,8 +6,8 @@ function listarChamados() {
 function criarChamado(payload) {
   try {
     const data = payload || {};
-    const email = getCurrentUserEmail_();
-    const user = findUsuarioByEmail_(email);
+    const email = getAccessEmailFromPayload_(data);
+    const user = getAuthorizedUserFromPayload_(data);
 
     if (!user || !(String(user.ativo).toUpperCase() === 'TRUE' || user.ativo === true)) {
       return accessError_('USUARIO_NAO_AUTORIZADO', 'Usuario nao autorizado para abrir chamados.');
@@ -70,15 +70,14 @@ function criarChamado(payload) {
   }
 }
 
-function getHistoricoChamado(chamadoId) {
+function getHistoricoChamado(chamadoId, payload) {
   try {
     const id = String(chamadoId || '').trim();
     if (!id) {
       return accessError_('CHAMADO_ID_OBRIGATORIO', 'Informe o chamado para consultar historico.');
     }
 
-    const email = getCurrentUserEmail_();
-    const user = findUsuarioByEmail_(email);
+    const user = getAuthorizedUserFromPayload_(payload);
     if (!user || !(String(user.ativo).toUpperCase() === 'TRUE' || user.ativo === true)) {
       return accessError_('USUARIO_NAO_AUTORIZADO', 'Usuario nao autorizado para consultar historico.');
     }
@@ -129,8 +128,8 @@ function atualizarChamado(item) {
       return accessError_('STATUS_INVALIDO', 'Selecione um status valido.');
     }
 
-    const email = getCurrentUserEmail_();
-    const user = findUsuarioByEmail_(email);
+    const email = getAccessEmailFromPayload_(data);
+    const user = getAuthorizedUserFromPayload_(data);
     if (!user || !(String(user.ativo).toUpperCase() === 'TRUE' || user.ativo === true)) {
       return accessError_('USUARIO_NAO_AUTORIZADO', 'Usuario nao autorizado para atualizar chamados.');
     }

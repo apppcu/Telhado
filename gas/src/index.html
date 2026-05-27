@@ -143,6 +143,28 @@
       min-height: 48px;
     }
 
+    .login-email-field {
+      margin-top: 14px;
+    }
+
+    .login-email-field label {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .login-email-field input {
+      width: 100%;
+      min-height: 46px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--white);
+      color: var(--ink);
+      padding: 0 14px;
+    }
+
     .status-dot {
       width: 10px;
       height: 10px;
@@ -654,9 +676,10 @@
       </p>
 
       <div class="access-card">
-        <div class="session-line">
-          <span id="sessionEmail">Verificando conta institucional...</span>
-          <span class="status-dot" aria-hidden="true"></span>
+        <span id="sessionEmail" class="sr-only"></span>
+        <div class="login-email-field">
+          <label for="loginEmail">E-mail institucional</label>
+          <input id="loginEmail" name="loginEmail" type="email" autocomplete="email" placeholder="nome@uel.br">
         </div>
         <div class="actions">
           <button id="loginButton" class="btn btn-primary" type="button">Entrar com e-mail institucional</button>
@@ -883,6 +906,7 @@
   <script>
     const state = {
       session: null,
+      authEmail: '',
       centrosLoaded: false,
       centros: [],
       chamados: []
@@ -892,6 +916,7 @@
       loginView: document.getElementById('loginView'),
       dashboardView: document.getElementById('dashboardView'),
       sessionEmail: document.getElementById('sessionEmail'),
+      loginEmail: document.getElementById('loginEmail'),
       loginMessage: document.getElementById('loginMessage'),
       loginButton: document.getElementById('loginButton'),
       registerButton: document.getElementById('registerButton'),
@@ -962,14 +987,31 @@
       return response;
     }
 
+    function getTypedAuthEmail() {
+      return String(els.loginEmail.value || '').trim().toLowerCase();
+    }
+
+    function getAuthPayload() {
+      return { auth_email: state.authEmail || getTypedAuthEmail() };
+    }
+
     function loadSession() {
-      setMessage(els.loginMessage, 'Verificando sua conta Google...', '');
+      const email = getTypedAuthEmail();
+
+      if (!email.endsWith('@uel.br')) {
+        setMessage(els.loginMessage, 'Informe um e-mail institucional @uel.br.', 'error');
+        els.loginEmail.focus();
+        return;
+      }
+
+      setMessage(els.loginMessage, 'Verificando acesso institucional...', '');
       els.loginButton.disabled = true;
 
-      callServer('getSessionContext')
+      callServer('getSessionContext', { email: email })
         .then((response) => {
           response = requireResponse(response, 'Nao foi possivel verificar o acesso.');
           state.session = response.data;
+          state.authEmail = email;
           renderAccessState(response.data);
         })
         .catch((error) => {
@@ -1007,7 +1049,7 @@
       els.sessionEmail.textContent = email;
 
       if (!session || session.accessState === 'UNKNOWN_EMAIL') {
-        setMessage(els.loginMessage, 'Nao foi possivel identificar o e-mail. Confirme se o Web App esta publicado para executar como usuario acessando.', 'warning');
+        setMessage(els.loginMessage, 'Informe seu e-mail institucional para acessar o painel.', 'warning');
         return;
       }
 
@@ -1043,7 +1085,7 @@
       setDashboardLoading();
       els.refreshDashboardButton.disabled = true;
 
-      callServer('getDashboardData')
+      callServer('getDashboardData', getAuthPayload())
         .then((response) => {
           response = requireResponse(response, 'Nao foi possivel carregar o dashboard.');
           renderDashboard(response.data || {});
@@ -1195,8 +1237,9 @@
 
     function openRegisterModal() {
       els.registerModal.classList.add('open');
-      if (state.session && state.session.email) {
-        els.emailInput.value = state.session.email;
+      const email = state.authEmail || getTypedAuthEmail();
+      if (email) {
+        els.emailInput.value = email;
       }
       loadCentros();
     }
@@ -1281,6 +1324,8 @@
       callServer('registrarAcesso', payload)
         .then((response) => {
           response = requireResponse(response, 'Erro ao registrar acesso.');
+          state.authEmail = String(payload.email || '').trim().toLowerCase();
+          els.loginEmail.value = state.authEmail;
           setMessage(els.registerMessage, 'Solicitacao registrada. Aguarde aprovacao.', 'warning');
           setMessage(els.loginMessage, 'Seu cadastro foi recebido e aguarda aprovacao.', 'warning');
           setTimeout(closeRegisterModal, 900);
@@ -1297,6 +1342,7 @@
       event.preventDefault();
       const formData = new FormData(els.callForm);
       const payload = Object.fromEntries(formData.entries());
+      payload.auth_email = state.authEmail;
 
       if (!String(payload.descricao || '').trim()) {
         setMessage(els.callMessage, 'Informe a descricao do chamado.', 'error');
@@ -1333,6 +1379,7 @@
       event.preventDefault();
       const formData = new FormData(els.manageCallForm);
       const payload = Object.fromEntries(formData.entries());
+      payload.auth_email = state.authEmail;
 
       els.submitManageCallButton.disabled = true;
       setMessage(els.manageCallMessage, 'Salvando alteracao...', '');
@@ -1364,7 +1411,7 @@
     function loadCallHistory(chamadoId) {
       els.manageCallHistory.innerHTML = '<div class="empty-state">Carregando historico...</div>';
 
-      callServer('getHistoricoChamado', chamadoId)
+      callServer('getHistoricoChamado', chamadoId, getAuthPayload())
         .then((response) => {
           response = requireResponse(response, 'Nao foi possivel carregar o historico.');
           renderCallHistory(response.data || []);
@@ -1416,6 +1463,11 @@
     }
 
     els.loginButton.addEventListener('click', loadSession);
+    els.loginEmail.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        loadSession();
+      }
+    });
     els.refreshDashboardButton.addEventListener('click', loadDashboard);
     els.newCallButton.addEventListener('click', openCallModal);
     els.registerButton.addEventListener('click', openRegisterModal);
@@ -1446,8 +1498,7 @@
         closeManageCallModal();
       }
     });
-
-    loadSession();
+    setMessage(els.loginMessage, 'Digite seu e-mail @uel.br para acessar.', '');
   </script>
 </body>
 </html>
