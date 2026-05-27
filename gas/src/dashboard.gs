@@ -1,6 +1,6 @@
 // @version:1.0.0
 
-const DASHBOARD_ADMIN_PROFILES = ['GESTOR', 'ADMIN', 'DIRETOR_CENTRO', 'CHEFE_DIVISAO'];
+const DASHBOARD_ADMIN_PROFILES = ['ADMIN'];
 
 function getDashboardData(payload) {
   try {
@@ -67,7 +67,7 @@ function getPendingAccessRequests_(spreadsheet) {
       return {
         nome: row.nome || '-',
         email: row.email || '',
-        perfil: row.perfil || 'VISUALIZACAO',
+        perfil: row.perfil || 'USUARIO',
         centro_sigla: row.centro_sigla || '-',
         telefone: row.telefone || '',
         created_at: row.created_at || ''

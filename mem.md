@@ -660,6 +660,10 @@ URL correta deve ter formato:
 https://script.google.com/a/macros/uel.br/s/<deployment-id>/exec
 ```
 
+Preferencia do usuario:
+
+- Nao executar `clasp.cmd push` automaticamente. O usuario fara o push manualmente quando quiser publicar as alteracoes.
+
 ---
 
 ## Proximo Passo Recomendado

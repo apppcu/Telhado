@@ -541,6 +541,56 @@
       background: #fbfdfb;
     }
 
+    .pending-access-item {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfdfb;
+      min-width: 0;
+    }
+
+    .access-main {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .access-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .access-name,
+    .access-email {
+      min-width: 0;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .access-head strong,
+    .access-detail strong,
+    .access-detail span {
+      overflow-wrap: anywhere;
+    }
+
+    .access-detail {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .access-controls {
+      display: grid;
+      grid-template-columns: minmax(120px, 1fr);
+      gap: 8px;
+      align-items: center;
+    }
+
     .list-row strong {
       display: block;
       font-size: 14px;
@@ -572,6 +622,24 @@
       font-size: 12px;
       font-weight: 800;
       padding: 0 10px;
+    }
+
+    .access-profile {
+      min-height: 36px;
+      padding: 6px 9px;
+      font-size: 13px;
+      font-weight: 700;
+      background: var(--white);
+    }
+
+    .access-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .row-action.danger {
+      color: var(--danger);
     }
 
     .history-list {
@@ -653,7 +721,9 @@
       .form-grid,
       .dash-grid,
       .weather-days,
-      .list-row {
+      .list-row,
+      .access-detail,
+      .access-controls {
         grid-template-columns: 1fr;
       }
     }
@@ -778,7 +848,7 @@
             <option value="">Carregando centros...</option>
           </select>
         </div>
-        <div class="field full">
+        <div class="field full" hidden>
           <label for="perfil_solicitado">Perfil solicitado</label>
           <select id="perfil_solicitado" name="perfil_solicitado">
             <option value="VISUALIZACAO">Visualizacao</option>
@@ -1174,11 +1244,30 @@
       }
 
       els.pendingAccessList.innerHTML = items.map((item) => {
-        return '<div class="list-row">' +
-          '<div><strong>' + escapeHtml(item.nome || '-') + '</strong><span>' + escapeHtml(item.centro_sigla || '-') + '</span></div>' +
-          '<div><strong>' + escapeHtml(item.email || '-') + '</strong><span>' + formatDate(item.created_at) + '</span></div>' +
-          '<div><strong>' + escapeHtml(profileLabel(item.perfil)) + '</strong><span>Perfil</span></div>' +
-          '<div class="status-badge">Pendente</div>' +
+        const email = escapeHtml(item.email || '');
+        return '<div class="pending-access-item">' +
+          '<div class="access-main">' +
+            '<div class="access-head">' +
+              '<strong class="access-name">' + escapeHtml(item.nome || '-') + '</strong>' +
+              '<div class="status-badge">Pendente</div>' +
+            '</div>' +
+            '<div class="access-detail">' +
+              '<div><strong class="access-email">' + email + '</strong><span>E-mail</span></div>' +
+              '<div><strong>' + escapeHtml(item.centro_sigla || '-') + '</strong><span>Centro</span></div>' +
+              '<div><strong>' + escapeHtml(item.telefone || '-') + '</strong><span>Telefone</span></div>' +
+              '<div><strong>' + formatDate(item.created_at) + '</strong><span>Solicitado em</span></div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="access-controls">' +
+            '<select class="access-profile" data-access-profile="' + email + '" aria-label="Perfil de ' + email + '">' +
+              '<option value="USUARIO"' + (normalizeProfileValue(item.perfil) === 'USUARIO' ? ' selected' : '') + '>Usuario</option>' +
+              '<option value="ADMIN"' + (normalizeProfileValue(item.perfil) === 'ADMIN' ? ' selected' : '') + '>Admin</option>' +
+            '</select>' +
+            '<div class="access-actions">' +
+              '<button class="row-action" type="button" data-approve-email="' + email + '">Aprovar</button>' +
+              '<button class="row-action danger" type="button" data-reject-email="' + email + '">Rejeitar</button>' +
+            '</div>' +
+          '</div>' +
         '</div>';
       }).join('');
     }
@@ -1207,6 +1296,11 @@
         GESTOR: 'Gestor'
       };
       return labels[value] || value || '-';
+    }
+
+    function normalizeProfileValue(value) {
+      const profile = String(value || '').trim().toUpperCase();
+      return profile === 'ADMIN' ? 'ADMIN' : 'USUARIO';
     }
 
     function formatNumber(value) {
@@ -1402,6 +1496,53 @@
         });
     }
 
+    function handleApproveAccess(email, button) {
+      const profileSelect = Array.from(els.pendingAccessList.querySelectorAll('[data-access-profile]'))
+        .find((select) => select.getAttribute('data-access-profile') === email);
+      const payload = {
+        auth_email: state.authEmail,
+        email: email,
+        perfil: profileSelect ? profileSelect.value : 'USUARIO'
+      };
+
+      button.disabled = true;
+      button.textContent = 'Aprovando';
+
+      callServer('aprovarAcesso', payload)
+        .then((response) => {
+          requireResponse(response, 'Erro ao aprovar acesso.');
+          loadDashboard();
+        })
+        .catch((error) => {
+          button.disabled = false;
+          button.textContent = 'Aprovar';
+          els.pendingAccessList.insertAdjacentHTML('afterbegin', '<div class="empty-state">' + escapeHtml(error.message || 'Erro ao aprovar acesso.') + '</div>');
+        });
+    }
+
+    function handleRejectAccess(email, button) {
+      if (!confirm('Rejeitar a solicitacao de ' + email + '?')) {
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = 'Rejeitando';
+
+      callServer('rejeitarAcesso', {
+        auth_email: state.authEmail,
+        email: email
+      })
+        .then((response) => {
+          requireResponse(response, 'Erro ao rejeitar acesso.');
+          loadDashboard();
+        })
+        .catch((error) => {
+          button.disabled = false;
+          button.textContent = 'Rejeitar';
+          els.pendingAccessList.insertAdjacentHTML('afterbegin', '<div class="empty-state">' + escapeHtml(error.message || 'Erro ao rejeitar acesso.') + '</div>');
+        });
+    }
+
     function normalizeStatusValue(value) {
       const status = String(value || 'ABERTO').toUpperCase().replace(/\s+/g, '_').replace(/-/g, '_');
       const allowed = ['ABERTO', 'EM_ANALISE', 'EM_EXECUCAO', 'CONCLUIDO'];
@@ -1481,6 +1622,18 @@
       const button = event.target.closest('[data-call-id]');
       if (button) {
         openManageCallModal(button.getAttribute('data-call-id'));
+      }
+    });
+    els.pendingAccessList.addEventListener('click', (event) => {
+      const approveButton = event.target.closest('[data-approve-email]');
+      if (approveButton) {
+        handleApproveAccess(approveButton.getAttribute('data-approve-email'), approveButton);
+        return;
+      }
+
+      const rejectButton = event.target.closest('[data-reject-email]');
+      if (rejectButton) {
+        handleRejectAccess(rejectButton.getAttribute('data-reject-email'), rejectButton);
       }
     });
     els.registerModal.addEventListener('click', (event) => {

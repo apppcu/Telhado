@@ -8,6 +8,11 @@ const ACCESS_STATES = {
   DOMAIN_DENIED: 'DOMAIN_DENIED',
   UNKNOWN_EMAIL: 'UNKNOWN_EMAIL'
 };
+const ACCESS_PROFILES = {
+  USUARIO: 'USUARIO',
+  ADMIN: 'ADMIN'
+};
+const ACCESS_PROFILE_VALUES = [ACCESS_PROFILES.USUARIO, ACCESS_PROFILES.ADMIN];
 
 function getSessionContext(payload) {
   try {
@@ -80,7 +85,6 @@ function registrarAcesso(payload) {
     const nome = String(data.nome || '').trim();
     const telefone = String(data.telefone || '').trim();
     const centroSigla = String(data.centro_sigla || '').trim().toUpperCase();
-    const perfilSolicitado = String(data.perfil_solicitado || 'VISUALIZACAO').trim().toUpperCase();
     const observacao = String(data.observacao || '').trim();
 
     if (!nome) {
@@ -110,7 +114,7 @@ function registrarAcesso(payload) {
       'USR-' + Utilities.getUuid(),
       nome,
       email,
-      'VISUALIZACAO',
+      ACCESS_PROFILES.USUARIO,
       centroSigla,
       telefone,
       false,
@@ -122,7 +126,7 @@ function registrarAcesso(payload) {
     appendAccessLog_('SUCESSO', 'Solicitacao de acesso registrada.', 'USUARIO', email, {
       nome: nome,
       centro_sigla: centroSigla,
-      perfil_solicitado: perfilSolicitado,
+      perfil_padrao: ACCESS_PROFILES.USUARIO,
       observacao: observacao
     });
 
@@ -131,7 +135,7 @@ function registrarAcesso(payload) {
       user: {
         nome: nome,
         email: email,
-        perfil: 'VISUALIZACAO',
+        perfil: ACCESS_PROFILES.USUARIO,
         centro_sigla: centroSigla,
         ativo: false
       }
@@ -139,6 +143,94 @@ function registrarAcesso(payload) {
   } catch (error) {
     appendAccessLog_('ERRO', error.message, 'USUARIO', '', {});
     return accessError_('REGISTRO_ACESSO_ERROR', error.message);
+  }
+}
+
+function aprovarAcesso(payload) {
+  try {
+    const data = payload || {};
+    const admin = getAuthorizedUserFromPayload_(data);
+    const adminActive = admin && (String(admin.ativo).toUpperCase() === 'TRUE' || admin.ativo === true);
+
+    if (!adminActive || !canManageAccess_(admin)) {
+      return accessError_('ADMIN_NAO_AUTORIZADO', 'Apenas administradores podem aprovar acessos.');
+    }
+
+    const email = normalizeEmail_(data.email);
+    const perfil = normalizeAccessProfile_(data.perfil || ACCESS_PROFILES.USUARIO);
+
+    if (!email || !isUelEmail_(email)) {
+      return accessError_('EMAIL_INVALIDO', 'Informe um e-mail institucional valido.');
+    }
+
+    if (!perfil) {
+      return accessError_('PERFIL_INVALIDO', 'Selecione um perfil valido.');
+    }
+
+    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const sheet = spreadsheet.getSheetByName('usuarios');
+    const location = findUsuarioRowByEmail_(sheet, email);
+
+    if (!location) {
+      return accessError_('USUARIO_NAO_ENCONTRADO', 'Solicitacao de acesso nao encontrada.');
+    }
+
+    const index = headerIndex_(location.headers);
+    const now = now_();
+    sheet.getRange(location.rowNumber, index.perfil + 1).setValue(perfil);
+    sheet.getRange(location.rowNumber, index.ativo + 1).setValue(true);
+    sheet.getRange(location.rowNumber, index.updated_at + 1).setValue(now);
+
+    appendAccessLog_('SUCESSO', 'Acesso aprovado.', 'USUARIO', email, {
+      perfil: perfil,
+      aprovado_por: admin.email || ''
+    });
+
+    return success_({
+      email: email,
+      perfil: perfil,
+      ativo: true,
+      updated_at: now
+    });
+  } catch (error) {
+    return accessError_('APROVAR_ACESSO_ERROR', error.message);
+  }
+}
+
+function rejeitarAcesso(payload) {
+  try {
+    const data = payload || {};
+    const admin = getAuthorizedUserFromPayload_(data);
+    const adminActive = admin && (String(admin.ativo).toUpperCase() === 'TRUE' || admin.ativo === true);
+
+    if (!adminActive || !canManageAccess_(admin)) {
+      return accessError_('ADMIN_NAO_AUTORIZADO', 'Apenas administradores podem rejeitar acessos.');
+    }
+
+    const email = normalizeEmail_(data.email);
+    if (!email || !isUelEmail_(email)) {
+      return accessError_('EMAIL_INVALIDO', 'Informe um e-mail institucional valido.');
+    }
+
+    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const sheet = spreadsheet.getSheetByName('usuarios');
+    const location = findUsuarioRowByEmail_(sheet, email);
+
+    if (!location) {
+      return accessError_('USUARIO_NAO_ENCONTRADO', 'Solicitacao de acesso nao encontrada.');
+    }
+
+    sheet.deleteRow(location.rowNumber);
+    appendAccessLog_('SUCESSO', 'Acesso rejeitado.', 'USUARIO', email, {
+      rejeitado_por: admin.email || ''
+    });
+
+    return success_({
+      email: email,
+      rejeitado: true
+    });
+  } catch (error) {
+    return accessError_('REJEITAR_ACESSO_ERROR', error.message);
   }
 }
 
@@ -180,6 +272,34 @@ function findUsuarioByEmail_(email) {
   return null;
 }
 
+function findUsuarioById_(id) {
+  const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  const sheet = spreadsheet.getSheetByName('usuarios');
+  const rows = readSheetObjects_(sheet);
+  const target = String(id || '').trim();
+
+  for (var i = 0; i < rows.length; i++) {
+    if (String(rows[i].id || '').trim() === target) {
+      return rows[i];
+    }
+  }
+
+  return null;
+}
+
+function findUsuarioByIdOrEmail_(value) {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return null;
+  }
+
+  if (raw.indexOf('@') >= 0) {
+    return findUsuarioByEmail_(raw);
+  }
+
+  return findUsuarioById_(raw);
+}
+
 function centroExists_(sigla) {
   const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
   const sheet = spreadsheet.getSheetByName('centros');
@@ -190,6 +310,30 @@ function centroExists_(sigla) {
     const active = String(row.ativo).toUpperCase() === 'TRUE' || row.ativo === true;
     return active && String(row.sigla || '').trim().toUpperCase() === target;
   });
+}
+
+function findUsuarioRowByEmail_(sheet, email) {
+  if (!sheet || sheet.getLastRow() < 2) {
+    return null;
+  }
+
+  const lastColumn = sheet.getLastColumn();
+  const headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+  const index = headerIndex_(headers);
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, lastColumn).getValues();
+  const normalized = normalizeEmail_(email);
+
+  for (var i = 0; i < values.length; i++) {
+    if (normalizeEmail_(values[i][index.email]) === normalized) {
+      return {
+        rowNumber: i + 2,
+        headers: headers,
+        values: values[i]
+      };
+    }
+  }
+
+  return null;
 }
 
 function readSheetObjects_(sheet) {
@@ -250,6 +394,11 @@ function isUelEmail_(email) {
 
 function normalizeEmail_(email) {
   return String(email || '').trim().toLowerCase();
+}
+
+function normalizeAccessProfile_(profile) {
+  const value = String(profile || '').trim().toUpperCase();
+  return ACCESS_PROFILE_VALUES.indexOf(value) >= 0 ? value : '';
 }
 
 function success_(data) {

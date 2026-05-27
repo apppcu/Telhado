@@ -13,6 +13,10 @@ function handleGet(e) {
     return jsonResponse_(getHistoricoChamado(getParam_(e, 'id')));
   }
 
+  if (action === 'validar_pos_chuva') {
+    return responderValidacaoPosChuva(getParam_(e, 'token'), getParam_(e, 'resposta'));
+  }
+
   if (action === 'config') {
     return jsonResponse_({ success: true, data: { timezone: CONFIG.TIMEZONE }, error: null });
   }
