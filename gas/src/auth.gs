@@ -16,7 +16,9 @@ const ACCESS_PROFILE_VALUES = [ACCESS_PROFILES.USUARIO, ACCESS_PROFILES.ADMIN];
 
 function getSessionContext(payload) {
   try {
-    const email = getAccessEmailFromPayload_(payload);
+    const data = payload || {};
+    const typedEmail = normalizeEmail_(data.email || data.auth_email);
+    const email = getCurrentUserEmail_();
 
     if (!email) {
       return success_({
@@ -25,6 +27,13 @@ function getSessionContext(payload) {
         accessState: ACCESS_STATES.UNKNOWN_EMAIL,
         user: null
       });
+    }
+
+    if (typedEmail && typedEmail !== email) {
+      return accessError_(
+        'EMAIL_DIVERGENTE',
+        'O e-mail digitado nao confere com a conta Google logada no navegador.'
+      );
     }
 
     if (!isUelEmail_(email)) {
@@ -81,7 +90,8 @@ function diagnosticarSessao() {
 function registrarAcesso(payload) {
   try {
     const data = payload || {};
-    const email = normalizeEmail_(data.email || getCurrentUserEmail_());
+    const email = getCurrentUserEmail_();
+    const typedEmail = normalizeEmail_(data.email);
     const nome = String(data.nome || '').trim();
     const telefone = String(data.telefone || '').trim();
     const centroSigla = String(data.centro_sigla || '').trim().toUpperCase();
@@ -89,6 +99,14 @@ function registrarAcesso(payload) {
 
     if (!nome) {
       return accessError_('NOME_OBRIGATORIO', 'Informe o nome para solicitar acesso.');
+    }
+
+    if (!email) {
+      return accessError_('CONTA_GOOGLE_NAO_IDENTIFICADA', 'Nao foi possivel identificar a conta Google logada no navegador.');
+    }
+
+    if (typedEmail && typedEmail !== email) {
+      return accessError_('EMAIL_DIVERGENTE', 'O e-mail informado deve ser o mesmo da conta Google logada no navegador.');
     }
 
     if (!email || !isUelEmail_(email)) {
@@ -375,8 +393,7 @@ function getCurrentUserEmail_() {
 }
 
 function getAccessEmailFromPayload_(payload) {
-  const data = payload || {};
-  return normalizeEmail_(data.auth_email || data.email);
+  return getCurrentUserEmail_();
 }
 
 function getAuthorizedUserFromPayload_(payload) {

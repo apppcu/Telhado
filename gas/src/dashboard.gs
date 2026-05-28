@@ -17,15 +17,16 @@ function getDashboardData(payload) {
 
     const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
     const chamados = getChamadosDashboard_(spreadsheet);
-    const pendencias = canManageAccess_(user) ? getPendingAccessRequests_(spreadsheet) : [];
+    const canManageAccess = canManageAccess_(user);
+    const pendencias = canManageAccess ? getPendingAccessRequests_(spreadsheet) : [];
 
     return success_({
       user: user,
       metrics: buildDashboardMetrics_(chamados, pendencias),
       weather: getWeatherDashboard_(),
-      chamados: chamados.slice(0, 8),
-      pendingAccess: pendencias.slice(0, 6),
-      canManageAccess: canManageAccess_(user)
+      chamados: canManageAccess ? chamados.slice(0, 8) : [],
+      pendingAccess: canManageAccess ? pendencias : [],
+      canManageAccess: canManageAccess
     });
   } catch (error) {
     return accessError_('DASHBOARD_ERROR', error.message);

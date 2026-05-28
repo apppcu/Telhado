@@ -374,8 +374,12 @@
     .dashboard {
       display: none;
       min-height: 100vh;
-      padding: 34px;
+      padding: 34px 34px 34px 224px;
       background: #f3f7f4;
+    }
+
+    .dashboard.no-rail {
+      padding-left: 34px;
     }
 
     .dashboard.active {
@@ -415,8 +419,46 @@
 
     .dash-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 14px;
+    }
+
+    .dashboard-rail {
+      position: fixed;
+      left: 24px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 4;
+      display: grid;
+      gap: 10px;
+      width: 166px;
+    }
+
+    .dashboard-rail[hidden] {
+      display: none;
+    }
+
+    .rail-button {
+      min-height: 52px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--white);
+      color: var(--leaf-dark);
+      box-shadow: 0 12px 30px rgba(20, 38, 32, 0.1);
+      cursor: pointer;
+      font-weight: 800;
+      line-height: 1.15;
+      padding: 8px 12px;
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+    }
+
+    .rail-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 34px rgba(20, 38, 32, 0.14);
+    }
+
+    .admin-only[hidden] {
+      display: none;
     }
 
     .metric {
@@ -440,7 +482,7 @@
 
     .dashboard-layout {
       display: grid;
-      grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+      grid-template-columns: 1fr;
       gap: 16px;
       margin-top: 16px;
       align-items: start;
@@ -465,6 +507,21 @@
         linear-gradient(135deg, rgba(11, 107, 87, 0.92), rgba(47, 111, 143, 0.9)),
         #0b6b57;
       color: var(--white);
+    }
+
+    .panel-modal {
+      align-items: stretch;
+      justify-items: end;
+      padding: 24px;
+    }
+
+    .panel-modal .modal-card {
+      width: min(920px, calc(100vw - 48px));
+      max-height: calc(100vh - 48px);
+    }
+
+    .panel-modal .lead {
+      margin-bottom: 0;
     }
 
     .weather-top {
@@ -700,10 +757,6 @@
       .dash-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
-
-      .dashboard-layout {
-        grid-template-columns: 1fr;
-      }
     }
 
     @media (max-width: 620px) {
@@ -715,6 +768,23 @@
       .login-panel,
       .photo-panel {
         border-radius: 0;
+      }
+
+      .dashboard {
+        padding: 92px 16px 24px;
+      }
+
+      .dashboard-rail {
+        top: 12px;
+        left: 16px;
+        right: 16px;
+        transform: none;
+        width: auto;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .rail-button {
+        min-height: 54px;
       }
 
       .actions,
@@ -768,7 +838,12 @@
     </section>
   </main>
 
-  <section id="dashboardView" class="dashboard">
+  <section id="dashboardView" class="dashboard no-rail">
+    <nav id="dashboardRail" class="dashboard-rail" aria-label="Atalhos do dashboard" hidden>
+      <button id="openRecentCallsButton" class="rail-button admin-only" type="button" hidden>Chamados recentes</button>
+      <button id="openPendingAccessButton" class="rail-button admin-only" type="button" hidden>Solicitacoes pendentes</button>
+    </nav>
+
     <div class="dash-band">
       <div class="dash-head">
         <div>
@@ -785,39 +860,54 @@
         <div class="metric"><span>Em execucao</span><strong id="metricProgress">0</strong></div>
         <div class="metric"><span>Concluidos</span><strong id="metricDone">0</strong></div>
         <div class="metric"><span>Alertas de chuva</span><strong id="metricRain">0</strong></div>
+        <div id="pendingMetric" class="metric admin-only" hidden><span>Solicitacoes pendentes</span><strong id="metricPendingAccess">0</strong></div>
       </div>
 
       <div class="dashboard-layout">
-        <section class="dash-card">
-          <h3>Chamados recentes</h3>
-          <div id="recentCallsList" class="data-list">
-            <div class="empty-state">Carregando chamados...</div>
+        <section class="dash-card weather-card">
+          <div class="weather-top">
+            <div>
+              <h3>Previsao de chuva</h3>
+              <span id="weatherCity">Londrina/PR</span>
+            </div>
+            <div id="weatherRisk" class="risk-pill">Carregando</div>
           </div>
+          <div id="weatherValue" class="weather-value">-- mm</div>
+          <div id="weatherDays" class="weather-days"></div>
         </section>
-
-        <aside class="side-stack">
-          <section class="dash-card weather-card">
-            <div class="weather-top">
-              <div>
-                <h3>Previsao de chuva</h3>
-                <span id="weatherCity">Londrina/PR</span>
-              </div>
-              <div id="weatherRisk" class="risk-pill">Carregando</div>
-            </div>
-            <div id="weatherValue" class="weather-value">-- mm</div>
-            <div id="weatherDays" class="weather-days"></div>
-          </section>
-
-          <section id="pendingAccessCard" class="dash-card" hidden>
-            <h3>Solicitacoes pendentes</h3>
-            <div id="pendingAccessList" class="data-list">
-              <div class="empty-state">Nenhuma solicitacao pendente.</div>
-            </div>
-          </section>
-        </aside>
       </div>
     </div>
   </section>
+
+  <div id="recentCallsPanel" class="modal panel-modal" role="dialog" aria-modal="true" aria-labelledby="recentCallsTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h2 id="recentCallsTitle">Chamados recentes</h2>
+          <p class="lead">Acompanhe status, prioridade e gerenciamento dos chamados mais recentes.</p>
+        </div>
+        <button id="closeRecentCallsPanelButton" class="close" type="button" aria-label="Fechar">x</button>
+      </div>
+      <div id="recentCallsList" class="data-list">
+        <div class="empty-state">Carregando chamados...</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="pendingAccessPanel" class="modal panel-modal" role="dialog" aria-modal="true" aria-labelledby="pendingAccessTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h2 id="pendingAccessTitle">Solicitacoes pendentes</h2>
+          <p class="lead">Revise os pedidos de acesso antes de liberar o sistema.</p>
+        </div>
+        <button id="closePendingAccessPanelButton" class="close" type="button" aria-label="Fechar">x</button>
+      </div>
+      <div id="pendingAccessList" class="data-list">
+        <div class="empty-state">Nenhuma solicitacao pendente.</div>
+      </div>
+    </div>
+  </div>
 
   <div id="registerModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="registerTitle">
     <div class="modal-card">
@@ -985,18 +1075,25 @@
     const els = {
       loginView: document.getElementById('loginView'),
       dashboardView: document.getElementById('dashboardView'),
+      dashboardRail: document.getElementById('dashboardRail'),
       sessionEmail: document.getElementById('sessionEmail'),
       loginEmail: document.getElementById('loginEmail'),
       loginMessage: document.getElementById('loginMessage'),
       loginButton: document.getElementById('loginButton'),
       registerButton: document.getElementById('registerButton'),
       newCallButton: document.getElementById('newCallButton'),
+      openRecentCallsButton: document.getElementById('openRecentCallsButton'),
+      openPendingAccessButton: document.getElementById('openPendingAccessButton'),
       registerModal: document.getElementById('registerModal'),
       callModal: document.getElementById('callModal'),
       manageCallModal: document.getElementById('manageCallModal'),
+      recentCallsPanel: document.getElementById('recentCallsPanel'),
+      pendingAccessPanel: document.getElementById('pendingAccessPanel'),
       closeModalButton: document.getElementById('closeModalButton'),
       closeCallModalButton: document.getElementById('closeCallModalButton'),
       closeManageCallModalButton: document.getElementById('closeManageCallModalButton'),
+      closeRecentCallsPanelButton: document.getElementById('closeRecentCallsPanelButton'),
+      closePendingAccessPanelButton: document.getElementById('closePendingAccessPanelButton'),
       registerForm: document.getElementById('registerForm'),
       callForm: document.getElementById('callForm'),
       manageCallForm: document.getElementById('manageCallForm'),
@@ -1022,12 +1119,13 @@
       metricProgress: document.getElementById('metricProgress'),
       metricDone: document.getElementById('metricDone'),
       metricRain: document.getElementById('metricRain'),
+      pendingMetric: document.getElementById('pendingMetric'),
+      metricPendingAccess: document.getElementById('metricPendingAccess'),
       recentCallsList: document.getElementById('recentCallsList'),
       weatherCity: document.getElementById('weatherCity'),
       weatherRisk: document.getElementById('weatherRisk'),
       weatherValue: document.getElementById('weatherValue'),
       weatherDays: document.getElementById('weatherDays'),
-      pendingAccessCard: document.getElementById('pendingAccessCard'),
       pendingAccessList: document.getElementById('pendingAccessList')
     };
 
@@ -1081,7 +1179,7 @@
         .then((response) => {
           response = requireResponse(response, 'Nao foi possivel verificar o acesso.');
           state.session = response.data;
-          state.authEmail = email;
+          state.authEmail = response.data && response.data.email ? response.data.email : '';
           renderAccessState(response.data);
         })
         .catch((error) => {
@@ -1177,18 +1275,35 @@
 
     function renderDashboard(data) {
       const metrics = data.metrics || {};
+      const canManageAccess = Boolean(data.canManageAccess);
       els.metricOpen.textContent = metrics.abertos || 0;
       els.metricProgress.textContent = metrics.em_execucao || 0;
       els.metricDone.textContent = metrics.concluidos || 0;
       els.metricRain.textContent = metrics.alertas_chuva || 0;
+      els.metricPendingAccess.textContent = metrics.pendencias_acesso || 0;
 
+      renderDashboardAdminControls(canManageAccess);
       renderWeather(data.weather || {});
       renderChamados(data.chamados || []);
-      renderPendingAccess(data.pendingAccess || [], Boolean(data.canManageAccess));
+      renderPendingAccess(data.pendingAccess || [], canManageAccess);
+    }
+
+    function renderDashboardAdminControls(canManageAccess) {
+      els.dashboardRail.hidden = !canManageAccess;
+      els.dashboardView.classList.toggle('no-rail', !canManageAccess);
+      els.openRecentCallsButton.hidden = !canManageAccess;
+      els.openPendingAccessButton.hidden = !canManageAccess;
+      els.pendingMetric.hidden = !canManageAccess;
+
+      if (!canManageAccess) {
+        closeRecentCallsPanel();
+        closePendingAccessPanel();
+      }
     }
 
     function renderDashboardError(message) {
       els.recentCallsList.innerHTML = '<div class="empty-state">' + escapeHtml(message) + '</div>';
+      els.pendingAccessList.innerHTML = '<div class="empty-state">' + escapeHtml(message) + '</div>';
       els.weatherRisk.textContent = 'Indisponivel';
     }
 
@@ -1232,8 +1347,6 @@
     }
 
     function renderPendingAccess(items, canManageAccess) {
-      els.pendingAccessCard.hidden = !canManageAccess;
-
       if (!canManageAccess) {
         return;
       }
@@ -1377,6 +1490,26 @@
       els.manageCallModal.classList.remove('open');
     }
 
+    function openRecentCallsPanel() {
+      els.recentCallsPanel.classList.add('open');
+    }
+
+    function closeRecentCallsPanel() {
+      els.recentCallsPanel.classList.remove('open');
+    }
+
+    function openPendingAccessPanel() {
+      if (els.openPendingAccessButton.hidden) {
+        return;
+      }
+
+      els.pendingAccessPanel.classList.add('open');
+    }
+
+    function closePendingAccessPanel() {
+      els.pendingAccessPanel.classList.remove('open');
+    }
+
     function loadCentros() {
       if (state.centrosLoaded) {
         return Promise.resolve(state.centros);
@@ -1418,7 +1551,7 @@
       callServer('registrarAcesso', payload)
         .then((response) => {
           response = requireResponse(response, 'Erro ao registrar acesso.');
-          state.authEmail = String(payload.email || '').trim().toLowerCase();
+          state.authEmail = response.data && response.data.user && response.data.user.email ? response.data.user.email : '';
           els.loginEmail.value = state.authEmail;
           setMessage(els.registerMessage, 'Solicitacao registrada. Aguarde aprovacao.', 'warning');
           setMessage(els.loginMessage, 'Seu cadastro foi recebido e aguarda aprovacao.', 'warning');
@@ -1611,10 +1744,14 @@
     });
     els.refreshDashboardButton.addEventListener('click', loadDashboard);
     els.newCallButton.addEventListener('click', openCallModal);
+    els.openRecentCallsButton.addEventListener('click', openRecentCallsPanel);
+    els.openPendingAccessButton.addEventListener('click', openPendingAccessPanel);
     els.registerButton.addEventListener('click', openRegisterModal);
     els.closeModalButton.addEventListener('click', closeRegisterModal);
     els.closeCallModalButton.addEventListener('click', closeCallModal);
     els.closeManageCallModalButton.addEventListener('click', closeManageCallModal);
+    els.closeRecentCallsPanelButton.addEventListener('click', closeRecentCallsPanel);
+    els.closePendingAccessPanelButton.addEventListener('click', closePendingAccessPanel);
     els.registerForm.addEventListener('submit', handleRegister);
     els.callForm.addEventListener('submit', handleCreateCall);
     els.manageCallForm.addEventListener('submit', handleManageCall);
@@ -1649,6 +1786,16 @@
     els.manageCallModal.addEventListener('click', (event) => {
       if (event.target === els.manageCallModal) {
         closeManageCallModal();
+      }
+    });
+    els.recentCallsPanel.addEventListener('click', (event) => {
+      if (event.target === els.recentCallsPanel) {
+        closeRecentCallsPanel();
+      }
+    });
+    els.pendingAccessPanel.addEventListener('click', (event) => {
+      if (event.target === els.pendingAccessPanel) {
+        closePendingAccessPanel();
       }
     });
     setMessage(els.loginMessage, 'Digite seu e-mail @uel.br para acessar.', '');

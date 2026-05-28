@@ -30,6 +30,17 @@ function criarChamado(payload) {
 
     const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
     const sheet = spreadsheet.getSheetByName('chamados');
+    const duplicate = findDuplicateOpenChamado_(sheet, [user.id, email], centroSigla, predioId, categoria, descricao);
+
+    if (duplicate) {
+      return accessError_(
+        'CHAMADO_DUPLICADO',
+        'Este pedido ja esta sendo verificado pelo setor de manutencao' +
+          (duplicate.numero ? ' no chamado ' + duplicate.numero : '') +
+          '.'
+      );
+    }
+
     const now = now_();
     const chamadoId = 'CHAM-' + Utilities.getUuid();
     const numero = nextChamadoNumero_(sheet);
@@ -195,6 +206,58 @@ function nextChamadoNumero_(sheet) {
   }
 
   return prefix + String(maxNumber + 1).padStart(digits, '0');
+}
+
+function findDuplicateOpenChamado_(sheet, solicitanteIds, centroSigla, predioId, categoria, descricao) {
+  const activeStatus = ['ABERTO', 'EM_ANALISE', 'EM_EXECUCAO'];
+  const rows = readSheetObjects_(sheet);
+  const targetSolicitantes = solicitanteIds
+    .map(function(value) {
+      return normalizeDuplicateText_(value);
+    })
+    .filter(function(value) {
+      return value;
+    });
+  const targetCentro = normalizeDuplicateText_(centroSigla);
+  const targetPredio = normalizeDuplicateText_(predioId);
+  const targetCategoria = normalizeDuplicateText_(categoria);
+  const targetDescricao = normalizeDuplicateText_(descricao);
+
+  for (var i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const status = normalizeDuplicateText_(row.status);
+
+    if (activeStatus.indexOf(status) < 0) {
+      continue;
+    }
+
+    if (
+      targetSolicitantes.indexOf(normalizeDuplicateText_(row.solicitante_id)) >= 0 &&
+      normalizeDuplicateText_(row.centro_sigla) === targetCentro &&
+      normalizeDuplicateText_(row.predio_id) === targetPredio &&
+      normalizeDuplicateText_(row.categoria) === targetCategoria &&
+      isDuplicateChamadoDescription_(targetPredio, targetDescricao, row.descricao)
+    ) {
+      return row;
+    }
+  }
+
+  return null;
+}
+
+function isDuplicateChamadoDescription_(targetPredio, targetDescricao, existingDescricao) {
+  if (targetPredio) {
+    return true;
+  }
+
+  return normalizeDuplicateText_(existingDescricao) === targetDescricao;
+}
+
+function normalizeDuplicateText_(value) {
+  return String(value || '')
+    .trim()
+    .toUpperCase()
+    .replace(/\s+/g, ' ');
 }
 
 function appendHistoricoChamado_(spreadsheet, chamadoId, usuarioId, acao, statusAnterior, statusNovo, observacao) {
