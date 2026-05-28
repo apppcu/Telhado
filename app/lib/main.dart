@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'pages/chamados_page.dart';
+import 'config.dart';
+import 'pages/login_page.dart';
 
 void main() {
   runApp(const ChuvaApp());
@@ -12,9 +13,13 @@ class ChuvaApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Chuva',
-      theme: ThemeData(useMaterial3: true),
-      home: const ChamadosPage(),
+      title: AppConfig.appName,
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        colorSchemeSeed: const Color(0xFF12624F),
+      ),
+      home: const LoginPage(),
     );
   }
 }

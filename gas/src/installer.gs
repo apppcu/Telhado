@@ -43,7 +43,14 @@ const WORKSPACE_SCHEMA = {
     'especialidade',
     'ativo',
     'created_at',
-    'updated_at'
+    'updated_at',
+    'login',
+    'senha_hash',
+    'senha_temporaria',
+    'trocar_senha',
+    'ultimo_login',
+    'token_sessao',
+    'token_expira_em'
   ],
   chamados: [
     'id',

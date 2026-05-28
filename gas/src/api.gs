@@ -40,6 +40,14 @@ function handlePost(e) {
     return jsonResponse_(atualizarChamado(body.payload || body));
   }
 
+  if (action === 'login_tecnico_mobile') {
+    return jsonResponse_(loginTecnicoMobile(body.payload || body));
+  }
+
+  if (action === 'trocar_senha_tecnico_mobile') {
+    return jsonResponse_(trocarSenhaTecnicoMobile(body.payload || body));
+  }
+
   if (action === 'upload_foto') {
     return jsonResponse_({ success: true, data: salvarFoto(body), error: null });
   }

@@ -1081,8 +1081,12 @@
           <input id="technician_nome" name="nome" autocomplete="name" required>
         </div>
         <div class="field">
-          <label for="technician_email">E-mail institucional</label>
-          <input id="technician_email" name="email" type="email" autocomplete="email" placeholder="nome@uel.br">
+          <label for="technician_email">E-mail</label>
+          <input id="technician_email" name="email" type="email" autocomplete="email" placeholder="nome@email.com">
+        </div>
+        <div class="field">
+          <label for="technician_login">Login do APK</label>
+          <input id="technician_login" name="login" autocomplete="username" placeholder="CPF, telefone ou usuario" required>
         </div>
         <div class="field">
           <label for="technician_telefone">Telefone</label>
@@ -1095,6 +1099,7 @@
         <div class="field full">
           <button id="submitTechnicianButton" class="btn btn-primary" type="submit">Cadastrar tecnico</button>
           <div id="technicianMessage" class="message"></div>
+          <div id="temporaryPasswordBox" class="empty-state" hidden></div>
         </div>
       </form>
 
@@ -1314,6 +1319,7 @@
       callMessage: document.getElementById('callMessage'),
       manageCallMessage: document.getElementById('manageCallMessage'),
       technicianMessage: document.getElementById('technicianMessage'),
+      temporaryPasswordBox: document.getElementById('temporaryPasswordBox'),
       submitRegisterButton: document.getElementById('submitRegisterButton'),
       submitCallButton: document.getElementById('submitCallButton'),
       submitManageCallButton: document.getElementById('submitManageCallButton'),
@@ -1872,11 +1878,22 @@
 
       els.techniciansPanel.classList.add('open');
       setMessage(els.technicianMessage, '', '');
+      hideTemporaryPassword();
       loadTechnicians(true);
     }
 
     function closeTechniciansPanel() {
       els.techniciansPanel.classList.remove('open');
+    }
+
+    function showTemporaryPassword(password) {
+      els.temporaryPasswordBox.hidden = false;
+      els.temporaryPasswordBox.innerHTML = '<strong>Senha temporaria: ' + escapeHtml(password) + '</strong><span> Anote agora. Ela nao ficara visivel depois.</span>';
+    }
+
+    function hideTemporaryPassword() {
+      els.temporaryPasswordBox.hidden = true;
+      els.temporaryPasswordBox.innerHTML = '';
     }
 
     function loadCentros() {
@@ -1961,16 +1978,23 @@
             '</div>' +
             '<div class="access-detail">' +
               '<div><strong class="access-email">' + escapeHtml(technician.email || '-') + '</strong><span>E-mail</span></div>' +
+              '<div><strong>' + escapeHtml(technician.login || '-') + '</strong><span>Login APK</span></div>' +
               '<div><strong>' + escapeHtml(technician.telefone || '-') + '</strong><span>Telefone</span></div>' +
               '<div><strong>' + escapeHtml(technician.especialidade || '-') + '</strong><span>Especialidade</span></div>' +
               '<div><strong>' + assigned + '</strong><span>Servicos atribuidos</span></div>' +
+              '<div><strong>' + (isTrueValue(technician.trocar_senha) ? 'Sim' : 'Nao') + '</strong><span>Troca senha</span></div>' +
             '</div>' +
           '</div>' +
           '<div class="access-actions">' +
+            '<button class="row-action" type="button" data-reset-technician-password="' + escapeHtml(technician.id) + '">Gerar nova senha</button>' +
             '<button class="row-action danger" type="button" data-inactivate-technician="' + escapeHtml(technician.id) + '">Inativar</button>' +
           '</div>' +
         '</div>';
       }).join('');
+    }
+
+    function isTrueValue(value) {
+      return String(value).toUpperCase() === 'TRUE' || value === true;
     }
 
     function handleRegister(event) {
@@ -2081,15 +2105,24 @@
         return;
       }
 
+      if (!String(payload.login || '').trim()) {
+        setMessage(els.technicianMessage, 'Informe o login do APK.', 'error');
+        return;
+      }
+
       els.submitTechnicianButton.disabled = true;
       setMessage(els.technicianMessage, 'Salvando tecnico...', '');
+      hideTemporaryPassword();
 
       callServer('cadastrarTecnicoManutencao', payload)
         .then((response) => {
-          requireResponse(response, 'Erro ao cadastrar tecnico.');
+          response = requireResponse(response, 'Erro ao cadastrar tecnico.');
           els.technicianForm.reset();
           state.techniciansLoaded = false;
           setMessage(els.technicianMessage, 'Tecnico cadastrado com sucesso.', '');
+          if (response.data && response.data.senha_temporaria_valor) {
+            showTemporaryPassword(response.data.senha_temporaria_valor);
+          }
           return loadTechnicians(true);
         })
         .catch((error) => {
@@ -2162,6 +2195,33 @@
         })
         .catch((error) => {
           setMessage(els.technicianMessage, error.message || 'Erro ao inativar tecnico.', 'error');
+        });
+    }
+
+    function handleResetTechnicianPassword(tecnicoId) {
+      const technician = state.technicians.find((item) => item.id === tecnicoId);
+      const technicianName = technician ? technician.nome : 'este tecnico';
+      if (!confirm('Gerar nova senha temporaria para ' + technicianName + '?')) {
+        return;
+      }
+
+      setMessage(els.technicianMessage, 'Gerando nova senha...', '');
+      hideTemporaryPassword();
+      callServer('gerarNovaSenhaTemporariaTecnico', {
+        auth_email: state.authEmail,
+        tecnico_id: tecnicoId
+      })
+        .then((response) => {
+          response = requireResponse(response, 'Erro ao gerar nova senha.');
+          setMessage(els.technicianMessage, 'Nova senha temporaria gerada.', '');
+          if (response.data && response.data.senha_temporaria_valor) {
+            showTemporaryPassword(response.data.senha_temporaria_valor);
+          }
+          state.techniciansLoaded = false;
+          return loadTechnicians(true);
+        })
+        .catch((error) => {
+          setMessage(els.technicianMessage, error.message || 'Erro ao gerar nova senha.', 'error');
         });
     }
 
@@ -2346,6 +2406,12 @@
       }
     });
     els.techniciansList.addEventListener('click', (event) => {
+      const resetButton = event.target.closest('[data-reset-technician-password]');
+      if (resetButton) {
+        handleResetTechnicianPassword(resetButton.getAttribute('data-reset-technician-password'));
+        return;
+      }
+
       const button = event.target.closest('[data-inactivate-technician]');
       if (button) {
         handleInactivateTechnician(button.getAttribute('data-inactivate-technician'));
