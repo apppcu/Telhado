@@ -257,12 +257,24 @@
       border-radius: 8px;
       background:
         linear-gradient(180deg, rgba(5, 19, 25, 0.08), rgba(5, 19, 25, 0.58)),
-        url("https://drive.google.com/thumbnail?id=1BkanoTkLk4jTNFxjaV_Ejnu7pAzRoZ7h&sz=w1600") center/cover;
+        url("https://drive.google.com/thumbnail?id=1BkanoTkLk4jTNFxjaV_Ejnu7pAzRoZ7h&sz=w600");
+      background-size: cover;
+      background-position: center;
+      background-attachment: scroll;
       box-shadow: var(--shadow);
       display: flex;
       align-items: flex-end;
       padding: clamp(28px, 5vw, 58px);
       color: var(--white);
+    }
+
+    .photo-panel video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: 0;
     }
 
     .photo-panel::before {
@@ -956,7 +968,7 @@
     </section>
 
     <section class="photo-panel" aria-label="Imagem de chuva e paisagem com agua">
-      <div class="photo-copy">
+      <div class="photo-copy" style="position: relative; z-index: 1;">
         <p>Chuva se transforma em dados,<br>Dados em histórico.</p>
         <span>O painel centraliza chamados, registros tecnicos e validacoes para reduzir reincidencias nos predios da UEL.</span>
       </div>
@@ -2306,7 +2318,7 @@
           '<strong>' + escapeHtml(actionLabel(item.acao)) + ' · ' + formatDateTime(item.created_at) + '</strong>' +
           '<span>' + statusFlow + '</span>' +
           '<span>' + escapeHtml(item.observacao || '-') + '</span>' +
-          '<span>Usuario: ' + escapeHtml(item.usuario_id || '-') + '</span>' +
+          '<span>Usuario: ' + escapeHtml(item.usuario_nome || item.usuario_email || item.usuario_id || '-') + '</span>' +
         '</div>';
       }).join('');
     }

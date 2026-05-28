@@ -73,6 +73,106 @@ function listarChamadosTecnicoMobile(payload) {
   }
 }
 
+function iniciarVistoriaTecnicoMobile(payload) {
+  try {
+    const data = payload || {};
+    const token = String(data.token || '').trim();
+    const chamadoId = String(data.chamado_id || data.id || '').trim();
+
+    if (!token) {
+      return accessError_('TOKEN_OBRIGATORIO', 'Sessao invalida. Entre novamente.');
+    }
+
+    if (!chamadoId) {
+      return accessError_('CHAMADO_ID_OBRIGATORIO', 'Informe o chamado para iniciar a vistoria.');
+    }
+
+    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const tecnicosSheet = getTecnicosSheet_(spreadsheet);
+    const tecnicoLocation = findTecnicoRowByToken_(tecnicosSheet, token);
+
+    if (!tecnicoLocation) {
+      return accessError_('SESSAO_INVALIDA', 'Sessao expirada. Entre novamente.');
+    }
+
+    const tecnicoIndex = headerIndex_(tecnicoLocation.headers);
+    const tecnicoRow = tecnicoLocation.values;
+    const tecnicoAtivo = String(tecnicoRow[tecnicoIndex.ativo]).toUpperCase() === 'TRUE' || tecnicoRow[tecnicoIndex.ativo] === true;
+
+    if (!tecnicoAtivo) {
+      return accessError_('TECNICO_INATIVO', 'Tecnico inativo.');
+    }
+
+    const tecnicoId = String(tecnicoRow[tecnicoIndex.id] || '').trim();
+    const chamadosSheet = spreadsheet.getSheetByName('chamados');
+    const location = findRowById_(chamadosSheet, chamadoId);
+
+    if (!location) {
+      return accessError_('CHAMADO_NAO_ENCONTRADO', 'Chamado nao encontrado.');
+    }
+
+    const headers = chamadosSheet.getRange(1, 1, 1, chamadosSheet.getLastColumn()).getValues()[0];
+    const index = headerIndex_(headers);
+    const row = chamadosSheet.getRange(location.rowNumber, 1, 1, headers.length).getValues()[0];
+    const executanteId = String(row[index.executante_id] || '').trim();
+
+    if (executanteId !== tecnicoId) {
+      return accessError_('CHAMADO_NAO_ATRIBUIDO', 'Este chamado nao esta atribuido ao tecnico logado.');
+    }
+
+    const statusAnterior = String(row[index.status] || '').trim().toUpperCase();
+    const allowedStatus = ['ENCAMINHADO', 'EM_ANALISE'];
+
+    if (allowedStatus.indexOf(statusAnterior) < 0) {
+      return accessError_('STATUS_INVALIDO_PARA_VISTORIA', 'A vistoria so pode ser iniciada em chamados encaminhados.');
+    }
+
+    const now = now_();
+    if (statusAnterior !== 'EM_ANALISE') {
+      chamadosSheet.getRange(location.rowNumber, index.status + 1).setValue('EM_ANALISE');
+      chamadosSheet.getRange(location.rowNumber, index.updated_at + 1).setValue(now);
+      appendHistoricoChamado_(
+        spreadsheet,
+        chamadoId,
+        tecnicoId,
+        'INICIO_VISTORIA',
+        statusAnterior,
+        'EM_ANALISE',
+        'Vistoria iniciada pelo aplicativo mobile.',
+        'MOBILE'
+      );
+      appendSecurityLog_('INICIAR_VISTORIA_MOBILE', 'Vistoria iniciada pelo aplicativo mobile.', 'CHAMADO', chamadoId, {
+        tecnico_id: tecnicoId,
+        status_anterior: statusAnterior,
+        status_novo: 'EM_ANALISE'
+      });
+    }
+
+    const prediosById = getPrediosByIdForChamadosMobile_(spreadsheet);
+    const predioId = row[index.predio_id] || '';
+    const predio = prediosById[predioId] || null;
+
+    return success_({
+      id: chamadoId,
+      numero: row[index.numero] || chamadoId,
+      predio_id: predioId,
+      predio_nome: predio ? predio.nome : predioId,
+      centro_sigla: row[index.centro_sigla] || (predio ? predio.centro_sigla : ''),
+      descricao: row[index.descricao] || '',
+      categoria: row[index.categoria] || '',
+      prioridade: row[index.prioridade] || 'NORMAL',
+      status: 'EM_ANALISE',
+      status_anterior: statusAnterior,
+      observacao: row[index.observacao] || '',
+      data_abertura: row[index.data_abertura] || row[index.created_at] || '',
+      data_fechamento: row[index.data_fechamento] || '',
+      updated_at: now
+    });
+  } catch (error) {
+    return accessError_('INICIAR_VISTORIA_ERROR', error.message);
+  }
+}
+
 function criarChamado(payload) {
   try {
     const data = payload || {};
@@ -166,15 +266,21 @@ function getHistoricoChamado(chamadoId, payload) {
     const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
     const sheet = spreadsheet.getSheetByName('historico_chamado');
     const rows = readSheetObjects_(sheet);
+    const usersByReference = getUsuariosByReferenceForHistorico_(spreadsheet);
+    const tecnicosByReference = getTecnicosByReferenceForHistorico_(spreadsheet);
     const historico = rows
       .filter(function(row) {
         return String(row.chamado_id || '').trim() === id;
       })
       .map(function(row) {
+        const usuarioId = row.usuario_id || '';
+        const pessoa = usersByReference[String(usuarioId).trim()] || tecnicosByReference[String(usuarioId).trim()] || null;
         return {
           id: row.id || '',
           chamado_id: row.chamado_id || '',
-          usuario_id: row.usuario_id || '',
+          usuario_id: usuarioId,
+          usuario_nome: pessoa ? pessoa.nome : '',
+          usuario_email: pessoa ? pessoa.email : '',
           acao: row.acao || '',
           origem: row.origem || '',
           status_anterior: row.status_anterior || '',
@@ -358,7 +464,61 @@ function getPrediosByIdForChamadosMobile_(spreadsheet) {
   }, {});
 }
 
-function appendHistoricoChamado_(spreadsheet, chamadoId, usuarioId, acao, statusAnterior, statusNovo, observacao) {
+function getUsuariosByReferenceForHistorico_(spreadsheet) {
+  const sheet = spreadsheet.getSheetByName('usuarios');
+  if (!sheet) {
+    return {};
+  }
+
+  return readSheetObjects_(sheet).reduce(function(map, user) {
+    const item = {
+      nome: user.nome || '',
+      email: user.email || ''
+    };
+    const id = String(user.id || '').trim();
+    const email = normalizeEmail_(user.email);
+
+    if (id) {
+      map[id] = item;
+    }
+    if (email) {
+      map[email] = item;
+    }
+
+    return map;
+  }, {});
+}
+
+function getTecnicosByReferenceForHistorico_(spreadsheet) {
+  const sheet = spreadsheet.getSheetByName('tecnicos');
+  if (!sheet) {
+    return {};
+  }
+
+  return readSheetObjects_(sheet).reduce(function(map, tecnico) {
+    const item = {
+      nome: tecnico.nome || '',
+      email: tecnico.email || ''
+    };
+    const id = String(tecnico.id || '').trim();
+    const login = normalizeTecnicoLogin_(tecnico.login);
+    const email = normalizeEmail_(tecnico.email);
+
+    if (id) {
+      map[id] = item;
+    }
+    if (login) {
+      map[login] = item;
+    }
+    if (email) {
+      map[email] = item;
+    }
+
+    return map;
+  }, {});
+}
+
+function appendHistoricoChamado_(spreadsheet, chamadoId, usuarioId, acao, statusAnterior, statusNovo, observacao, origem) {
   const sheet = spreadsheet.getSheetByName('historico_chamado');
   if (!sheet) {
     return;
@@ -369,7 +529,7 @@ function appendHistoricoChamado_(spreadsheet, chamadoId, usuarioId, acao, status
     chamadoId,
     usuarioId,
     acao,
-    'WEB',
+    origem || 'WEB',
     statusAnterior,
     statusNovo,
     observacao,

@@ -49,6 +49,19 @@ class ApiService {
         .toList();
   }
 
+  Future<Map<String, dynamic>> iniciarVistoriaTecnico({
+    required String token,
+    required String chamadoId,
+  }) async {
+    return _postAction(
+      action: 'iniciar_vistoria_tecnico_mobile',
+      payload: {
+        'token': token,
+        'chamado_id': chamadoId,
+      },
+    );
+  }
+
   Future<Map<String, dynamic>> sync(List<Map<String, dynamic>> items) async {
     throw UnimplementedError('Configurar sincronizacao com Apps Script.');
   }

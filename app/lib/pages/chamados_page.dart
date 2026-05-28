@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import 'chamado_detalhe_page.dart';
 
 class ChamadosPage extends StatefulWidget {
   final Map<String, dynamic> session;
@@ -193,12 +194,19 @@ class _ChamadosPageState extends State<ChamadosPage> {
     );
   }
 
-  void _showChamadoDetails(Map<String, dynamic> chamado) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => _ChamadoDetailsSheet(chamado: chamado),
+  Future<void> _showChamadoDetails(Map<String, dynamic> chamado) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ChamadoDetalhePage(
+          session: _session,
+          chamado: chamado,
+        ),
+      ),
     );
+
+    if (mounted && _session['trocar_senha'] != true) {
+      await _loadChamados();
+    }
   }
 }
 
@@ -340,86 +348,6 @@ class _ChamadoCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ChamadoDetailsSheet extends StatelessWidget {
-  final Map<String, dynamic> chamado;
-
-  const _ChamadoDetailsSheet({required this.chamado});
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              (chamado['numero'] ?? '-').toString(),
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            Text((chamado['descricao'] ?? '').toString()),
-            const SizedBox(height: 16),
-            _DetailLine(label: 'Status', value: chamado['status']),
-            _DetailLine(label: 'Prioridade', value: chamado['prioridade']),
-            _DetailLine(label: 'Centro', value: chamado['centro_sigla']),
-            _DetailLine(
-              label: 'Local',
-              value: chamado['predio_nome'] ?? chamado['predio_id'],
-            ),
-            if ((chamado['observacao'] ?? '').toString().isNotEmpty)
-              _DetailLine(label: 'Observacao', value: chamado['observacao']),
-            const SizedBox(height: 18),
-            FilledButton.icon(
-              onPressed: () {
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Iniciar vistoria sera o proximo passo.'),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.fact_check),
-              label: const Text('Iniciar vistoria'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DetailLine extends StatelessWidget {
-  final String label;
-  final Object? value;
-
-  const _DetailLine({
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 92,
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-          Expanded(child: Text((value ?? '-').toString())),
-        ],
       ),
     );
   }

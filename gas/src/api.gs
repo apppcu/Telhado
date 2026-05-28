@@ -52,6 +52,10 @@ function handlePost(e) {
     return jsonResponse_(listarChamadosTecnicoMobile(body.payload || body));
   }
 
+  if (action === 'iniciar_vistoria_tecnico_mobile') {
+    return jsonResponse_(iniciarVistoriaTecnicoMobile(body.payload || body));
+  }
+
   if (action === 'upload_foto') {
     return jsonResponse_({ success: true, data: salvarFoto(body), error: null });
   }
