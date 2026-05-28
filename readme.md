@@ -69,6 +69,43 @@ Sistema institucional para gerenciamento de chamados de manutenção de telhados
 
 ---
 
+## Rotina operacional do tecnico no APK
+
+Fluxo real esperado para chamados encaminhados para manutencao:
+
+1. O chamado e aberto pela web e encaminhado pelo administrador para um tecnico.
+2. O tecnico faz login no APK e visualiza apenas os servicos atribuidos a ele.
+3. O tecnico vai ate o local do chamado e inicia a vistoria.
+4. Durante a vistoria, o tecnico confere o problema, tira fotos do antes, registra observacoes tecnicas e identifica materiais, ferramentas ou apoio necessario.
+5. Se o problema for simples, como telha solta ou rufo deslocado, o tecnico pode executar o reparo imediatamente.
+6. Se precisar voltar com material, equipe ou mais tempo, o chamado permanece em analise/aguardando execucao.
+7. Quando o reparo for executado, o tecnico registra o que foi feito, tira fotos do depois e conclui o chamado.
+8. A conclusao alimenta o historico do chamado, dispara os fluxos administrativos e permite o monitoramento pos-chuva.
+
+Estados principais para o APK:
+
+- `ENCAMINHADO`: tecnico recebeu o servico, mas ainda nao iniciou a vistoria.
+- `EM_ANALISE`: tecnico esta vistoriando ou ja registrou a vistoria e levantou o que precisa.
+- `EM_EXECUCAO`: reparo em andamento.
+- `CONCLUIDO`: reparo finalizado pelo tecnico.
+
+Acoes principais previstas no APK:
+
+- `Iniciar vistoria`
+- `Salvar vistoria`
+- `Resolver na hora`
+- `Iniciar reparo`
+- `Concluir reparo`
+
+Primeira etapa de implementacao aprovada:
+
+1. Criar lista real "Meus servicos" no APK.
+2. Criar rota no GAS para listar apenas chamados atribuidos ao tecnico autenticado pelo token.
+3. Criar tela de detalhe do chamado.
+4. Adicionar acao inicial `Iniciar vistoria`.
+
+---
+
 ## 📁 Estrutura do Projeto
 
 ```

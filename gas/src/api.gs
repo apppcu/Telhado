@@ -48,6 +48,10 @@ function handlePost(e) {
     return jsonResponse_(trocarSenhaTecnicoMobile(body.payload || body));
   }
 
+  if (action === 'listar_chamados_tecnico_mobile') {
+    return jsonResponse_(listarChamadosTecnicoMobile(body.payload || body));
+  }
+
   if (action === 'upload_foto') {
     return jsonResponse_({ success: true, data: salvarFoto(body), error: null });
   }

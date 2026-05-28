@@ -3,6 +3,76 @@ function listarChamados() {
   return getChamadosDashboard_(spreadsheet);
 }
 
+function listarChamadosTecnicoMobile(payload) {
+  try {
+    const data = payload || {};
+    const token = String(data.token || '').trim();
+
+    if (!token) {
+      return accessError_('TOKEN_OBRIGATORIO', 'Sessao invalida. Entre novamente.');
+    }
+
+    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const tecnicosSheet = getTecnicosSheet_(spreadsheet);
+    const tecnicoLocation = findTecnicoRowByToken_(tecnicosSheet, token);
+
+    if (!tecnicoLocation) {
+      return accessError_('SESSAO_INVALIDA', 'Sessao expirada. Entre novamente.');
+    }
+
+    const tecnicoIndex = headerIndex_(tecnicoLocation.headers);
+    const tecnicoRow = tecnicoLocation.values;
+    const tecnicoAtivo = String(tecnicoRow[tecnicoIndex.ativo]).toUpperCase() === 'TRUE' || tecnicoRow[tecnicoIndex.ativo] === true;
+
+    if (!tecnicoAtivo) {
+      return accessError_('TECNICO_INATIVO', 'Tecnico inativo.');
+    }
+
+    const tecnicoId = String(tecnicoRow[tecnicoIndex.id] || '').trim();
+    const chamadosSheet = spreadsheet.getSheetByName('chamados');
+    const rows = readSheetObjects_(chamadosSheet);
+    const prediosById = getPrediosByIdForChamadosMobile_(spreadsheet);
+
+    const chamados = rows
+      .filter(function(row) {
+        return String(row.executante_id || '').trim() === tecnicoId;
+      })
+      .map(function(row) {
+        const predioId = row.predio_id || '';
+        const predio = prediosById[predioId] || null;
+        return {
+          id: row.id || '',
+          numero: row.numero || row.id || '-',
+          predio_id: predioId,
+          predio_nome: predio ? predio.nome : predioId,
+          centro_sigla: row.centro_sigla || (predio ? predio.centro_sigla : ''),
+          descricao: row.descricao || '',
+          categoria: row.categoria || '',
+          prioridade: row.prioridade || 'NORMAL',
+          status: row.status || 'ENCAMINHADO',
+          observacao: row.observacao || '',
+          data_abertura: row.data_abertura || row.created_at || '',
+          data_fechamento: row.data_fechamento || '',
+          updated_at: row.updated_at || ''
+        };
+      })
+      .sort(function(a, b) {
+        return dateValue_(b.data_abertura) - dateValue_(a.data_abertura);
+      });
+
+    return success_({
+      tecnico: {
+        id: tecnicoId,
+        nome: tecnicoRow[tecnicoIndex.nome] || '',
+        login: tecnicoRow[tecnicoIndex.login] || ''
+      },
+      chamados: chamados
+    });
+  } catch (error) {
+    return accessError_('LISTAR_CHAMADOS_TECNICO_ERROR', error.message);
+  }
+}
+
 function criarChamado(payload) {
   try {
     const data = payload || {};
@@ -267,6 +337,25 @@ function normalizeDuplicateText_(value) {
     .trim()
     .toUpperCase()
     .replace(/\s+/g, ' ');
+}
+
+function getPrediosByIdForChamadosMobile_(spreadsheet) {
+  const sheet = spreadsheet.getSheetByName('predios');
+  if (!sheet) {
+    return {};
+  }
+
+  return readSheetObjects_(sheet).reduce(function(map, predio) {
+    const id = String(predio.id || '').trim();
+    if (id) {
+      map[id] = {
+        id: id,
+        nome: predio.nome || '',
+        centro_sigla: predio.centro_sigla || ''
+      };
+    }
+    return map;
+  }, {});
 }
 
 function appendHistoricoChamado_(spreadsheet, chamadoId, usuarioId, acao, statusAnterior, statusNovo, observacao) {

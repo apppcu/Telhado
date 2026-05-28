@@ -33,8 +33,20 @@ class ApiService {
     );
   }
 
-  Future<Map<String, dynamic>> getChamados() async {
-    throw UnimplementedError('Configurar chamada ao Apps Script.');
+  Future<List<Map<String, dynamic>>> listarChamadosTecnico({
+    required String token,
+  }) async {
+    final data = await _postAction(
+      action: 'listar_chamados_tecnico_mobile',
+      payload: {
+        'token': token,
+      },
+    );
+
+    final chamados = data['chamados'] as List<dynamic>? ?? [];
+    return chamados
+        .map((item) => Map<String, dynamic>.from(item as Map))
+        .toList();
   }
 
   Future<Map<String, dynamic>> sync(List<Map<String, dynamic>> items) async {
