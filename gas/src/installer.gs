@@ -35,6 +35,16 @@ const WORKSPACE_SCHEMA = {
     'created_at',
     'updated_at'
   ],
+  tecnicos: [
+    'id',
+    'nome',
+    'email',
+    'telefone',
+    'especialidade',
+    'ativo',
+    'created_at',
+    'updated_at'
+  ],
   chamados: [
     'id',
     'numero',

@@ -19,12 +19,15 @@ function getDashboardData(payload) {
     const chamados = getChamadosDashboard_(spreadsheet);
     const canManageAccess = canManageAccess_(user);
     const pendencias = canManageAccess ? getPendingAccessRequests_(spreadsheet) : [];
+    const meusChamados = getMeusChamadosDashboard_(chamados, user);
+    const chamadosMetricas = canManageAccess ? chamados : meusChamados;
 
     return success_({
       user: user,
-      metrics: buildDashboardMetrics_(chamados, pendencias),
+      metrics: buildDashboardMetrics_(chamadosMetricas, pendencias),
       weather: getWeatherDashboard_(),
       chamados: canManageAccess ? chamados.slice(0, 8) : [],
+      meusChamados: meusChamados.slice(0, 12),
       pendingAccess: canManageAccess ? pendencias : [],
       canManageAccess: canManageAccess
     });
@@ -36,24 +39,54 @@ function getDashboardData(payload) {
 function getChamadosDashboard_(spreadsheet) {
   const sheet = spreadsheet.getSheetByName('chamados');
   const rows = readSheetObjects_(sheet);
+  const tecnicosById = getTecnicosByIdForDashboard_(spreadsheet);
 
   return rows
     .map(function(row) {
+      const executanteId = row.executante_id || '';
+      const tecnico = tecnicosById[executanteId] || null;
       return {
         id: row.id || '',
         numero: row.numero || row.id || '-',
         centro_sigla: row.centro_sigla || '-',
         predio_id: row.predio_id || '-',
+        solicitante_id: row.solicitante_id || '',
         descricao: row.descricao || '',
+        categoria: row.categoria || '',
         prioridade: row.prioridade || 'NORMAL',
         status: row.status || 'ABERTO',
-        executante_id: row.executante_id || '',
+        executante_id: executanteId,
+        executante_nome: tecnico ? tecnico.nome : '',
         data_abertura: row.data_abertura || row.created_at || ''
       };
     })
     .sort(function(a, b) {
       return dateValue_(b.data_abertura) - dateValue_(a.data_abertura);
     });
+}
+
+function getMeusChamadosDashboard_(chamados, user) {
+  const userId = String(user.id || '').trim();
+  const email = normalizeEmail_(user.email);
+
+  return chamados.filter(function(chamado) {
+    const solicitante = String(chamado.solicitante_id || '').trim();
+    return solicitante === userId || normalizeEmail_(solicitante) === email;
+  });
+}
+
+function getTecnicosByIdForDashboard_(spreadsheet) {
+  const sheet = spreadsheet.getSheetByName('tecnicos');
+  if (!sheet) {
+    return {};
+  }
+
+  return readSheetObjects_(sheet).reduce(function(map, tecnico) {
+    if (tecnico.id) {
+      map[tecnico.id] = tecnico;
+    }
+    return map;
+  }, {});
 }
 
 function getPendingAccessRequests_(spreadsheet) {
@@ -83,6 +116,7 @@ function buildDashboardMetrics_(chamados, pendencias) {
   const metrics = {
     abertos: 0,
     em_execucao: 0,
+    encaminhados: 0,
     concluidos: 0,
     alertas_chuva: 0,
     pendencias_acesso: pendencias.length
@@ -93,6 +127,11 @@ function buildDashboardMetrics_(chamados, pendencias) {
 
     if (status === 'CONCLUIDO') {
       metrics.concluidos++;
+      return;
+    }
+
+    if (status === 'ENCAMINHADO') {
+      metrics.encaminhados++;
       return;
     }
 

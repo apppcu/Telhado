@@ -56,6 +56,13 @@ function getSessionContext(payload) {
     }
 
     const active = String(user.ativo).toUpperCase() === 'TRUE' || user.ativo === true;
+    if (active) {
+      appendSecurityLog_('LOGIN_WEB', 'Entrada autorizada no painel web.', 'USUARIO', user.email || email, {
+        usuario_id: user.id || '',
+        perfil: user.perfil || ''
+      });
+    }
+
     return success_({
       email: email,
       domainAllowed: true,
@@ -203,6 +210,10 @@ function aprovarAcesso(payload) {
       perfil: perfil,
       aprovado_por: admin.email || ''
     });
+    appendSecurityLog_('APROVAR_ACESSO', 'Acesso aprovado.', 'USUARIO', email, {
+      perfil: perfil,
+      aprovado_por: admin.email || ''
+    });
 
     return success_({
       email: email,
@@ -240,6 +251,9 @@ function rejeitarAcesso(payload) {
 
     sheet.deleteRow(location.rowNumber);
     appendAccessLog_('SUCESSO', 'Acesso rejeitado.', 'USUARIO', email, {
+      rejeitado_por: admin.email || ''
+    });
+    appendSecurityLog_('REJEITAR_ACESSO', 'Acesso rejeitado.', 'USUARIO', email, {
       rejeitado_por: admin.email || ''
     });
 
@@ -441,6 +455,30 @@ function appendAccessLog_(status, message, referenceType, referenceId, payload) 
   try {
     const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
     appendSyncLog_(spreadsheet, status, message, payload || {});
+  } catch (error) {
+    Logger.log(error);
+  }
+}
+
+function appendSecurityLog_(action, message, referenceType, referenceId, payload) {
+  try {
+    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const sheet = spreadsheet.getSheetByName('sync_logs');
+    if (!sheet) {
+      return;
+    }
+
+    sheet.appendRow([
+      'LOG-' + Utilities.getUuid(),
+      'WEB',
+      action,
+      'SUCESSO',
+      referenceType || '',
+      referenceId || '',
+      message || '',
+      JSON.stringify(payload || {}),
+      now_()
+    ]);
   } catch (error) {
     Logger.log(error);
   }

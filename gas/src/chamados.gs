@@ -129,7 +129,7 @@ function atualizarChamado(item) {
     const chamadoId = String(data.id || '').trim();
     const novoStatus = String(data.status || '').trim().toUpperCase();
     const observacao = String(data.observacao || '').trim();
-    const allowedStatus = ['ABERTO', 'EM_ANALISE', 'EM_EXECUCAO', 'CONCLUIDO'];
+    const allowedStatus = ['ABERTO', 'EM_ANALISE', 'ENCAMINHADO', 'EM_EXECUCAO', 'CONCLUIDO'];
 
     if (!chamadoId) {
       return accessError_('CHAMADO_ID_OBRIGATORIO', 'Informe o chamado para atualizar.');
@@ -143,6 +143,10 @@ function atualizarChamado(item) {
     const user = getAuthorizedUserFromPayload_(data);
     if (!user || !(String(user.ativo).toUpperCase() === 'TRUE' || user.ativo === true)) {
       return accessError_('USUARIO_NAO_AUTORIZADO', 'Usuario nao autorizado para atualizar chamados.');
+    }
+
+    if (!canManageAccess_(user)) {
+      return accessError_('ADMIN_NAO_AUTORIZADO', 'Apenas administradores podem alterar status de chamados.');
     }
 
     const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
@@ -176,6 +180,11 @@ function atualizarChamado(item) {
       novoStatus,
       observacao || 'Status atualizado pelo painel web.'
     );
+    appendSecurityLog_('ATUALIZAR_CHAMADO', 'Status de chamado atualizado.', 'CHAMADO', chamadoId, {
+      usuario_id: user.id || email,
+      status_anterior: statusAnterior,
+      status_novo: novoStatus
+    });
 
     return success_({
       id: chamadoId,
@@ -209,7 +218,7 @@ function nextChamadoNumero_(sheet) {
 }
 
 function findDuplicateOpenChamado_(sheet, solicitanteIds, centroSigla, predioId, categoria, descricao) {
-  const activeStatus = ['ABERTO', 'EM_ANALISE', 'EM_EXECUCAO'];
+  const activeStatus = ['ABERTO', 'EM_ANALISE', 'ENCAMINHADO', 'EM_EXECUCAO'];
   const rows = readSheetObjects_(sheet);
   const targetSolicitantes = solicitanteIds
     .map(function(value) {
