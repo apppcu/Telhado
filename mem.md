@@ -677,3 +677,179 @@ Implementar aprovacao de usuarios direto pelo painel:
 - selecao/ajuste de perfil;
 - gravar `ativo = TRUE`;
 - registrar log da aprovacao.
+
+---
+
+# Ponto de Parada - 2026-05-29
+
+## Git
+
+Estado deixado para continuar depois:
+
+```text
+Branch atual: dev-2026-05-30
+Branch remota: origin/dev-2026-05-30
+Ultimo commit entregue na main: 594a2f7 gps on
+main enviada para GitHub: sim
+```
+
+Fluxo feito no fim do dia:
+
+1. Commit `gps on` criado na branch `dev-2026-05-28-seguranca`.
+2. Branch `main` recebeu esse commit por fast-forward.
+3. `main` foi enviada para `origin/main`.
+4. Nova branch `dev-2026-05-30` foi criada e enviada para `origin/dev-2026-05-30`.
+
+## APK - Fluxo de Servico
+
+Tela de detalhe do chamado ficou alinhada com o fluxo pedido:
+
+```text
+Nova Vistoria
+Concluir Reparo
+Foto Final
+Encerrar Servico
+```
+
+Regras atuais:
+
+- `Nova Vistoria` abre primeiro um pop-up de justificativa.
+- Depois da justificativa, a nova vistoria mostra apenas `Materiais necessarios` e `Ferramentas ou equipe necessaria`.
+- A justificativa entra como observacao da nova vistoria.
+- Nova vistoria nao bloqueia `Concluir Reparo`.
+- `Concluir Reparo` abre o pop-up com `Servico executado` e `Observacao final`.
+- `Foto Final` so funciona depois de concluir o reparo.
+- `Encerrar Servico` so funciona depois de concluir o reparo e tirar foto final.
+- A foto final fica pendente no aparelho e so sincroniza junto com o encerramento.
+
+Importante:
+
+- Nao voltar a colocar `Execucao do reparo`, `Servico executado` ou `Observacao final` na tela principal.
+- Esses campos pertencem somente ao pop-up do botao `Concluir Reparo`.
+
+## APK - Offline, Login, Sair e GPS
+
+Implementado:
+
+- login salva sessao para nao exigir usuario/senha sempre;
+- botao `Sair` limpa a sessao salva;
+- app continua usando fila SQLite para trabalhar offline;
+- GPS foi adicionado ao payload das acoes mobile;
+- Android recebeu permissao de localizacao;
+- dependencia `geolocator` adicionada ao Flutter.
+
+Servico criado:
+
+```text
+app/lib/services/location_service.dart
+```
+
+## Google Sheets - GPS
+
+Aba prevista/criada pelo schema:
+
+```text
+gps_chamado
+```
+
+Colunas:
+
+```text
+id
+chamado_id
+usuario_id
+acao
+origem
+gps_disponivel
+latitude
+longitude
+precisao_metros
+gps_capturado_em
+gps_motivo
+created_at
+```
+
+Funcao manual adicionada no GAS:
+
+```javascript
+criarAbaGpsChamadoUmaVez()
+```
+
+Arquivo:
+
+```text
+gas/src/installer.gs
+```
+
+## Design do APK
+
+Foi feita uma geral visual usando diretrizes de UI/UX:
+
+- tema global em `app/lib/main.dart`;
+- login redesenhado;
+- lista de chamados com cards melhores;
+- detalhe do chamado com cards, chips e mensagens melhores;
+- botoes maiores e mais adequados para toque;
+- mantido o fluxo de servico sem adicionar textos indesejados.
+
+Validacao feita:
+
+```text
+flutter analyze -> sem erros
+```
+
+Observacao:
+
+```text
+dart format travou no ambiente e nao foi insistido.
+```
+
+## Fotos no Drive - Pendencia para Amanha
+
+Pendencia aberta:
+
+O usuario informou que a URL configurada anteriormente para a pasta raiz do Drive retorna 404:
+
+```text
+https://drive.google.com/drive/folders/197iqHWkSoFRKYKrckPhhTfLvuctBhMg_
+```
+
+O usuario apontou uma pasta que provavelmente deve ser usada:
+
+```text
+https://drive.google.com/drive/folders/1OzzU822EbjFaUnR17DDu8MdJMWp5QVhm
+```
+
+Nao foi concluida a troca porque o usuario pediu para deixar para amanha.
+
+Arquivo onde trocar se confirmado:
+
+```text
+gas/src/config.gs
+```
+
+Campo:
+
+```javascript
+DRIVE_ROOT_FOLDER_ID
+```
+
+Caminho atual no codigo para fotos:
+
+```text
+DRIVE_ROOT_FOLDER_ID/Sistema_Telhados/Chamados/<numero_chamado>/vistoria
+DRIVE_ROOT_FOLDER_ID/Sistema_Telhados/Chamados/<numero_chamado>/conclusao
+```
+
+Na planilha fica apenas o registro/link na aba:
+
+```text
+fotos_chamado
+```
+
+## Preferencias Operacionais do Usuario
+
+- Antes de mexer em fluxo de tela, dizer claramente o que foi entendido.
+- Nao colocar campos ou textos extras na tela principal do servico.
+- Nao executar `clasp.cmd push` automaticamente sem pedido explicito.
+- Quando o usuario disser para publicar ou empurrar, pode executar o comando pedido.
