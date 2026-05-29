@@ -34,11 +34,20 @@ class LocalDbService {
 
   Future<int> salvarChamadoCache(Map<String, dynamic> chamado) async {
     final db = await database;
+    final id = (chamado['id'] ?? '').toString();
+    if (_isChamadoConcluido(chamado)) {
+      return db.delete(
+        'chamados_cache',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
+
     final now = DateTime.now().toIso8601String();
     return db.insert(
       'chamados_cache',
       {
-        'id': chamado['id'],
+        'id': id,
         'payload_json': jsonEncode(chamado),
         'updated_at': now,
       },
@@ -52,6 +61,7 @@ class LocalDbService {
     return rows
         .map((row) => jsonDecode(row['payload_json'] as String))
         .cast<Map<String, dynamic>>()
+        .where((chamado) => !_isChamadoConcluido(chamado))
         .toList();
   }
 
@@ -142,5 +152,10 @@ class LocalDbService {
         updated_at TEXT NOT NULL
       )
     ''');
+  }
+
+  bool _isChamadoConcluido(Map<String, dynamic> chamado) {
+    return (chamado['status'] ?? '').toString().trim().toUpperCase() ==
+        'CONCLUIDO';
   }
 }

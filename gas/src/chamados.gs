@@ -35,7 +35,8 @@ function listarChamadosTecnicoMobile(payload) {
 
     const chamados = rows
       .filter(function(row) {
-        return String(row.executante_id || '').trim() === tecnicoId;
+        const status = String(row.status || '').trim().toUpperCase();
+        return String(row.executante_id || '').trim() === tecnicoId && status !== 'CONCLUIDO';
       })
       .map(function(row) {
         const predioId = row.predio_id || '';
@@ -131,6 +132,7 @@ function iniciarVistoriaTecnicoMobile(payload) {
     if (statusAnterior !== 'EM_ANALISE') {
       chamadosSheet.getRange(location.rowNumber, index.status + 1).setValue('EM_ANALISE');
       chamadosSheet.getRange(location.rowNumber, index.updated_at + 1).setValue(now);
+      registrarLocalizacaoChamadoMobile_(spreadsheet, chamadoId, tecnicoId, 'INICIO_VISTORIA', data);
       appendHistoricoChamado_(
         spreadsheet,
         chamadoId,
@@ -138,7 +140,10 @@ function iniciarVistoriaTecnicoMobile(payload) {
         'INICIO_VISTORIA',
         statusAnterior,
         'EM_ANALISE',
-        'Vistoria iniciada pelo aplicativo mobile.',
+        appendObservacaoBloco_(
+          'Vistoria iniciada pelo aplicativo mobile.',
+          buildLocalizacaoResumoMobile_(data)
+        ),
         'MOBILE'
       );
       appendSecurityLog_('INICIAR_VISTORIA_MOBILE', 'Vistoria iniciada pelo aplicativo mobile.', 'CHAMADO', chamadoId, {
@@ -235,11 +240,17 @@ function salvarVistoriaTecnicoMobile(payload) {
 
     const novoStatus = resolverNaHora ? 'EM_EXECUCAO' : 'EM_ANALISE';
     const now = now_();
-    const resumoVistoria = buildResumoVistoriaMobile_(observacaoTecnica, materiais, ferramentas, resolverNaHora);
+    const resumoVistoria = appendObservacaoBloco_(
+      buildResumoVistoriaMobile_(observacaoTecnica, materiais, ferramentas, resolverNaHora),
+      buildLocalizacaoResumoMobile_(data)
+    );
+    const observacaoAtual = String(row[index.observacao] || '').trim();
+    const observacaoFinal = appendObservacaoBloco_(observacaoAtual, resumoVistoria);
 
     chamadosSheet.getRange(location.rowNumber, index.status + 1).setValue(novoStatus);
-    chamadosSheet.getRange(location.rowNumber, index.observacao + 1).setValue(resumoVistoria);
+    chamadosSheet.getRange(location.rowNumber, index.observacao + 1).setValue(observacaoFinal);
     chamadosSheet.getRange(location.rowNumber, index.updated_at + 1).setValue(now);
+    registrarLocalizacaoChamadoMobile_(spreadsheet, chamadoId, tecnicoId, 'VISTORIA_REGISTRADA', data);
 
     appendHistoricoChamado_(
       spreadsheet,
@@ -273,7 +284,7 @@ function salvarVistoriaTecnicoMobile(payload) {
       prioridade: row[index.prioridade] || 'NORMAL',
       status: novoStatus,
       status_anterior: statusAnterior,
-      observacao: resumoVistoria,
+      observacao: observacaoFinal,
       observacao_tecnica: observacaoTecnica,
       materiais: materiais,
       ferramentas: ferramentas,
@@ -302,6 +313,7 @@ function iniciarReparoTecnicoMobile(payload) {
     const now = now_();
     context.sheet.getRange(context.location.rowNumber, context.index.status + 1).setValue('EM_EXECUCAO');
     context.sheet.getRange(context.location.rowNumber, context.index.updated_at + 1).setValue(now);
+    registrarLocalizacaoChamadoMobile_(context.spreadsheet, context.chamadoId, context.tecnicoId, 'INICIO_REPARO', payload);
 
     appendHistoricoChamado_(
       context.spreadsheet,
@@ -310,7 +322,10 @@ function iniciarReparoTecnicoMobile(payload) {
       'INICIO_REPARO',
       statusAnterior,
       'EM_EXECUCAO',
-      'Reparo iniciado pelo aplicativo mobile.',
+      appendObservacaoBloco_(
+        'Reparo iniciado pelo aplicativo mobile.',
+        buildLocalizacaoResumoMobile_(payload)
+      ),
       'MOBILE'
     );
     appendSecurityLog_('INICIAR_REPARO_MOBILE', 'Reparo iniciado pelo aplicativo mobile.', 'CHAMADO', context.chamadoId, {
@@ -346,11 +361,16 @@ function reabrirVistoriaTecnicoMobile(payload) {
 
     const now = now_();
     const observacaoAtual = String(context.row[context.index.observacao] || '').trim();
-    const observacao = appendObservacaoBloco_(observacaoAtual, 'Nova vistoria: ' + justificativa);
+    const observacaoNovaVistoria = appendObservacaoBloco_(
+      'Nova vistoria: ' + justificativa,
+      buildLocalizacaoResumoMobile_(data)
+    );
+    const observacao = appendObservacaoBloco_(observacaoAtual, observacaoNovaVistoria);
 
     context.sheet.getRange(context.location.rowNumber, context.index.status + 1).setValue('EM_ANALISE');
     context.sheet.getRange(context.location.rowNumber, context.index.observacao + 1).setValue(observacao);
     context.sheet.getRange(context.location.rowNumber, context.index.updated_at + 1).setValue(now);
+    registrarLocalizacaoChamadoMobile_(context.spreadsheet, context.chamadoId, context.tecnicoId, 'NOVA_VISTORIA', data);
 
     appendHistoricoChamado_(
       context.spreadsheet,
@@ -359,7 +379,7 @@ function reabrirVistoriaTecnicoMobile(payload) {
       'NOVA_VISTORIA',
       statusAnterior,
       'EM_ANALISE',
-      justificativa,
+      observacaoNovaVistoria,
       'MOBILE'
     );
     appendSecurityLog_('NOVA_VISTORIA_MOBILE', 'Nova vistoria aberta pelo aplicativo mobile.', 'CHAMADO', context.chamadoId, {
@@ -397,7 +417,10 @@ function concluirReparoTecnicoMobile(payload) {
     }
 
     const now = now_();
-    const resumo = buildResumoConclusaoMobile_(servicoExecutado, observacaoFinal);
+    const resumo = appendObservacaoBloco_(
+      buildResumoConclusaoMobile_(servicoExecutado, observacaoFinal),
+      buildLocalizacaoResumoMobile_(data)
+    );
     const observacaoAtual = String(context.row[context.index.observacao] || '').trim();
     const observacao = appendObservacaoBloco_(observacaoAtual, resumo);
 
@@ -407,6 +430,7 @@ function concluirReparoTecnicoMobile(payload) {
     if (context.index.data_fechamento >= 0) {
       context.sheet.getRange(context.location.rowNumber, context.index.data_fechamento + 1).setValue(now);
     }
+    registrarLocalizacaoChamadoMobile_(context.spreadsheet, context.chamadoId, context.tecnicoId, 'REPARO_CONCLUIDO', data);
 
     appendHistoricoChamado_(
       context.spreadsheet,
@@ -769,6 +793,73 @@ function appendObservacaoBloco_(observacaoAtual, novoBloco) {
   }
 
   return atual + '\n\n' + bloco;
+}
+
+function buildLocalizacaoResumoMobile_(data) {
+  const payload = data || {};
+  const localizacao = payload.localizacao || {};
+
+  if (localizacao.gps_disponivel === true) {
+    const latitude = localizacao.latitude;
+    const longitude = localizacao.longitude;
+    const precisao = localizacao.precisao_metros;
+    const capturadoEm = localizacao.gps_capturado_em || '';
+    return 'Localizacao GPS: ' + latitude + ', ' + longitude +
+      (precisao !== '' && precisao !== null && precisao !== undefined ? ' (precisao ' + precisao + 'm)' : '') +
+      (capturadoEm ? '\nGPS capturado em: ' + capturadoEm : '');
+  }
+
+  if (localizacao.gps_disponivel === false) {
+    return 'Localizacao GPS indisponivel: ' + (localizacao.gps_motivo || 'motivo nao informado') +
+      (localizacao.gps_capturado_em ? '\nGPS verificado em: ' + localizacao.gps_capturado_em : '');
+  }
+
+  return '';
+}
+
+function registrarLocalizacaoChamadoMobile_(spreadsheet, chamadoId, usuarioId, acao, data) {
+  const payload = data || {};
+  const localizacao = payload.localizacao || {};
+  const hasLocationPayload =
+    localizacao.gps_disponivel === true || localizacao.gps_disponivel === false;
+
+  if (!hasLocationPayload) {
+    return;
+  }
+
+  let sheet = spreadsheet.getSheetByName('gps_chamado');
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet('gps_chamado');
+    ensureHeaders_(sheet, [
+      'id',
+      'chamado_id',
+      'usuario_id',
+      'acao',
+      'origem',
+      'gps_disponivel',
+      'latitude',
+      'longitude',
+      'precisao_metros',
+      'gps_capturado_em',
+      'gps_motivo',
+      'created_at'
+    ]);
+  }
+
+  sheet.appendRow([
+    'GPS-' + Utilities.getUuid(),
+    chamadoId || '',
+    usuarioId || '',
+    acao || '',
+    'MOBILE',
+    localizacao.gps_disponivel === true,
+    localizacao.latitude || '',
+    localizacao.longitude || '',
+    localizacao.precisao_metros || '',
+    localizacao.gps_capturado_em || '',
+    localizacao.gps_motivo || '',
+    now_()
+  ]);
 }
 
 function getChamadoTecnicoMobileContext_(payload, actionLabel) {

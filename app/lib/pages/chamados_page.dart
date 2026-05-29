@@ -4,9 +4,11 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../services/api_service.dart';
+import '../services/auth_cache_service.dart';
 import '../services/local_db_service.dart';
 import '../services/sync_service.dart';
 import 'chamado_detalhe_page.dart';
+import 'login_page.dart';
 
 class ChamadosPage extends StatefulWidget {
   final Map<String, dynamic> session;
@@ -25,6 +27,7 @@ class _ChamadosPageState extends State<ChamadosPage> {
   final _novaSenhaController = TextEditingController();
   final _confirmarSenhaController = TextEditingController();
   final _api = const ApiService();
+  final _authCache = AuthCacheService();
   final _localDb = LocalDbService.instance;
   final _sync = SyncService();
   StreamSubscription<ConnectivityResult>? _connectivitySubscription;
@@ -74,6 +77,19 @@ class _ChamadosPageState extends State<ChamadosPage> {
     await _loadChamados();
   }
 
+  Future<void> _sair() async {
+    await _authCache.limparSessao();
+
+    if (!mounted) {
+      return;
+    }
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+      (_) => false,
+    );
+  }
+
   Future<void> _tryRestoreOnlineSession() async {
     setState(() {
       _loadingChamados = true;
@@ -88,6 +104,7 @@ class _ChamadosPageState extends State<ChamadosPage> {
       for (final chamado in chamados) {
         await _localDb.salvarChamadoCache(chamado);
       }
+      final visibleChamados = _filtrarChamadosVisiveis(chamados);
 
       if (!mounted) {
         return;
@@ -98,7 +115,7 @@ class _ChamadosPageState extends State<ChamadosPage> {
           ..._session,
           'offline_login': false,
         };
-        _chamados = chamados;
+        _chamados = visibleChamados;
         _chamadosMessage = 'Conexao restabelecida. Servicos atualizados.';
       });
     } catch (_) {
@@ -180,13 +197,14 @@ class _ChamadosPageState extends State<ChamadosPage> {
       for (final chamado in chamados) {
         await _localDb.salvarChamadoCache(chamado);
       }
+      final visibleChamados = _filtrarChamadosVisiveis(chamados);
 
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _chamados = chamados;
+        _chamados = visibleChamados;
       });
     } catch (error) {
       final cached = await _localDb.listarChamadosCache();
@@ -224,12 +242,17 @@ class _ChamadosPageState extends State<ChamadosPage> {
               onPressed: _loadingChamados ? null : _loadChamados,
               icon: const Icon(Icons.refresh),
             ),
+          IconButton(
+            tooltip: 'Sair',
+            onPressed: _sair,
+            icon: const Icon(Icons.logout),
+          ),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: trocarSenha ? () async {} : _loadChamados,
         child: ListView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
             _TechnicianHeader(tecnico: tecnico),
             const SizedBox(height: 16),
@@ -301,6 +324,15 @@ class _ChamadosPageState extends State<ChamadosPage> {
       await _loadChamados();
     }
   }
+
+  List<Map<String, dynamic>> _filtrarChamadosVisiveis(
+    List<Map<String, dynamic>> chamados,
+  ) {
+    return chamados.where((chamado) {
+      return (chamado['status'] ?? '').toString().trim().toUpperCase() !=
+          'CONCLUIDO';
+    }).toList();
+  }
 }
 
 class _TechnicianHeader extends StatelessWidget {
@@ -310,16 +342,172 @@ class _TechnicianHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Conectado como ${tecnico['nome'] ?? 'tecnico'}',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        const SizedBox(height: 8),
-        Text('Login: ${tecnico['login'] ?? '-'}'),
-      ],
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.primary,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.engineering, color: Colors.white),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  (tecnico['nome'] ?? 'Tecnico').toString(),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Login: ${tecnico['login'] ?? '-'}',
+                  style: const TextStyle(color: Color(0xFFD9EEE7)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NoticeBox extends StatelessWidget {
+  final String message;
+  final bool isError;
+
+  const _NoticeBox({
+    required this.message,
+    this.isError = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final background =
+        isError ? colorScheme.errorContainer : const Color(0xFFE7F3EE);
+    final foreground =
+        isError ? colorScheme.onErrorContainer : const Color(0xFF0D5F4D);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            isError ? Icons.error_outline : Icons.wifi_tethering,
+            color: foreground,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: foreground),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BadgeColors {
+  final Color background;
+  final Color foreground;
+
+  const _BadgeColors({
+    required this.background,
+    required this.foreground,
+  });
+}
+
+_BadgeColors _statusColors(BuildContext context, String label) {
+  final colorScheme = Theme.of(context).colorScheme;
+  switch (label.trim().toUpperCase()) {
+    case 'EM_EXECUCAO':
+      return const _BadgeColors(
+        background: Color(0xFFFFE8B7),
+        foreground: Color(0xFF5A3A00),
+      );
+    case 'EM_ANALISE':
+      return const _BadgeColors(
+        background: Color(0xFFE4EDFF),
+        foreground: Color(0xFF16427D),
+      );
+    case 'CONCLUIDO':
+      return const _BadgeColors(
+        background: Color(0xFFDFF4E9),
+        foreground: Color(0xFF0A5C48),
+      );
+    default:
+      return _BadgeColors(
+        background: colorScheme.surfaceContainerHighest,
+        foreground: colorScheme.onSurfaceVariant,
+      );
+  }
+}
+
+_BadgeColors _priorityColors(BuildContext context, String label) {
+  final colorScheme = Theme.of(context).colorScheme;
+  switch (label.trim().toUpperCase()) {
+    case 'ALTA':
+    case 'URGENTE':
+      return _BadgeColors(
+        background: colorScheme.errorContainer,
+        foreground: colorScheme.onErrorContainer,
+      );
+    case 'MEDIA':
+      return const _BadgeColors(
+        background: Color(0xFFFFE8B7),
+        foreground: Color(0xFF5A3A00),
+      );
+    default:
+      return const _BadgeColors(
+        background: Color(0xFFE7F3EE),
+        foreground: Color(0xFF0D5F4D),
+      );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final String label;
+  final _BadgeColors colors;
+
+  const _InfoChip({
+    required this.label,
+    required this.colors,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      label: Text(label),
+      visualDensity: VisualDensity.compact,
+      backgroundColor: colors.background,
+      labelStyle: TextStyle(
+        color: colors.foreground,
+        fontWeight: FontWeight.w800,
+      ),
     );
   }
 }
@@ -341,29 +529,48 @@ class _ServicesSummary extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.construction, color: colorScheme.primary),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    loading ? 'Atualizando servicos...' : '$total servico(s) atribuido(s)',
-                    style: Theme.of(context).textTheme.titleMedium,
+            Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE7F3EE),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  if (message.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      message,
-                      style: TextStyle(color: colorScheme.error),
-                    ),
-                  ],
-                ],
-              ),
+                  child: Icon(Icons.roofing, color: colorScheme.primary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    loading
+                        ? 'Atualizando servicos...'
+                        : '$total servico(s) atribuido(s)',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                ),
+                if (loading)
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+              ],
             ),
+            if (message.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _NoticeBox(
+                message: message,
+                isError: message.toLowerCase().contains('erro'),
+              ),
+            ],
           ],
         ),
       ),
@@ -376,10 +583,21 @@ class _EmptyServicesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
+    return Card(
       child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Text('Nenhum servico atribuido no momento.'),
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            Icon(
+              Icons.inbox_outlined,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text('Nenhum servico atribuido no momento.'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -398,48 +616,81 @@ class _ChamadoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final priority = (chamado['prioridade'] ?? 'NORMAL').toString();
     final status = (chamado['status'] ?? '-').toString();
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    (chamado['numero'] ?? '-').toString(),
-                    style: Theme.of(context).textTheme.titleMedium,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onOpen,
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 5, color: colorScheme.primary),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              (chamado['numero'] ?? '-').toString(),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w900),
+                            ),
+                          ),
+                          _StatusChip(label: status),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        (chamado['descricao'] ?? '').toString(),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.place_outlined,
+                            size: 18,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              '${chamado['centro_sigla'] ?? '-'} - ${chamado['predio_nome'] ?? chamado['predio_id'] ?? '-'}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          _PriorityChip(label: priority),
+                          const Spacer(),
+                          TextButton.icon(
+                            onPressed: onOpen,
+                            icon: const Icon(Icons.chevron_right),
+                            label: const Text('Abrir'),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                _StatusChip(label: status),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              (chamado['descricao'] ?? '').toString(),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              '${chamado['centro_sigla'] ?? '-'} - ${chamado['predio_nome'] ?? chamado['predio_id'] ?? '-'}',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _PriorityChip(label: priority),
-                const Spacer(),
-                TextButton(
-                  onPressed: onOpen,
-                  child: const Text('Abrir'),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -453,10 +704,7 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
-      label: Text(label),
-      visualDensity: VisualDensity.compact,
-    );
+    return _InfoChip(label: label, colors: _statusColors(context, label));
   }
 }
 
@@ -467,15 +715,7 @@ class _PriorityChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final urgent = label.toUpperCase() == 'URGENTE';
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Chip(
-      label: Text(label),
-      visualDensity: VisualDensity.compact,
-      backgroundColor: urgent ? colorScheme.errorContainer : null,
-      labelStyle: urgent ? TextStyle(color: colorScheme.onErrorContainer) : null,
-    );
+    return _InfoChip(label: label, colors: _priorityColors(context, label));
   }
 }
 
@@ -506,11 +746,9 @@ class _ChangePasswordCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Form(
           key: formKey,
           child: Column(
@@ -518,7 +756,9 @@ class _ChangePasswordCard extends StatelessWidget {
             children: [
               Text(
                 'Trocar senha',
-                style: Theme.of(context).textTheme.titleMedium,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
               ),
               const SizedBox(height: 8),
               const Text(
@@ -530,9 +770,10 @@ class _ChangePasswordCard extends StatelessWidget {
                 obscureText: obscureNewPassword,
                 decoration: InputDecoration(
                   labelText: 'Nova senha',
-                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.lock_outline),
                   suffixIcon: IconButton(
-                    tooltip: obscureNewPassword ? 'Mostrar senha' : 'Ocultar senha',
+                    tooltip:
+                        obscureNewPassword ? 'Mostrar senha' : 'Ocultar senha',
                     onPressed: onToggleNewPassword,
                     icon: Icon(
                       obscureNewPassword ? Icons.visibility : Icons.visibility_off,
@@ -560,9 +801,11 @@ class _ChangePasswordCard extends StatelessWidget {
                 onFieldSubmitted: (_) => onSubmit?.call(),
                 decoration: InputDecoration(
                   labelText: 'Confirmar senha',
-                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.lock_reset),
                   suffixIcon: IconButton(
-                    tooltip: obscureConfirmPassword ? 'Mostrar senha' : 'Ocultar senha',
+                    tooltip: obscureConfirmPassword
+                        ? 'Mostrar senha'
+                        : 'Ocultar senha',
                     onPressed: onToggleConfirmPassword,
                     icon: Icon(
                       obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
@@ -578,21 +821,19 @@ class _ChangePasswordCard extends StatelessWidget {
               ),
               if (message.isNotEmpty) ...[
                 const SizedBox(height: 14),
-                Text(
-                  message,
-                  style: TextStyle(color: colorScheme.error),
-                ),
+                _NoticeBox(message: message, isError: true),
               ],
               const SizedBox(height: 16),
-              FilledButton(
+              FilledButton.icon(
                 onPressed: onSubmit,
-                child: loading
+                icon: loading
                     ? const SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Salvar nova senha'),
+                    : const Icon(Icons.save),
+                label: const Text('Salvar nova senha'),
               ),
             ],
           ),

@@ -41,6 +41,8 @@ function salvarFoto(payload) {
       ]);
     }
 
+    registrarLocalizacaoChamadoMobile_(context.spreadsheet, context.chamadoId, context.tecnicoId, 'FOTO_' + tipo, data);
+
     appendHistoricoChamado_(
       context.spreadsheet,
       context.chamadoId,
@@ -48,7 +50,10 @@ function salvarFoto(payload) {
       'FOTO_ENVIADA',
       '',
       String(context.row[context.index.status] || ''),
-      'Foto ' + tipo + ' enviada pelo aplicativo mobile.',
+      appendObservacaoBloco_(
+        'Foto ' + tipo + ' enviada pelo aplicativo mobile.',
+        buildLocalizacaoResumoMobile_(data)
+      ),
       'MOBILE'
     );
 

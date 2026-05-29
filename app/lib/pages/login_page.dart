@@ -25,10 +25,33 @@ class _LoginPageState extends State<LoginPage> {
   String _message = '';
 
   @override
+  void initState() {
+    super.initState();
+    _carregarSessaoSalva();
+  }
+
+  @override
   void dispose() {
     _loginController.dispose();
     _senhaController.dispose();
     super.dispose();
+  }
+
+  Future<void> _carregarSessaoSalva() async {
+    final login = await _authCache.ultimoLogin();
+    final session = await _authCache.carregarSessaoValida();
+
+    if (!mounted) {
+      return;
+    }
+
+    if (login.isNotEmpty) {
+      _loginController.text = login;
+    }
+
+    if (session != null) {
+      _abrirSessaoOffline(session);
+    }
   }
 
   Future<void> _submit() async {
@@ -116,117 +139,166 @@ class _LoginPageState extends State<LoginPage> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F6F4),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
+          child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
-              child: Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: const BorderSide(color: Color(0xFFD7E1DC)),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: colorScheme.primary,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            'UEL',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                            ),
+                        Text(
+                          'UEL',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
-                        const SizedBox(height: 18),
-                        const Text(
+                        SizedBox(height: 12),
+                        Text(
                           'Controle Telhado',
                           style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            fontSize: 30,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        const Text(
-                          'Acesso da equipe de manutencao',
-                          style: TextStyle(color: Color(0xFF5F6E68)),
-                        ),
-                        const SizedBox(height: 24),
-                        TextFormField(
-                          controller: _loginController,
-                          textInputAction: TextInputAction.next,
-                          decoration: const InputDecoration(
-                            labelText: 'Login',
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Informe o login.';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _senhaController,
-                          obscureText: _obscurePassword,
-                          onFieldSubmitted: (_) => _submit(),
-                          decoration: InputDecoration(
-                            labelText: 'Senha',
-                            border: const OutlineInputBorder(),
-                            suffixIcon: IconButton(
-                              tooltip: _obscurePassword ? 'Mostrar senha' : 'Ocultar senha',
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                              icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
-                            ),
-                          ),
-                          validator: (_) => null,
-                        ),
-                        if (_message.isNotEmpty) ...[
-                          const SizedBox(height: 14),
-                          Text(
-                            _message,
-                            style: TextStyle(color: colorScheme.error),
-                          ),
-                        ],
-                        const SizedBox(height: 22),
-                        FilledButton(
-                          onPressed: _loading ? null : _submit,
-                          child: _loading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Text('Entrar'),
+                        SizedBox(height: 4),
+                        Text(
+                          'Manutencao em campo',
+                          style: TextStyle(color: Color(0xFFD9EEE7)),
                         ),
                       ],
                     ),
                   ),
-                ),
+                  const SizedBox(height: 14),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'Entrar',
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                            ),
+                            const SizedBox(height: 18),
+                            TextFormField(
+                              controller: _loginController,
+                              textInputAction: TextInputAction.next,
+                              decoration: const InputDecoration(
+                                labelText: 'Login',
+                                prefixIcon: Icon(Icons.person_outline),
+                              ),
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Informe o login.';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 14),
+                            TextFormField(
+                              controller: _senhaController,
+                              obscureText: _obscurePassword,
+                              onFieldSubmitted: (_) => _submit(),
+                              decoration: InputDecoration(
+                                labelText: 'Senha',
+                                prefixIcon: const Icon(Icons.lock_outline),
+                                suffixIcon: IconButton(
+                                  tooltip: _obscurePassword
+                                      ? 'Mostrar senha'
+                                      : 'Ocultar senha',
+                                  onPressed: () {
+                                    setState(() {
+                                      _obscurePassword = !_obscurePassword;
+                                    });
+                                  },
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility
+                                        : Icons.visibility_off,
+                                  ),
+                                ),
+                              ),
+                              validator: (_) => null,
+                            ),
+                            if (_message.isNotEmpty) ...[
+                              const SizedBox(height: 14),
+                              _LoginMessage(message: _message),
+                            ],
+                            const SizedBox(height: 20),
+                            FilledButton.icon(
+                              onPressed: _loading ? null : _submit,
+                              icon: _loading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.login),
+                              label: const Text('Entrar'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _LoginMessage extends StatelessWidget {
+  final String message;
+
+  const _LoginMessage({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: colorScheme.onErrorContainer),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: colorScheme.onErrorContainer),
+            ),
+          ),
+        ],
       ),
     );
   }

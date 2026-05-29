@@ -23,6 +23,45 @@ class AuthCacheService {
   Future<Map<String, dynamic>?> loginOffline({
     required String login,
   }) async {
+    final data = await _lerSessaoSalva();
+    if (data == null) {
+      return null;
+    }
+
+    final storedLogin = (data['login'] ?? '').toString();
+    final receivedLogin = _normalizeLogin(login);
+
+    if (storedLogin != receivedLogin) {
+      return null;
+    }
+
+    return _resolverSessaoValida(data);
+  }
+
+  Future<Map<String, dynamic>?> carregarSessaoValida() async {
+    final data = await _lerSessaoSalva();
+    if (data == null) {
+      return null;
+    }
+
+    return _resolverSessaoValida(data);
+  }
+
+  Future<String> ultimoLogin() async {
+    final data = await _lerSessaoSalva();
+    if (data == null) {
+      return '';
+    }
+
+    return (data['login'] ?? '').toString();
+  }
+
+  Future<void> limparSessao() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_sessionKey);
+  }
+
+  Future<Map<String, dynamic>?> _lerSessaoSalva() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_sessionKey);
     if (raw == null || raw.isEmpty) {
@@ -42,13 +81,12 @@ class AuthCacheService {
       return null;
     }
 
-    final storedLogin = (data['login'] ?? '').toString();
-    final receivedLogin = _normalizeLogin(login);
+    return data;
+  }
 
-    if (storedLogin != receivedLogin) {
-      return null;
-    }
-
+  Future<Map<String, dynamic>?> _resolverSessaoValida(
+    Map<String, dynamic> data,
+  ) async {
     final session = data['session'];
     if (session is! Map) {
       await limparSessao();
@@ -67,11 +105,6 @@ class AuthCacheService {
     }
 
     return resolvedSession;
-  }
-
-  Future<void> limparSessao() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_sessionKey);
   }
 
   String _normalizeLogin(String login) {

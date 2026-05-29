@@ -89,6 +89,20 @@ const WORKSPACE_SCHEMA = {
     'observacao',
     'created_at'
   ],
+  gps_chamado: [
+    'id',
+    'chamado_id',
+    'usuario_id',
+    'acao',
+    'origem',
+    'gps_disponivel',
+    'latitude',
+    'longitude',
+    'precisao_metros',
+    'gps_capturado_em',
+    'gps_motivo',
+    'created_at'
+  ],
   eventos_chuva: [
     'id',
     'data_referencia',
@@ -640,4 +654,19 @@ function slug_(value) {
     .replace(/[^A-Za-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .toUpperCase();
+}
+
+function criarAbaGpsChamadoUmaVez() {
+  const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  const headers = WORKSPACE_SCHEMA.gps_chamado;
+  let sheet = spreadsheet.getSheetByName('gps_chamado');
+
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet('gps_chamado');
+  }
+
+  ensureHeaders_(sheet, headers);
+  formatSheet_(sheet, headers.length);
+
+  Logger.log('Aba gps_chamado criada/atualizada com sucesso.');
 }

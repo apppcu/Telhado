@@ -5,6 +5,7 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../services/camera_service.dart';
 import '../services/local_db_service.dart';
+import '../services/location_service.dart';
 import '../services/sync_service.dart';
 
 class ChamadoDetalhePage extends StatefulWidget {
@@ -31,6 +32,7 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
   final _observacaoFinalController = TextEditingController();
   final _localDb = LocalDbService.instance;
   final _camera = CameraService();
+  final _location = const LocationService();
   final _sync = SyncService();
   StreamSubscription<ConnectivityResult>? _connectivitySubscription;
 
@@ -40,6 +42,8 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
   bool _startingRepair = false;
   bool _finishingRepair = false;
   bool _reopeningInspection = false;
+  bool _novaVistoriaFormAberta = false;
+  bool _execucaoConcluida = false;
   bool _takingBeforePhoto = false;
   bool _takingAfterPhoto = false;
   bool _resolverNaHora = false;
@@ -50,6 +54,11 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
   void initState() {
     super.initState();
     _chamado = Map<String, dynamic>.from(widget.chamado);
+    _execucaoConcluida = _execucaoJaRegistrada(_chamado);
+    _servicoExecutadoController.text =
+        (_chamado['servico_executado'] ?? '').toString();
+    _observacaoFinalController.text =
+        (_chamado['observacao_final'] ?? '').toString();
     _connectivitySubscription = _sync.connectivityChanges().listen((status) {
       if (status != ConnectivityResult.none) {
         _sincronizarPendenciasDaTela();
@@ -91,10 +100,10 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
 
   Future<void> _iniciarVistoria() async {
     final now = DateTime.now().toIso8601String();
-    final payload = {
+    final payload = await _withLocation({
       'token': (widget.session['token'] ?? '').toString(),
       'chamado_id': (_chamado['id'] ?? '').toString(),
-    };
+    });
     final localChamado = {
       ..._chamado,
       'status': 'EM_ANALISE',
@@ -171,10 +180,10 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
 
   Future<void> _iniciarReparo() async {
     final now = DateTime.now().toIso8601String();
-    final payload = {
+    final payload = await _withLocation({
       'token': (widget.session['token'] ?? '').toString(),
       'chamado_id': (_chamado['id'] ?? '').toString(),
-    };
+    });
     final localChamado = {
       ..._chamado,
       'status': 'EM_EXECUCAO',
@@ -244,24 +253,39 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
   }
 
   Future<void> _concluirReparo() async {
-    if (!_execucaoFormKey.currentState!.validate()) {
+    if (!_fotoFinalRegistrada(_chamado)) {
+      setState(() {
+        _message = 'Registre a foto final antes de encerrar o servico.';
+      });
       return;
     }
 
-    final servicoExecutado = _servicoExecutadoController.text.trim();
-    final observacaoFinal = _observacaoFinalController.text.trim();
+    final servicoExecutado = _servicoExecutadoController.text.trim().isNotEmpty
+        ? _servicoExecutadoController.text.trim()
+        : (_chamado['servico_executado'] ?? '').toString().trim();
+    final observacaoFinal = _observacaoFinalController.text.trim().isNotEmpty
+        ? _observacaoFinalController.text.trim()
+        : (_chamado['observacao_final'] ?? '').toString().trim();
+
+    if (servicoExecutado.isEmpty) {
+      setState(() {
+        _message = 'Conclua o reparo antes de encerrar o servico.';
+      });
+      return;
+    }
+
     final now = DateTime.now().toIso8601String();
     final observacaoAtual = (_chamado['observacao'] ?? '').toString().trim();
     final resumoConclusao = _buildResumoConclusao(
       servicoExecutado: servicoExecutado,
       observacaoFinal: observacaoFinal,
     );
-    final payload = {
+    final payload = await _withLocation({
       'token': (widget.session['token'] ?? '').toString(),
       'chamado_id': (_chamado['id'] ?? '').toString(),
       'servico_executado': servicoExecutado,
       'observacao_final': observacaoFinal,
-    };
+    });
     final localChamado = {
       ..._chamado,
       'status': 'CONCLUIDO',
@@ -292,6 +316,7 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
 
       setState(() {
         _chamado = localChamado;
+        _execucaoConcluida = true;
         _servicoExecutadoController.clear();
         _observacaoFinalController.clear();
         _syncMessage = 'Conclusao salva no aparelho. Sincronizacao pendente.';
@@ -350,17 +375,19 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
       observacaoAtual,
       'Nova vistoria: $justificativa',
     );
-    final payload = {
+    final payload = await _withLocation({
       'token': (widget.session['token'] ?? '').toString(),
       'chamado_id': (_chamado['id'] ?? '').toString(),
       'justificativa': justificativa,
-    };
+    });
     final localChamado = {
       ..._chamado,
       'status': 'EM_ANALISE',
       'observacao': novaObservacao,
       'sync_status': 'PENDENTE',
       'updated_at': now,
+      'nova_vistoria_pendente': true,
+      'nova_vistoria_justificativa': justificativa,
     };
 
     setState(() {
@@ -382,7 +409,10 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
 
       setState(() {
         _chamado = localChamado;
-        _syncMessage = 'Nova vistoria salva no aparelho. Sincronizacao pendente.';
+        _novaVistoriaFormAberta = true;
+        _execucaoConcluida = false;
+        _syncMessage =
+            'Justificativa salva. Informe materiais e ferramentas da nova vistoria.';
       });
 
       final result = await _sync.sincronizarPendencias();
@@ -392,20 +422,23 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
 
       setState(() {
         if (result.skippedOffline) {
-          _syncMessage = 'Sem internet. A nova vistoria sera enviada automaticamente depois.';
+          _syncMessage =
+              'Sem internet. A justificativa sera enviada automaticamente depois.';
         } else if (result.failed > 0) {
-          _syncMessage = 'Nova vistoria salva no aparelho. Envio pendente para tentar novamente.';
+          _syncMessage =
+              'Justificativa salva no aparelho. Envio pendente para tentar novamente.';
         } else if (result.synced > 0) {
           _chamado = {
             ..._chamado,
             'sync_status': 'SINCRONIZADO',
           };
-          _syncMessage = 'Nova vistoria sincronizada com sucesso.';
+          _syncMessage =
+              'Justificativa sincronizada. Informe materiais e ferramentas da nova vistoria.';
         }
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nova vistoria aberta.')),
+        const SnackBar(content: Text('Justificativa registrada.')),
       );
     } catch (error) {
       if (!mounted) {
@@ -425,29 +458,32 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
   }
 
   Future<void> _showNovaVistoriaDialog() async {
-    final controller = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    var justificativaText = '';
 
     final justificativa = await showDialog<String>(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: const Text('Abrir nova vistoria'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           content: Form(
             key: formKey,
             child: TextFormField(
-              controller: controller,
               autofocus: true,
               minLines: 3,
               maxLines: 5,
               textInputAction: TextInputAction.newline,
+              onChanged: (value) {
+                justificativaText = value;
+              },
               decoration: const InputDecoration(
                 labelText: 'Justificativa',
-                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.edit_note),
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'Explique o novo problema encontrado.';
+                  return 'Explique por que uma nova vistoria e necessaria.';
                 }
                 return null;
               },
@@ -461,7 +497,7 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
             FilledButton(
               onPressed: () {
                 if (formKey.currentState!.validate()) {
-                  Navigator.of(context).pop(controller.text.trim());
+                  Navigator.of(context).pop(justificativaText.trim());
                 }
               },
               child: const Text('Abrir'),
@@ -470,8 +506,6 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
         );
       },
     );
-
-    controller.dispose();
 
     if (justificativa != null && justificativa.isNotEmpty) {
       await _reabrirVistoria(justificativa);
@@ -483,10 +517,13 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
       return;
     }
 
-    final observacaoTecnica = _observacaoTecnicaController.text.trim();
+    final novaVistoriaPendente = _novaVistoriaPendente(_chamado);
+    final observacaoTecnica = novaVistoriaPendente
+        ? (_chamado['nova_vistoria_justificativa'] ?? '').toString().trim()
+        : _observacaoTecnicaController.text.trim();
     final materiais = _materiaisController.text.trim();
     final ferramentas = _ferramentasController.text.trim();
-    final resolverNaHora = _resolverNaHora;
+    final resolverNaHora = novaVistoriaPendente ? false : _resolverNaHora;
     final now = DateTime.now().toIso8601String();
     final nextStatus = resolverNaHora ? 'EM_EXECUCAO' : 'EM_ANALISE';
     final resumo = _buildResumoVistoria(
@@ -495,22 +532,28 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
       ferramentas: ferramentas,
       resolverNaHora: resolverNaHora,
     );
-    final payload = {
+    final observacaoAtual = (_chamado['observacao'] ?? '').toString();
+    final payload = await _withLocation({
       'token': (widget.session['token'] ?? '').toString(),
       'chamado_id': (_chamado['id'] ?? '').toString(),
       'observacao_tecnica': observacaoTecnica,
       'materiais': materiais,
       'ferramentas': ferramentas,
       'resolver_na_hora': resolverNaHora,
-    };
+    });
     final localChamado = {
       ..._chamado,
       'status': nextStatus,
-      'observacao': resumo,
+      'observacao': novaVistoriaPendente
+          ? _appendObservacao(observacaoAtual, resumo)
+          : resumo,
       'observacao_tecnica': observacaoTecnica,
       'materiais': materiais,
       'ferramentas': ferramentas,
       'resolver_na_hora': resolverNaHora,
+      'forcar_nova_vistoria': false,
+      'nova_vistoria_pendente': false,
+      'nova_vistoria_justificativa': '',
       'sync_status': 'PENDENTE',
       'updated_at': now,
     };
@@ -539,6 +582,8 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
         _materiaisController.clear();
         _ferramentasController.clear();
         _resolverNaHora = false;
+        _novaVistoriaFormAberta = false;
+        _execucaoConcluida = false;
       });
 
       final result = await _sync.sincronizarPendencias();
@@ -609,11 +654,11 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
       await _localDb.salvarChamadoCache(updated);
       await _sync.enfileirar(
         action: 'upload_foto',
-        payload: {
+        payload: await _withLocation({
           'token': (widget.session['token'] ?? '').toString(),
           'chamado_id': chamadoId,
           'tipo': 'VISTORIA_ANTES',
-        },
+        }),
         photoPath: photoPath,
       );
 
@@ -695,11 +740,11 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
       await _localDb.salvarChamadoCache(updated);
       await _sync.enfileirar(
         action: 'upload_foto',
-        payload: {
+        payload: await _withLocation({
           'token': (widget.session['token'] ?? '').toString(),
           'chamado_id': chamadoId,
           'tipo': 'CONCLUSAO',
-        },
+        }),
         photoPath: photoPath,
       );
 
@@ -709,27 +754,8 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
 
       setState(() {
         _chamado = updated;
-        _syncMessage = 'Foto final salva no aparelho. Sincronizacao pendente.';
-      });
-
-      final result = await _sync.sincronizarPendencias();
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        if (result.skippedOffline) {
-          _syncMessage = 'Sem internet. A foto final sera enviada automaticamente depois.';
-        } else if (result.failed > 0) {
-          _syncMessage = 'Foto final salva no aparelho. Envio pendente para tentar novamente.';
-        } else if (result.synced > 0) {
-          _chamado = {
-            ..._chamado,
-            'foto_final_sync_status': 'SINCRONIZADO',
-            'sync_status': 'SINCRONIZADO',
-          };
-          _syncMessage = 'Foto final sincronizada com sucesso.';
-        }
+        _syncMessage =
+            'Foto final salva no aparelho. Ela sera enviada ao encerrar o servico.';
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -804,117 +830,314 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
     return '$current\n\n$next';
   }
 
+  Future<Map<String, dynamic>> _withLocation(
+    Map<String, dynamic> payload,
+  ) async {
+    return {
+      ...payload,
+      'localizacao': await _location.getCurrentLocationPayload(),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
-    final status = (_chamado['status'] ?? '').toString().toUpperCase();
+    final status = _statusAtual(_chamado);
     final canStart = status == 'ENCAMINHADO';
     final alreadyStarted = status == 'EM_ANALISE';
-    final canSaveInspection = status == 'EM_ANALISE';
+    final inspectionSaved = _vistoriaRegistrada(_chamado);
+    final novaVistoriaPendente = _novaVistoriaPendente(_chamado);
+    final canSaveInspection =
+        status == 'EM_ANALISE' && (!inspectionSaved || _novaVistoriaFormAberta);
+    final showRepairPending = status == 'EM_ANALISE' && inspectionSaved;
     final repairStarted = status == 'EM_EXECUCAO';
+    final showServiceActions = showRepairPending || repairStarted;
     final finished = status == 'CONCLUIDO';
 
     return Scaffold(
       appBar: AppBar(
         title: Text((_chamado['numero'] ?? 'Chamado').toString()),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          _HeaderCard(chamado: _chamado),
-          const SizedBox(height: 16),
-          _InfoCard(chamado: _chamado),
-          if (canSaveInspection) ...[
-            const SizedBox(height: 16),
-            _VistoriaFormCard(
-              formKey: _vistoriaFormKey,
-              observacaoTecnicaController: _observacaoTecnicaController,
-              materiaisController: _materiaisController,
-              ferramentasController: _ferramentasController,
-              resolverNaHora: _resolverNaHora,
-              saving: _savingVistoria,
-              takingBeforePhoto: _takingBeforePhoto,
-              hasBeforePhoto:
-                  (_chamado['foto_antes_path'] ?? '').toString().isNotEmpty ||
-                      (_chamado['foto_antes_sync_status'] ?? '') ==
-                          'SINCRONIZADO',
-              onResolverChanged: (value) {
-                setState(() {
-                  _resolverNaHora = value;
-                });
-              },
-              onTakeBeforePhoto:
-                  _takingBeforePhoto ? null : _tirarFotoAntes,
-              onSubmit: _savingVistoria ? null : _salvarVistoria,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final horizontalPadding = constraints.maxWidth < 380 ? 16.0 : 24.0;
+
+          return ListView(
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding,
+              16,
+              horizontalPadding,
+              24,
             ),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: _startingRepair ? null : _iniciarReparo,
-              icon: _startingRepair
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.build),
-              label: const Text('Iniciar reparo'),
-            ),
-          ],
-          if (repairStarted) ...[
-            const SizedBox(height: 16),
-            _ExecucaoCard(
-              formKey: _execucaoFormKey,
-              servicoExecutadoController: _servicoExecutadoController,
-              observacaoFinalController: _observacaoFinalController,
-              finishing: _finishingRepair,
-              reopening: _reopeningInspection,
-              takingAfterPhoto: _takingAfterPhoto,
-              hasAfterPhoto:
-                  (_chamado['foto_final_path'] ?? '').toString().isNotEmpty ||
-                      (_chamado['foto_final_sync_status'] ?? '') ==
-                          'SINCRONIZADO',
-              onFinish: _finishingRepair ? null : _concluirReparo,
-              onReopen:
-                  _reopeningInspection ? null : _showNovaVistoriaDialog,
-              onTakeAfterPhoto:
-                  _takingAfterPhoto ? null : _tirarFotoFinal,
-            ),
-          ],
-          if (finished) ...[
-            const SizedBox(height: 16),
-            const _FinishedCard(),
-          ],
-          if (_message.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              _message,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ],
-          if (_syncMessage.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              _syncMessage,
-              style: TextStyle(color: Theme.of(context).colorScheme.primary),
-            ),
-          ],
-          const SizedBox(height: 20),
-          if (canStart || alreadyStarted)
-            FilledButton.icon(
-              onPressed: canStart && !_starting ? _iniciarVistoria : null,
-              icon: _starting
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.fact_check),
-              label: Text(
-                alreadyStarted ? 'Vistoria em andamento' : 'Iniciar vistoria',
-              ),
-            ),
-        ],
+            children: [
+              _HeaderCard(chamado: _chamado),
+              const SizedBox(height: 16),
+              _InfoCard(chamado: _chamado),
+              if (canSaveInspection) ...[
+                const SizedBox(height: 16),
+                _VistoriaFormCard(
+                  formKey: _vistoriaFormKey,
+                  observacaoTecnicaController: _observacaoTecnicaController,
+                  materiaisController: _materiaisController,
+                  ferramentasController: _ferramentasController,
+                  resolverNaHora: _resolverNaHora,
+                  saving: _savingVistoria,
+                  takingBeforePhoto: _takingBeforePhoto,
+                  isNovaVistoria: novaVistoriaPendente,
+                  hasBeforePhoto:
+                      (_chamado['foto_antes_path'] ?? '').toString().isNotEmpty ||
+                          (_chamado['foto_antes_sync_status'] ?? '') ==
+                              'SINCRONIZADO',
+                  onResolverChanged: (value) {
+                    setState(() {
+                      _resolverNaHora = value;
+                    });
+                  },
+                  onTakeBeforePhoto:
+                      _takingBeforePhoto ||
+                              (_chamado['foto_antes_path'] ?? '')
+                                  .toString()
+                                  .isNotEmpty ||
+                              (_chamado['foto_antes_sync_status'] ?? '') ==
+                                  'SINCRONIZADO'
+                          ? null
+                          : _tirarFotoAntes,
+                  onSubmit: _savingVistoria ? null : _salvarVistoria,
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (showServiceActions) ...[
+                const SizedBox(height: 16),
+                _ServicoAcoesCard(
+                  starting: _startingRepair,
+                  newInspectionLoading: _reopeningInspection,
+                  takingFinalPhoto: _takingAfterPhoto,
+                  closingService: _finishingRepair,
+                  onNewInspection: _showNovaVistoriaDialog,
+                  onFinishRepair:
+                      _startingRepair ? null : _abrirExecucaoDoReparo,
+                  onFinalPhoto:
+                      _takingAfterPhoto ? null : _tirarFotoFinalComValidacao,
+                  onCloseService:
+                      _finishingRepair ? null : _encerrarServicoComValidacao,
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (finished) ...[
+                const SizedBox(height: 16),
+                const _FinishedCard(),
+              ],
+              if (_message.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _InlineMessage(message: _message, isError: true),
+              ],
+              if (_syncMessage.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                _InlineMessage(message: _syncMessage),
+              ],
+              const SizedBox(height: 20),
+              if (canStart || (alreadyStarted && !inspectionSaved))
+                FilledButton.icon(
+                  onPressed: canStart && !_starting ? _iniciarVistoria : null,
+                  icon: _starting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.fact_check),
+                  label: Text(
+                    alreadyStarted
+                        ? 'Vistoria em andamento'
+                        : 'Iniciar vistoria',
+                  ),
+                ),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  Future<void> _marcarExecucaoConcluida() async {
+    if (!_execucaoFormKey.currentState!.validate()) {
+      return;
+    }
+
+    final updated = {
+      ..._chamado,
+      'servico_executado': _servicoExecutadoController.text.trim(),
+      'observacao_final': _observacaoFinalController.text.trim(),
+      'execucao_concluida': true,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+
+    await _localDb.salvarChamadoCache(updated);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _chamado = updated;
+      _execucaoConcluida = true;
+      _message = '';
+      _syncMessage =
+          'Execucao registrada. Tire a foto final e encerre o servico.';
+    });
+  }
+
+  Future<void> _abrirExecucaoDoReparo() async {
+    if (_statusAtual(_chamado) == 'EM_ANALISE') {
+      await _iniciarReparo();
+      if (!mounted || _statusAtual(_chamado) != 'EM_EXECUCAO') {
+        return;
+      }
+    }
+
+    await _showExecucaoDialog();
+  }
+
+  Future<void> _tirarFotoFinalComValidacao() async {
+    if (!_execucaoConcluida) {
+      _avisarConcluirReparoAntesDaFoto();
+      return;
+    }
+
+    await _tirarFotoFinal();
+  }
+
+  Future<void> _encerrarServicoComValidacao() async {
+    if (!_execucaoConcluida) {
+      _avisarConcluirReparoAntesDaFoto();
+      return;
+    }
+
+    if (!_fotoFinalRegistrada(_chamado)) {
+      _avisarFotoAntesDeEncerrar();
+      return;
+    }
+
+    await _concluirReparo();
+  }
+
+  Future<void> _showExecucaoDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Concluir Reparo'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          content: Form(
+            key: _execucaoFormKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: _servicoExecutadoController,
+                    minLines: 3,
+                    maxLines: 6,
+                    textInputAction: TextInputAction.newline,
+                    decoration: const InputDecoration(
+                      labelText: 'Servico executado',
+                      prefixIcon: Icon(Icons.build_circle_outlined),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Descreva o servico executado.';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _observacaoFinalController,
+                    minLines: 2,
+                    maxLines: 5,
+                    textInputAction: TextInputAction.newline,
+                    decoration: const InputDecoration(
+                      labelText: 'Observacao final',
+                      prefixIcon: Icon(Icons.notes),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (_execucaoFormKey.currentState!.validate()) {
+                  Navigator.of(context).pop(true);
+                }
+              },
+              child: const Text('Concluir'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (result == true) {
+      await _marcarExecucaoConcluida();
+    }
+  }
+
+  void _avisarConcluirReparoAntesDaFoto() {
+    setState(() {
+      _message = 'Conclua o reparo antes de tirar a foto final.';
+    });
+  }
+
+  void _avisarFotoAntesDeEncerrar() {
+    setState(() {
+      _message = 'Tire a foto final antes de encerrar o servico.';
+    });
+  }
+
+  bool _execucaoJaRegistrada(Map<String, dynamic> chamado) {
+    if (chamado['execucao_concluida'] == true) {
+      return true;
+    }
+
+    return (chamado['servico_executado'] ?? '').toString().trim().isNotEmpty;
+  }
+
+  bool _fotoFinalRegistrada(Map<String, dynamic> chamado) {
+    return (chamado['foto_final_path'] ?? '').toString().isNotEmpty ||
+        (chamado['foto_final_sync_status'] ?? '') == 'SINCRONIZADO';
+  }
+
+  String _statusAtual(Map<String, dynamic> chamado) {
+    return (chamado['status'] ?? '').toString().trim().toUpperCase();
+  }
+
+  bool _vistoriaRegistrada(Map<String, dynamic> chamado) {
+    final observacaoTecnica =
+        (chamado['observacao_tecnica'] ?? '').toString().trim();
+    final observacao = (chamado['observacao'] ?? '').toString().toLowerCase();
+
+    return observacaoTecnica.isNotEmpty ||
+        observacao.contains('vistoria tecnica:');
+  }
+
+  bool _novaVistoriaPendente(Map<String, dynamic> chamado) {
+    if (chamado['nova_vistoria_pendente'] == true) {
+      return true;
+    }
+
+    final observacao = (chamado['observacao'] ?? '').toString().toLowerCase();
+    final lastNovaVistoria = observacao.lastIndexOf('nova vistoria:');
+    if (lastNovaVistoria < 0) {
+      return false;
+    }
+
+    final lastVistoriaTecnica = observacao.lastIndexOf('vistoria tecnica:');
+    return lastNovaVistoria > lastVistoriaTecnica;
   }
 }
 
@@ -926,6 +1149,7 @@ class _VistoriaFormCard extends StatelessWidget {
   final bool resolverNaHora;
   final bool saving;
   final bool takingBeforePhoto;
+  final bool isNovaVistoria;
   final bool hasBeforePhoto;
   final ValueChanged<bool> onResolverChanged;
   final VoidCallback? onTakeBeforePhoto;
@@ -939,6 +1163,7 @@ class _VistoriaFormCard extends StatelessWidget {
     required this.resolverNaHora,
     required this.saving,
     required this.takingBeforePhoto,
+    required this.isNovaVistoria,
     required this.hasBeforePhoto,
     required this.onResolverChanged,
     required this.onTakeBeforePhoto,
@@ -949,34 +1174,38 @@ class _VistoriaFormCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Form(
           key: formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Vistoria',
-                style: Theme.of(context).textTheme.titleLarge,
+                isNovaVistoria ? 'Nova Vistoria' : 'Vistoria',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
               ),
               const SizedBox(height: 12),
-              TextFormField(
-                controller: observacaoTecnicaController,
-                minLines: 3,
-                maxLines: 6,
-                textInputAction: TextInputAction.newline,
-                decoration: const InputDecoration(
-                  labelText: 'Observacao tecnica',
-                  border: OutlineInputBorder(),
+              if (!isNovaVistoria) ...[
+                TextFormField(
+                  controller: observacaoTecnicaController,
+                  minLines: 3,
+                  maxLines: 6,
+                  textInputAction: TextInputAction.newline,
+                  decoration: const InputDecoration(
+                    labelText: 'Observacao tecnica',
+                    prefixIcon: Icon(Icons.notes),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Informe a observacao tecnica.';
+                    }
+                    return null;
+                  },
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Informe a observacao tecnica.';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 14),
+                const SizedBox(height: 14),
+              ],
               TextFormField(
                 controller: materiaisController,
                 minLines: 2,
@@ -984,7 +1213,7 @@ class _VistoriaFormCard extends StatelessWidget {
                 textInputAction: TextInputAction.newline,
                 decoration: const InputDecoration(
                   labelText: 'Materiais necessarios',
-                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.inventory_2_outlined),
                 ),
               ),
               const SizedBox(height: 14),
@@ -995,34 +1224,37 @@ class _VistoriaFormCard extends StatelessWidget {
                 textInputAction: TextInputAction.newline,
                 decoration: const InputDecoration(
                   labelText: 'Ferramentas ou equipe necessaria',
-                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.handyman_outlined),
                 ),
               ),
-              const SizedBox(height: 8),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Resolver na hora'),
-                subtitle: const Text('Avanca o chamado para execucao.'),
-                value: resolverNaHora,
-                onChanged: saving ? null : onResolverChanged,
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: onTakeBeforePhoto,
-                icon: takingBeforePhoto
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Icon(
-                        hasBeforePhoto
-                            ? Icons.check_circle
-                            : Icons.photo_camera,
-                      ),
-                label: Text(hasBeforePhoto ? 'Foto antes registrada' : 'Foto antes'),
-              ),
-              const SizedBox(height: 12),
+              if (!isNovaVistoria) ...[
+                const SizedBox(height: 8),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Resolver na hora'),
+                  value: resolverNaHora,
+                  onChanged: saving ? null : onResolverChanged,
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: hasBeforePhoto ? null : onTakeBeforePhoto,
+                  icon: takingBeforePhoto
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          hasBeforePhoto
+                              ? Icons.check_circle
+                              : Icons.photo_camera,
+                        ),
+                  label: Text(
+                    hasBeforePhoto ? 'Foto antes registrada' : 'Foto antes',
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               FilledButton.icon(
                 onPressed: onSubmit,
                 icon: saving
@@ -1042,115 +1274,89 @@ class _VistoriaFormCard extends StatelessWidget {
   }
 }
 
-class _ExecucaoCard extends StatelessWidget {
-  final GlobalKey<FormState> formKey;
-  final TextEditingController servicoExecutadoController;
-  final TextEditingController observacaoFinalController;
-  final bool finishing;
-  final bool reopening;
-  final bool takingAfterPhoto;
-  final bool hasAfterPhoto;
-  final VoidCallback? onFinish;
-  final VoidCallback? onReopen;
-  final VoidCallback? onTakeAfterPhoto;
+class _ServicoAcoesCard extends StatelessWidget {
+  final bool starting;
+  final bool newInspectionLoading;
+  final bool takingFinalPhoto;
+  final bool closingService;
+  final VoidCallback? onNewInspection;
+  final VoidCallback? onFinishRepair;
+  final VoidCallback? onFinalPhoto;
+  final VoidCallback? onCloseService;
 
-  const _ExecucaoCard({
-    required this.formKey,
-    required this.servicoExecutadoController,
-    required this.observacaoFinalController,
-    required this.finishing,
-    required this.reopening,
-    required this.takingAfterPhoto,
-    required this.hasAfterPhoto,
-    required this.onFinish,
-    required this.onReopen,
-    required this.onTakeAfterPhoto,
+  const _ServicoAcoesCard({
+    required this.starting,
+    required this.newInspectionLoading,
+    required this.takingFinalPhoto,
+    required this.closingService,
+    required this.onNewInspection,
+    required this.onFinishRepair,
+    required this.onFinalPhoto,
+    required this.onCloseService,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Execucao do reparo',
-                style: Theme.of(context).textTheme.titleLarge,
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            OutlinedButton.icon(
+              onPressed: newInspectionLoading ? null : onNewInspection,
+              icon: newInspectionLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.assignment_return),
+              label: const Text('Nova Vistoria'),
+            ),
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              onPressed: onFinishRepair,
+              icon: starting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.build_circle),
+              label: const Text('Concluir Reparo'),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: onFinalPhoto,
+              icon: takingFinalPhoto
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.photo_camera),
+              label: const Text('Foto Final'),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              onPressed: onCloseService,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: colorScheme.primary,
+                side: BorderSide(color: colorScheme.primary, width: 1.2),
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: servicoExecutadoController,
-                minLines: 3,
-                maxLines: 6,
-                textInputAction: TextInputAction.newline,
-                decoration: const InputDecoration(
-                  labelText: 'Servico executado',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Descreva o servico executado.';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 14),
-              TextFormField(
-                controller: observacaoFinalController,
-                minLines: 2,
-                maxLines: 5,
-                textInputAction: TextInputAction.newline,
-                decoration: const InputDecoration(
-                  labelText: 'Observacao final',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: onTakeAfterPhoto,
-                icon: takingAfterPhoto
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Icon(
-                        hasAfterPhoto
-                            ? Icons.check_circle
-                            : Icons.photo_camera,
-                      ),
-                label: Text(hasAfterPhoto ? 'Foto final registrada' : 'Foto final'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: reopening ? null : onReopen,
-                icon: reopening
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.assignment_return),
-                label: const Text('Abrir nova vistoria'),
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: finishing ? null : onFinish,
-                icon: finishing
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.check_circle),
-                label: const Text('Concluir reparo'),
-              ),
-            ],
-          ),
+              icon: closingService
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.check_circle),
+              label: const Text('Encerrar Servico'),
+            ),
+          ],
         ),
       ),
     );
@@ -1164,20 +1370,127 @@ class _FinishedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(18),
+        child: Row(
           children: [
-            Text(
-              'Chamado concluido',
-              style: Theme.of(context).textTheme.titleMedium,
+            Icon(
+              Icons.verified,
+              color: Theme.of(context).colorScheme.primary,
             ),
-            const SizedBox(height: 6),
-            const Text('O reparo foi registrado e enviado para o historico.'),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Chamado concluido',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+            ),
           ],
         ),
       ),
     );
+  }
+}
+
+class _InlineMessage extends StatelessWidget {
+  final String message;
+  final bool isError;
+
+  const _InlineMessage({
+    required this.message,
+    this.isError = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final background =
+        isError ? colorScheme.errorContainer : const Color(0xFFE7F3EE);
+    final foreground =
+        isError ? colorScheme.onErrorContainer : const Color(0xFF0D5F4D);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            isError ? Icons.error_outline : Icons.sync,
+            color: foreground,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: foreground, height: 1.35),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  final String label;
+
+  const _StatusBadge({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = _statusColors(context, label);
+
+    return Chip(
+      label: Text(label),
+      visualDensity: VisualDensity.compact,
+      backgroundColor: colors.background,
+      labelStyle: TextStyle(
+        color: colors.foreground,
+        fontWeight: FontWeight.w800,
+      ),
+    );
+  }
+}
+
+class _BadgeColors {
+  final Color background;
+  final Color foreground;
+
+  const _BadgeColors({
+    required this.background,
+    required this.foreground,
+  });
+}
+
+_BadgeColors _statusColors(BuildContext context, String label) {
+  final colorScheme = Theme.of(context).colorScheme;
+
+  switch (label.trim().toUpperCase()) {
+    case 'EM_EXECUCAO':
+      return const _BadgeColors(
+        background: Color(0xFFFFE8B7),
+        foreground: Color(0xFF5A3A00),
+      );
+    case 'EM_ANALISE':
+      return const _BadgeColors(
+        background: Color(0xFFE4EDFF),
+        foreground: Color(0xFF16427D),
+      );
+    case 'CONCLUIDO':
+      return const _BadgeColors(
+        background: Color(0xFFDFF4E9),
+        foreground: Color(0xFF0A5C48),
+      );
+    default:
+      return _BadgeColors(
+        background: colorScheme.surfaceContainerHighest,
+        foreground: colorScheme.onSurfaceVariant,
+      );
   }
 }
 
@@ -1189,31 +1502,36 @@ class _HeaderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = (chamado['status'] ?? '-').toString();
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Card(
+      clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(
                   child: Text(
                     (chamado['numero'] ?? '-').toString(),
-                    style: Theme.of(context).textTheme.headlineSmall,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: colorScheme.onSurface,
+                        ),
                   ),
                 ),
-                Chip(
-                  label: Text(status),
-                  visualDensity: VisualDensity.compact,
-                ),
+                _StatusBadge(label: status),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Text(
               (chamado['descricao'] ?? '').toString(),
-              style: Theme.of(context).textTheme.bodyLarge,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    height: 1.35,
+                  ),
             ),
           ],
         ),
@@ -1231,7 +1549,7 @@ class _InfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           children: [
             _DetailLine(label: 'Prioridade', value: chamado['prioridade']),
@@ -1243,7 +1561,11 @@ class _InfoCard extends StatelessWidget {
             ),
             _DetailLine(label: 'Abertura', value: chamado['data_abertura']),
             if ((chamado['observacao'] ?? '').toString().isNotEmpty)
-              _DetailLine(label: 'Observacao', value: chamado['observacao']),
+              _DetailLine(
+                label: 'Observacao',
+                value: chamado['observacao'],
+                expanded: true,
+              ),
           ],
         ),
       ),
@@ -1254,27 +1576,53 @@ class _InfoCard extends StatelessWidget {
 class _DetailLine extends StatelessWidget {
   final String label;
   final Object? value;
+  final bool expanded;
 
   const _DetailLine({
     required this.label,
     required this.value,
+    this.expanded = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final resolvedValue = (value ?? '-').toString();
+    final labelStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w800,
+        );
+    final valueStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+          height: 1.35,
+        );
+
+    if (expanded || resolvedValue.length > 42) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: labelStyle),
+            const SizedBox(height: 4),
+            Text(resolvedValue, style: valueStyle),
+          ],
+        ),
+      );
+    }
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 96,
+            width: 112,
             child: Text(
               label,
-              style: const TextStyle(fontWeight: FontWeight.w700),
+              style: labelStyle,
             ),
           ),
-          Expanded(child: Text((value ?? '-').toString())),
+          Expanded(child: Text(resolvedValue, style: valueStyle)),
         ],
       ),
     );
