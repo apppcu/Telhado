@@ -1686,7 +1686,7 @@
     }
 
     function setDashboardLoading() {
-      els.recentCallsList.innerHTML = '<div class="empty-state">Carregando chamados...</div>';
+      setEmptyState(els.recentCallsList, 'Carregando chamados...');
       els.weatherRisk.textContent = 'Carregando';
       els.weatherIcon.className = 'weather-icon weather-icon-cloud';
       els.weatherCondition.textContent = 'Carregando clima';
@@ -1733,8 +1733,8 @@
     }
 
     function renderDashboardError(message) {
-      els.recentCallsList.innerHTML = '<div class="empty-state">' + escapeHtml(message) + '</div>';
-      els.pendingAccessList.innerHTML = '<div class="empty-state">' + escapeHtml(message) + '</div>';
+      setEmptyState(els.recentCallsList, message);
+      setEmptyState(els.pendingAccessList, message);
       els.weatherRisk.textContent = 'Indisponivel';
     }
 
@@ -1796,7 +1796,7 @@
       state.filteredChamados = chamados;
 
       if (!chamados.length) {
-        els.recentCallsList.innerHTML = '<div class="empty-state">Nenhum chamado registrado ainda.</div>';
+        setEmptyState(els.recentCallsList, 'Nenhum chamado registrado ainda.');
         return;
       }
 
@@ -1813,7 +1813,7 @@
 
     function renderMyCalls(chamados) {
       if (!chamados.length) {
-        els.myCallsList.innerHTML = '<div class="empty-state">Voce ainda nao abriu chamados.</div>';
+        setEmptyState(els.myCallsList, 'Voce ainda nao abriu chamados.');
         return;
       }
 
@@ -1963,7 +1963,7 @@
       }
 
       if (!items.length) {
-        els.pendingAccessList.innerHTML = '<div class="empty-state">Nenhuma solicitacao pendente.</div>';
+        setEmptyState(els.pendingAccessList, 'Nenhuma solicitacao pendente.');
         return;
       }
 
@@ -2077,6 +2077,14 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+    }
+
+    function emptyStateHtml(message) {
+      return '<div class="empty-state">' + escapeHtml(message) + '</div>';
+    }
+
+    function setEmptyState(element, message) {
+      element.innerHTML = emptyStateHtml(message);
     }
 
     function openRegisterModal() {
@@ -2224,7 +2232,7 @@
         return Promise.resolve(state.technicians);
       }
 
-      els.techniciansList.innerHTML = '<div class="empty-state">Carregando tecnicos...</div>';
+      setEmptyState(els.techniciansList, 'Carregando tecnicos...');
       return callServer('listarTecnicosManutencao', getAuthPayload())
         .then((response) => {
           response = requireResponse(response, 'Nao foi possivel carregar tecnicos.');
@@ -2238,7 +2246,7 @@
         .catch((error) => {
           const message = error.message || 'Erro ao carregar tecnicos.';
           els.manageCallTechnician.innerHTML = '<option value="">' + escapeHtml(message) + '</option>';
-          els.techniciansList.innerHTML = '<div class="empty-state">' + escapeHtml(message) + '</div>';
+          setEmptyState(els.techniciansList, message);
           return [];
         });
     }
@@ -2262,7 +2270,7 @@
 
     function renderTechniciansList(technicians) {
       if (!technicians.length) {
-        els.techniciansList.innerHTML = '<div class="empty-state">Nenhum tecnico cadastrado ainda.</div>';
+        setEmptyState(els.techniciansList, 'Nenhum tecnico cadastrado ainda.');
         return;
       }
 
@@ -2513,7 +2521,7 @@
         .catch((error) => {
           button.disabled = false;
           button.textContent = 'Aprovar';
-          els.pendingAccessList.insertAdjacentHTML('afterbegin', '<div class="empty-state">' + escapeHtml(error.message || 'Erro ao aprovar acesso.') + '</div>');
+          els.pendingAccessList.insertAdjacentHTML('afterbegin', emptyStateHtml(error.message || 'Erro ao aprovar acesso.'));
         });
     }
 
@@ -2536,7 +2544,7 @@
         .catch((error) => {
           button.disabled = false;
           button.textContent = 'Rejeitar';
-          els.pendingAccessList.insertAdjacentHTML('afterbegin', '<div class="empty-state">' + escapeHtml(error.message || 'Erro ao rejeitar acesso.') + '</div>');
+          els.pendingAccessList.insertAdjacentHTML('afterbegin', emptyStateHtml(error.message || 'Erro ao rejeitar acesso.'));
         });
     }
 
@@ -2547,7 +2555,7 @@
     }
 
     function loadCallHistory(chamadoId) {
-      els.manageCallHistory.innerHTML = '<div class="empty-state">Carregando historico...</div>';
+      setEmptyState(els.manageCallHistory, 'Carregando historico...');
 
       callServer('getHistoricoChamado', chamadoId, getAuthPayload())
         .then((response) => {
@@ -2555,13 +2563,13 @@
           renderCallHistory(response.data || []);
         })
         .catch((error) => {
-          els.manageCallHistory.innerHTML = '<div class="empty-state">' + escapeHtml(error.message || 'Erro ao carregar historico.') + '</div>';
+          setEmptyState(els.manageCallHistory, error.message || 'Erro ao carregar historico.');
         });
     }
 
     function renderCallHistory(items) {
       if (!items.length) {
-        els.manageCallHistory.innerHTML = '<div class="empty-state">Nenhum historico registrado.</div>';
+        setEmptyState(els.manageCallHistory, 'Nenhum historico registrado.');
         return;
       }
 
