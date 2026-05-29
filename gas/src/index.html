@@ -569,10 +569,12 @@
     .weather-card {
       min-height: 226px;
       background:
+        radial-gradient(circle at 88% 12%, rgba(255, 255, 255, 0.18), transparent 24%),
         linear-gradient(135deg, rgba(7, 60, 52, 0.96), rgba(39, 95, 122, 0.92)),
         var(--leaf-dark);
       color: var(--white);
       border-color: rgba(255, 255, 255, 0.16);
+      overflow: hidden;
     }
 
     .panel-modal {
@@ -622,11 +624,102 @@
       white-space: nowrap;
     }
 
+    .weather-current {
+      display: grid;
+      grid-template-columns: 76px minmax(0, 1fr);
+      gap: 18px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .weather-icon {
+      position: relative;
+      width: 76px;
+      height: 76px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+    }
+
+    .weather-icon::before,
+    .weather-icon::after {
+      content: '';
+      position: absolute;
+    }
+
+    .weather-icon-sun::before {
+      width: 38px;
+      height: 38px;
+      left: 19px;
+      top: 19px;
+      border-radius: 50%;
+      background: #FFD166;
+      box-shadow:
+        0 -17px 0 -12px rgba(255, 209, 102, 0.9),
+        0 17px 0 -12px rgba(255, 209, 102, 0.9),
+        17px 0 0 -12px rgba(255, 209, 102, 0.9),
+        -17px 0 0 -12px rgba(255, 209, 102, 0.9),
+        12px 12px 0 -12px rgba(255, 209, 102, 0.9),
+        -12px -12px 0 -12px rgba(255, 209, 102, 0.9),
+        12px -12px 0 -12px rgba(255, 209, 102, 0.9),
+        -12px 12px 0 -12px rgba(255, 209, 102, 0.9);
+    }
+
+    .weather-icon-cloud::before,
+    .weather-icon-cloud-rain::before,
+    .weather-icon-rain::before {
+      width: 46px;
+      height: 22px;
+      left: 15px;
+      top: 33px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow:
+        9px -12px 0 2px rgba(255, 255, 255, 0.94),
+        25px -7px 0 1px rgba(255, 255, 255, 0.94);
+    }
+
+    .weather-icon-cloud-rain::after,
+    .weather-icon-rain::after {
+      width: 4px;
+      height: 13px;
+      left: 29px;
+      top: 57px;
+      border-radius: 3px;
+      background: #9EE7FF;
+      box-shadow:
+        13px -2px 0 #9EE7FF,
+        26px 0 0 #9EE7FF;
+      transform: rotate(12deg);
+    }
+
+    .weather-condition {
+      margin: 0 0 6px;
+      color: rgba(255, 255, 255, 0.78);
+      font-weight: 700;
+    }
+
+    .weather-temp {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .weather-temp strong {
+      font-size: clamp(40px, 6vw, 60px);
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+
     .weather-value {
-      font-size: clamp(36px, 5vw, 52px);
+      font-size: 16px;
       font-weight: 800;
       line-height: 1;
-      margin-bottom: 14px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.14);
+      white-space: nowrap;
     }
 
     .weather-days {
@@ -639,7 +732,8 @@
       border: 1px solid rgba(255, 255, 255, 0.18);
       border-radius: 8px;
       padding: 12px;
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.1);
+      min-height: 72px;
     }
 
     .weather-day strong {
@@ -978,6 +1072,7 @@
   <section id="dashboardView" class="dashboard no-rail">
     <nav id="dashboardRail" class="dashboard-rail" aria-label="Atalhos do dashboard" hidden>
       <button id="openRecentCallsButton" class="rail-button admin-only" type="button" hidden>Chamados recentes</button>
+      <button id="openReportsButton" class="rail-button admin-only" type="button" hidden>Relatorio</button>
       <button id="openPendingAccessButton" class="rail-button admin-only" type="button" hidden>Solicitacoes pendentes</button>
       <button id="openTechniciansButton" class="rail-button admin-only" type="button" hidden>Tecnicos</button>
     </nav>
@@ -1012,7 +1107,16 @@
             </div>
             <div id="weatherRisk" class="risk-pill">Carregando</div>
           </div>
-          <div id="weatherValue" class="weather-value">-- mm</div>
+          <div class="weather-current">
+            <div id="weatherIcon" class="weather-icon weather-icon-cloud" aria-hidden="true"></div>
+            <div>
+              <p id="weatherCondition" class="weather-condition">Carregando clima</p>
+              <div class="weather-temp">
+                <strong id="weatherTemp">--°C</strong>
+                <span id="weatherValue" class="weather-value">-- mm</span>
+              </div>
+            </div>
+          </div>
           <div id="weatherDays" class="weather-days"></div>
         </section>
 
@@ -1039,7 +1143,7 @@
         <input id="callSearchInput" type="search" placeholder="Buscar numero ou local">
         <select id="callStatusFilter" aria-label="Filtrar por status">
           <option value="">Todos os status</option>
-          <option value="ABERTO">Aberto</option>
+          <option value="ABERTO" selected>Aberto</option>
           <option value="EM_ANALISE">Em analise</option>
           <option value="ENCAMINHADO">Encaminhado</option>
           <option value="EM_EXECUCAO">Em execucao</option>
@@ -1054,11 +1158,48 @@
         <select id="callTechnicianFilter" aria-label="Filtrar por tecnico">
           <option value="">Todos tecnicos</option>
         </select>
-        <button id="exportCallsButton" class="btn btn-secondary btn-compact" type="button">Exportar CSV</button>
       </div>
       <div id="recentCallsList" class="data-list">
         <div class="empty-state">Carregando chamados...</div>
       </div>
+    </div>
+  </div>
+
+  <div id="reportsPanel" class="modal panel-modal" role="dialog" aria-modal="true" aria-labelledby="reportsTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h2 id="reportsTitle">Relatorio</h2>
+          <p class="lead">Filtre os chamados e exporte em CSV, Excel ou PDF.</p>
+        </div>
+        <button id="closeReportsPanelButton" class="close" type="button" aria-label="Fechar">x</button>
+      </div>
+      <div class="filter-bar">
+        <input id="reportSearchInput" type="search" placeholder="Buscar numero ou local">
+        <select id="reportStatusFilter" aria-label="Status do relatorio">
+          <option value="">Todos os status</option>
+          <option value="ABERTO" selected>Aberto</option>
+          <option value="EM_ANALISE">Em analise</option>
+          <option value="ENCAMINHADO">Encaminhado</option>
+          <option value="EM_EXECUCAO">Em execucao</option>
+          <option value="CONCLUIDO">Concluido</option>
+        </select>
+        <select id="reportPriorityFilter" aria-label="Prioridade do relatorio">
+          <option value="">Todas prioridades</option>
+          <option value="NORMAL">Normal</option>
+          <option value="ALTA">Alta</option>
+          <option value="URGENTE">Urgente</option>
+        </select>
+        <select id="reportTechnicianFilter" aria-label="Tecnico do relatorio">
+          <option value="">Todos tecnicos</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button id="exportCsvButton" class="btn btn-secondary" type="button">Exportar CSV</button>
+        <button id="exportExcelButton" class="btn btn-secondary" type="button">Exportar Excel</button>
+        <button id="exportPdfButton" class="btn btn-primary" type="button">Exportar PDF</button>
+      </div>
+      <div id="reportSummary" class="empty-state">Nenhum chamado filtrado.</div>
     </div>
   </div>
 
@@ -1233,7 +1374,7 @@
       <div class="modal-head">
         <div>
           <h2 id="manageCallTitle">Gerenciar chamado</h2>
-          <p id="manageCallSubtitle" class="lead">Atualize o andamento e registre o historico tecnico.</p>
+          <p id="manageCallSubtitle" class="lead">Selecione o tecnico e encaminhe o chamado para manutencao.</p>
         </div>
         <button id="closeManageCallModalButton" class="close" type="button" aria-label="Fechar">x</button>
       </div>
@@ -1241,8 +1382,8 @@
       <form id="manageCallForm" class="form-grid">
         <input id="manage_call_id" name="id" type="hidden">
         <div class="field">
-          <label for="manage_call_status">Status</label>
-          <select id="manage_call_status" name="status" required>
+          <label for="manage_call_status">Status atual</label>
+          <select id="manage_call_status" name="status" disabled>
             <option value="ABERTO">Aberto</option>
             <option value="EM_ANALISE">Em analise</option>
             <option value="ENCAMINHADO">Encaminhado</option>
@@ -1265,10 +1406,6 @@
           <textarea id="manage_call_description" readonly></textarea>
         </div>
         <div class="field full">
-          <label for="manage_call_observation">Observacao tecnica</label>
-          <textarea id="manage_call_observation" name="observacao" placeholder="Registre a analise, execucao, materiais ou encaminhamentos."></textarea>
-        </div>
-        <div class="field full">
           <label>Historico</label>
           <div id="manageCallHistory" class="history-list">
             <div class="empty-state">Carregando historico...</div>
@@ -1276,8 +1413,7 @@
         </div>
         <div class="field full">
           <div class="form-actions">
-            <button id="submitManageCallButton" class="btn btn-primary" type="submit">Salvar alteracao</button>
-            <button id="assignMaintenanceButton" class="btn btn-secondary" type="button">Enviar para manutencao</button>
+            <button id="assignMaintenanceButton" class="btn btn-primary" type="button">Enviar para manutencao</button>
           </div>
           <div id="manageCallMessage" class="message"></div>
         </div>
@@ -1309,18 +1445,21 @@
       newCallButton: document.getElementById('newCallButton'),
       logoutButton: document.getElementById('logoutButton'),
       openRecentCallsButton: document.getElementById('openRecentCallsButton'),
+      openReportsButton: document.getElementById('openReportsButton'),
       openPendingAccessButton: document.getElementById('openPendingAccessButton'),
       openTechniciansButton: document.getElementById('openTechniciansButton'),
       registerModal: document.getElementById('registerModal'),
       callModal: document.getElementById('callModal'),
       manageCallModal: document.getElementById('manageCallModal'),
       recentCallsPanel: document.getElementById('recentCallsPanel'),
+      reportsPanel: document.getElementById('reportsPanel'),
       pendingAccessPanel: document.getElementById('pendingAccessPanel'),
       techniciansPanel: document.getElementById('techniciansPanel'),
       closeModalButton: document.getElementById('closeModalButton'),
       closeCallModalButton: document.getElementById('closeCallModalButton'),
       closeManageCallModalButton: document.getElementById('closeManageCallModalButton'),
       closeRecentCallsPanelButton: document.getElementById('closeRecentCallsPanelButton'),
+      closeReportsPanelButton: document.getElementById('closeReportsPanelButton'),
       closePendingAccessPanelButton: document.getElementById('closePendingAccessPanelButton'),
       closeTechniciansPanelButton: document.getElementById('closeTechniciansPanelButton'),
       registerForm: document.getElementById('registerForm'),
@@ -1334,7 +1473,6 @@
       temporaryPasswordBox: document.getElementById('temporaryPasswordBox'),
       submitRegisterButton: document.getElementById('submitRegisterButton'),
       submitCallButton: document.getElementById('submitCallButton'),
-      submitManageCallButton: document.getElementById('submitManageCallButton'),
       submitTechnicianButton: document.getElementById('submitTechnicianButton'),
       assignMaintenanceButton: document.getElementById('assignMaintenanceButton'),
       manageCallId: document.getElementById('manage_call_id'),
@@ -1342,7 +1480,6 @@
       manageCallTechnician: document.getElementById('manage_call_technician'),
       manageCallPriority: document.getElementById('manage_call_priority'),
       manageCallDescription: document.getElementById('manage_call_description'),
-      manageCallObservation: document.getElementById('manage_call_observation'),
       manageCallSubtitle: document.getElementById('manageCallSubtitle'),
       manageCallHistory: document.getElementById('manageCallHistory'),
       centroSelect: document.getElementById('centro_sigla'),
@@ -1364,9 +1501,19 @@
       callStatusFilter: document.getElementById('callStatusFilter'),
       callPriorityFilter: document.getElementById('callPriorityFilter'),
       callTechnicianFilter: document.getElementById('callTechnicianFilter'),
-      exportCallsButton: document.getElementById('exportCallsButton'),
+      reportSearchInput: document.getElementById('reportSearchInput'),
+      reportStatusFilter: document.getElementById('reportStatusFilter'),
+      reportPriorityFilter: document.getElementById('reportPriorityFilter'),
+      reportTechnicianFilter: document.getElementById('reportTechnicianFilter'),
+      exportCsvButton: document.getElementById('exportCsvButton'),
+      exportExcelButton: document.getElementById('exportExcelButton'),
+      exportPdfButton: document.getElementById('exportPdfButton'),
+      reportSummary: document.getElementById('reportSummary'),
       weatherCity: document.getElementById('weatherCity'),
       weatherRisk: document.getElementById('weatherRisk'),
+      weatherIcon: document.getElementById('weatherIcon'),
+      weatherCondition: document.getElementById('weatherCondition'),
+      weatherTemp: document.getElementById('weatherTemp'),
       weatherValue: document.getElementById('weatherValue'),
       weatherDays: document.getElementById('weatherDays'),
       pendingAccessList: document.getElementById('pendingAccessList'),
@@ -1504,12 +1651,14 @@
       closeCallModal();
       closeManageCallModal();
       closeRecentCallsPanel();
+      closeReportsPanel();
       closePendingAccessPanel();
       closeTechniciansPanel();
       els.dashboardView.classList.remove('active');
       els.dashboardView.classList.add('no-rail');
       els.dashboardRail.hidden = true;
       els.openRecentCallsButton.hidden = true;
+      els.openReportsButton.hidden = true;
       els.openPendingAccessButton.hidden = true;
       els.openTechniciansButton.hidden = true;
       els.pendingMetric.hidden = true;
@@ -1539,6 +1688,9 @@
     function setDashboardLoading() {
       els.recentCallsList.innerHTML = '<div class="empty-state">Carregando chamados...</div>';
       els.weatherRisk.textContent = 'Carregando';
+      els.weatherIcon.className = 'weather-icon weather-icon-cloud';
+      els.weatherCondition.textContent = 'Carregando clima';
+      els.weatherTemp.textContent = '--°C';
       els.weatherValue.textContent = '-- mm';
       els.weatherDays.innerHTML = '';
     }
@@ -1564,6 +1716,7 @@
       els.dashboardRail.hidden = !canManageAccess;
       els.dashboardView.classList.toggle('no-rail', !canManageAccess);
       els.openRecentCallsButton.hidden = !canManageAccess;
+      els.openReportsButton.hidden = !canManageAccess;
       els.openPendingAccessButton.hidden = !canManageAccess;
       els.openTechniciansButton.hidden = !canManageAccess;
       els.pendingMetric.hidden = !canManageAccess;
@@ -1571,6 +1724,7 @@
 
       if (!canManageAccess) {
         closeRecentCallsPanel();
+        closeReportsPanel();
         closePendingAccessPanel();
         closeTechniciansPanel();
       } else {
@@ -1589,13 +1743,21 @@
 
       if (!weather.available) {
         els.weatherRisk.textContent = 'Indisponivel';
+        els.weatherIcon.className = 'weather-icon weather-icon-cloud';
+        els.weatherCondition.textContent = weather.message || 'Clima indisponivel';
+        els.weatherTemp.textContent = '--°C';
         els.weatherValue.textContent = '-- mm';
         els.weatherDays.innerHTML = '<div class="weather-day"><span>Previsao</span><strong>Indisponivel</strong></div>';
         return;
       }
 
       els.weatherRisk.textContent = riskLabel(weather.risk);
-      els.weatherValue.textContent = formatNumber(weather.max_precipitation_mm) + ' mm';
+      els.weatherIcon.className = 'weather-icon weather-icon-' + weatherIconClass(weather.current_icon);
+      els.weatherCondition.textContent = weather.current_condition || 'Previsao atual';
+      els.weatherTemp.textContent = weather.current_temperature_c === null || weather.current_temperature_c === undefined
+        ? '--°C'
+        : formatNumber(weather.current_temperature_c) + '°C';
+      els.weatherValue.textContent = formatNumber(weather.max_precipitation_mm) + ' mm no periodo';
       els.weatherDays.innerHTML = (weather.days || []).map((day) => {
         return '<div class="weather-day">' +
           '<span>' + escapeHtml(day.label) + '</span>' +
@@ -1607,6 +1769,7 @@
     function renderChamados(chamados) {
       state.chamados = chamados;
       applyCallFilters();
+      renderReportSummary();
       if (state.techniciansLoaded) {
         renderTechniciansList(state.technicians);
       }
@@ -1628,7 +1791,7 @@
         return (!search || haystack.indexOf(search) >= 0) &&
           (!status || normalizeStatusValue(chamado.status) === status) &&
           (!priority || String(chamado.prioridade || '').toUpperCase() === priority) &&
-          (!technicianId || chamado.executante_id === technicianId);
+          (!technicianId || String(chamado.executante_id || '') === technicianId);
       });
       state.filteredChamados = chamados;
 
@@ -1664,15 +1827,52 @@
       }).join('');
     }
 
-    function exportFilteredCallsCsv() {
-      const rows = state.filteredChamados || [];
-      if (!rows.length) {
-        alert('Nao ha chamados filtrados para exportar.');
+    function getReportRows() {
+      const search = String(els.reportSearchInput.value || '').trim().toLowerCase();
+      const status = els.reportStatusFilter.value;
+      const priority = els.reportPriorityFilter.value;
+      const technicianId = els.reportTechnicianFilter.value;
+
+      return state.chamados.filter((chamado) => {
+        const haystack = [
+          chamado.numero,
+          chamado.predio_id,
+          chamado.centro_sigla,
+          chamado.descricao,
+          chamado.executante_nome
+        ].join(' ').toLowerCase();
+
+        return (!search || haystack.indexOf(search) >= 0) &&
+          (!status || normalizeStatusValue(chamado.status) === status) &&
+          (!priority || String(chamado.prioridade || '').toUpperCase() === priority) &&
+          (!technicianId || String(chamado.executante_id || '') === technicianId);
+      });
+    }
+
+    function renderReportSummary() {
+      if (!els.reportSummary) {
         return;
       }
 
-      const header = ['Numero', 'Data', 'Centro', 'Local', 'Descricao', 'Prioridade', 'Status', 'Tecnico'];
-      const csvRows = [header].concat(rows.map((chamado) => [
+      const rows = getReportRows();
+      if (!rows.length) {
+        els.reportSummary.innerHTML = '<div>Nenhum chamado encontrado para os filtros selecionados.</div>';
+        return;
+      }
+
+      const totalUrgent = rows.filter((chamado) => String(chamado.prioridade || '').toUpperCase() === 'URGENTE').length;
+      const totalForwarded = rows.filter((chamado) => normalizeStatusValue(chamado.status) === 'ENCAMINHADO').length;
+      els.reportSummary.innerHTML =
+        '<strong>' + rows.length + ' chamado(s) pronto(s) para exportacao.</strong>' +
+        '<span> Urgentes: ' + totalUrgent + ' | Encaminhados: ' + totalForwarded + '</span>';
+    }
+
+    function reportHeader() {
+      return ['Numero', 'Data', 'Centro', 'Local', 'Descricao', 'Prioridade', 'Status', 'Tecnico'];
+    }
+
+    function reportRow(chamado) {
+      return [
         chamado.numero || '',
         formatDate(chamado.data_abertura),
         chamado.centro_sigla || '',
@@ -1681,17 +1881,76 @@
         chamado.prioridade || '',
         statusLabel(chamado.status),
         chamado.executante_nome || ''
-      ]));
-      const csv = csvRows.map((row) => row.map(csvValue).join(';')).join('\r\n');
-      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      ];
+    }
+
+    function downloadBlob(filename, content, type) {
+      const blob = new Blob([content], { type: type });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'chamados-telhado.csv';
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
+    }
+
+    function exportReportCsv() {
+      const rows = getReportRows();
+      if (!rows.length) {
+        alert('Nao ha chamados filtrados para exportar.');
+        return;
+      }
+
+      const csvRows = [reportHeader()].concat(rows.map(reportRow));
+      const csv = csvRows.map((row) => row.map(csvValue).join(';')).join('\r\n');
+      downloadBlob('relatorio-chamados-telhado.csv', '\ufeff' + csv, 'text/csv;charset=utf-8;');
+    }
+
+    function exportReportExcel() {
+      const rows = getReportRows();
+      if (!rows.length) {
+        alert('Nao ha chamados filtrados para exportar.');
+        return;
+      }
+
+      const htmlRows = [reportHeader()].concat(rows.map(reportRow)).map((row, index) => {
+        const tag = index === 0 ? 'th' : 'td';
+        return '<tr>' + row.map((value) => '<' + tag + '>' + escapeHtml(value) + '</' + tag + '>').join('') + '</tr>';
+      }).join('');
+      const workbook = '<html><head><meta charset="utf-8"></head><body><table>' + htmlRows + '</table></body></html>';
+      downloadBlob('relatorio-chamados-telhado.xls', '\ufeff' + workbook, 'application/vnd.ms-excel;charset=utf-8;');
+    }
+
+    function exportReportPdf() {
+      const rows = getReportRows();
+      if (!rows.length) {
+        alert('Nao ha chamados filtrados para exportar.');
+        return;
+      }
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Permita pop-ups para gerar o PDF.');
+        return;
+      }
+
+      const headerCells = reportHeader().map((value) => '<th>' + escapeHtml(value) + '</th>').join('');
+      const bodyRows = rows.map((chamado) => {
+        return '<tr>' + reportRow(chamado).map((value) => '<td>' + escapeHtml(value) + '</td>').join('') + '</tr>';
+      }).join('');
+      const generatedAt = new Date().toLocaleString('pt-BR');
+
+      printWindow.document.write(
+        '<!doctype html><html><head><meta charset="utf-8"><title>Relatorio de chamados</title>' +
+        '<style>body{font-family:Arial,sans-serif;color:#17231f;margin:24px;}h1{font-size:22px;margin:0 0 6px;}p{margin:0 0 18px;color:#5f6e68;}table{width:100%;border-collapse:collapse;font-size:12px;}th,td{border:1px solid #d7e1dc;padding:8px;text-align:left;vertical-align:top;}th{background:#e7efea;}tr:nth-child(even){background:#f6f8f6;}</style>' +
+        '</head><body><h1>Relatorio de chamados</h1><p>Gerado em ' + escapeHtml(generatedAt) + ' | Total: ' + rows.length + '</p>' +
+        '<table><thead><tr>' + headerCells + '</tr></thead><tbody>' + bodyRows + '</tbody></table></body></html>'
+      );
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
     }
 
     function csvValue(value) {
@@ -1745,6 +2004,16 @@
         INDISPONIVEL: 'Indisponivel'
       };
       return labels[value] || 'Baixo';
+    }
+
+    function weatherIconClass(value) {
+      const allowed = {
+        sun: 'sun',
+        cloud: 'cloud',
+        'cloud-rain': 'cloud-rain',
+        rain: 'rain'
+      };
+      return allowed[value] || 'cloud';
     }
 
     function statusLabel(value) {
@@ -1848,7 +2117,6 @@
       els.manageCallTechnician.value = chamado.executante_id || '';
       els.manageCallPriority.value = chamado.prioridade || 'NORMAL';
       els.manageCallDescription.value = chamado.descricao || '';
-      els.manageCallObservation.value = '';
       els.manageCallSubtitle.textContent = (chamado.numero || '-') + ' - ' + (chamado.predio_id || chamado.centro_sigla || 'Local nao informado') +
         (chamado.executante_nome ? ' - Tecnico: ' + chamado.executante_nome : '');
       setMessage(els.manageCallMessage, '', '');
@@ -1864,11 +2132,27 @@
     }
 
     function openRecentCallsPanel() {
+      els.callStatusFilter.value = 'ABERTO';
+      applyCallFilters();
       els.recentCallsPanel.classList.add('open');
     }
 
     function closeRecentCallsPanel() {
       els.recentCallsPanel.classList.remove('open');
+    }
+
+    function openReportsPanel() {
+      if (els.openReportsButton.hidden) {
+        return;
+      }
+
+      els.reportStatusFilter.value = 'ABERTO';
+      renderReportSummary();
+      els.reportsPanel.classList.add('open');
+    }
+
+    function closeReportsPanel() {
+      els.reportsPanel.classList.remove('open');
     }
 
     function openPendingAccessPanel() {
@@ -1972,6 +2256,8 @@
         return '<option value="' + escapeHtml(technician.id) + '">' + escapeHtml(technician.nome || '-') + '</option>';
       }).join('');
       els.callTechnicianFilter.innerHTML = filterOptions;
+      els.reportTechnicianFilter.innerHTML = filterOptions;
+      renderReportSummary();
     }
 
     function renderTechniciansList(technicians) {
@@ -2076,36 +2362,6 @@
         });
     }
 
-    function handleManageCall(event) {
-      event.preventDefault();
-      const formData = new FormData(els.manageCallForm);
-      const payload = Object.fromEntries(formData.entries());
-      payload.auth_email = state.authEmail;
-      if (normalizeStatusValue(payload.status) === 'CONCLUIDO' && !confirm('Concluir este chamado? Esta acao registra o fechamento do servico.')) {
-        return;
-      }
-
-      els.submitManageCallButton.disabled = true;
-      setMessage(els.manageCallMessage, 'Salvando alteracao...', '');
-
-      callServer('atualizarChamado', payload)
-        .then((response) => {
-          response = requireResponse(response, 'Erro ao atualizar chamado.');
-          setMessage(els.manageCallMessage, 'Chamado atualizado com sucesso.', '');
-          loadCallHistory(payload.id);
-          setTimeout(() => {
-            closeManageCallModal();
-            loadDashboard();
-          }, 600);
-        })
-        .catch((error) => {
-          setMessage(els.manageCallMessage, error.message || 'Erro ao atualizar chamado.', 'error');
-        })
-        .finally(() => {
-          els.submitManageCallButton.disabled = false;
-        });
-    }
-
     function handleTechnicianSubmit(event) {
       event.preventDefault();
       const formData = new FormData(els.technicianForm);
@@ -2168,7 +2424,7 @@
         auth_email: state.authEmail,
         chamado_id: chamadoId,
         tecnico_id: tecnicoId,
-        observacao: els.manageCallObservation.value
+        observacao: ''
       })
         .then((response) => {
           response = requireResponse(response, 'Erro ao encaminhar chamado.');
@@ -2355,6 +2611,7 @@
     els.newCallButton.addEventListener('click', openCallModal);
     els.logoutButton.addEventListener('click', logout);
     els.openRecentCallsButton.addEventListener('click', openRecentCallsPanel);
+    els.openReportsButton.addEventListener('click', openReportsPanel);
     els.openPendingAccessButton.addEventListener('click', openPendingAccessPanel);
     els.openTechniciansButton.addEventListener('click', openTechniciansPanel);
     els.registerButton.addEventListener('click', openRegisterModal);
@@ -2362,18 +2619,25 @@
     els.closeCallModalButton.addEventListener('click', closeCallModal);
     els.closeManageCallModalButton.addEventListener('click', closeManageCallModal);
     els.closeRecentCallsPanelButton.addEventListener('click', closeRecentCallsPanel);
+    els.closeReportsPanelButton.addEventListener('click', closeReportsPanel);
     els.closePendingAccessPanelButton.addEventListener('click', closePendingAccessPanel);
     els.closeTechniciansPanelButton.addEventListener('click', closeTechniciansPanel);
     els.registerForm.addEventListener('submit', handleRegister);
     els.callForm.addEventListener('submit', handleCreateCall);
-    els.manageCallForm.addEventListener('submit', handleManageCall);
+    els.manageCallForm.addEventListener('submit', (event) => event.preventDefault());
     els.technicianForm.addEventListener('submit', handleTechnicianSubmit);
     els.assignMaintenanceButton.addEventListener('click', handleAssignMaintenance);
     els.callSearchInput.addEventListener('input', applyCallFilters);
     els.callStatusFilter.addEventListener('change', applyCallFilters);
     els.callPriorityFilter.addEventListener('change', applyCallFilters);
     els.callTechnicianFilter.addEventListener('change', applyCallFilters);
-    els.exportCallsButton.addEventListener('click', exportFilteredCallsCsv);
+    els.reportSearchInput.addEventListener('input', renderReportSummary);
+    els.reportStatusFilter.addEventListener('change', renderReportSummary);
+    els.reportPriorityFilter.addEventListener('change', renderReportSummary);
+    els.reportTechnicianFilter.addEventListener('change', renderReportSummary);
+    els.exportCsvButton.addEventListener('click', exportReportCsv);
+    els.exportExcelButton.addEventListener('click', exportReportExcel);
+    els.exportPdfButton.addEventListener('click', exportReportPdf);
     els.recentCallsList.addEventListener('click', (event) => {
       const button = event.target.closest('[data-call-id]');
       if (button) {
@@ -2410,6 +2674,11 @@
     els.recentCallsPanel.addEventListener('click', (event) => {
       if (event.target === els.recentCallsPanel) {
         closeRecentCallsPanel();
+      }
+    });
+    els.reportsPanel.addEventListener('click', (event) => {
+      if (event.target === els.reportsPanel) {
+        closeReportsPanel();
       }
     });
     els.pendingAccessPanel.addEventListener('click', (event) => {

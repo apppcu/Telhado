@@ -158,6 +158,7 @@ function getWeatherDashboard_() {
     const maxRain = days.reduce(function(max, day) {
       return Math.max(max, day.precipitation_mm);
     }, 0);
+    const current = buildWeatherCurrent_(data, days);
     const threshold = Number(CONFIG.CHUVA_THRESHOLD_MM || 5);
 
     return {
@@ -165,6 +166,9 @@ function getWeatherDashboard_() {
       city: 'Londrina/PR',
       threshold_mm: threshold,
       max_precipitation_mm: maxRain,
+      current_temperature_c: current.temperature_c,
+      current_condition: current.condition,
+      current_icon: current.icon,
       risk: weatherRisk_(maxRain, threshold),
       days: days
     };
@@ -174,11 +178,44 @@ function getWeatherDashboard_() {
       city: 'Londrina/PR',
       threshold_mm: Number(CONFIG.CHUVA_THRESHOLD_MM || 5),
       max_precipitation_mm: 0,
+      current_temperature_c: null,
+      current_condition: 'Indisponivel',
+      current_icon: 'cloud',
       risk: 'INDISPONIVEL',
       days: [],
       message: error.message
     };
   }
+}
+
+function buildWeatherCurrent_(data, days) {
+  const current = data && data.current ? data.current : {};
+  const temperature = current.temperature_2m;
+  const code = Number(current.weather_code);
+  const todayRain = days && days.length ? Number(days[0].precipitation_mm || 0) : 0;
+  const condition = weatherCondition_(code, todayRain);
+
+  return {
+    temperature_c: temperature === null || temperature === undefined || temperature === '' ? null : Number(temperature),
+    condition: condition.label,
+    icon: condition.icon
+  };
+}
+
+function weatherCondition_(code, todayRain) {
+  if (todayRain >= 5 || (code >= 61 && code <= 82) || (code >= 95 && code <= 99)) {
+    return { label: 'Chuva prevista', icon: 'rain' };
+  }
+
+  if (todayRain > 0 || (code >= 51 && code <= 57)) {
+    return { label: 'Instavel', icon: 'cloud-rain' };
+  }
+
+  if (code === 0 || code === 1) {
+    return { label: 'Tempo aberto', icon: 'sun' };
+  }
+
+  return { label: 'Nublado', icon: 'cloud' };
 }
 
 function buildWeatherDays_(data) {

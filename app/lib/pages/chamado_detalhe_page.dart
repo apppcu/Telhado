@@ -26,7 +26,6 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
   final _vistoriaFormKey = GlobalKey<FormState>();
   final _observacaoTecnicaController = TextEditingController();
   final _materiaisController = TextEditingController();
-  final _ferramentasController = TextEditingController();
   final _execucaoFormKey = GlobalKey<FormState>();
   final _servicoExecutadoController = TextEditingController();
   final _observacaoFinalController = TextEditingController();
@@ -46,7 +45,6 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
   bool _execucaoConcluida = false;
   bool _takingBeforePhoto = false;
   bool _takingAfterPhoto = false;
-  bool _resolverNaHora = false;
   String _message = '';
   String _syncMessage = '';
 
@@ -71,14 +69,13 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
     _connectivitySubscription?.cancel();
     _observacaoTecnicaController.dispose();
     _materiaisController.dispose();
-    _ferramentasController.dispose();
     _servicoExecutadoController.dispose();
     _observacaoFinalController.dispose();
     super.dispose();
   }
 
   Future<void> _sincronizarPendenciasDaTela() async {
-    final result = await _sync.sincronizarPendencias();
+    final result = await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
     if (!mounted || result.skippedOffline) {
       return;
     }
@@ -93,7 +90,10 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
       });
     } else if (result.failed > 0) {
       setState(() {
-        _syncMessage = 'Ainda ha pendencias para sincronizar.';
+        _syncMessage = _syncFailureMessage(
+          result,
+          'Ainda ha pendencias para sincronizar.',
+        );
       });
     }
   }
@@ -130,16 +130,12 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
 
       setState(() {
         _chamado = localChamado;
-        if (_resolverNaHora) {
-          _observacaoTecnicaController.clear();
-          _materiaisController.clear();
-          _ferramentasController.clear();
-          _resolverNaHora = false;
-        }
+        _observacaoTecnicaController.clear();
+        _materiaisController.clear();
         _syncMessage = 'Inicio da vistoria salvo no aparelho. Sincronizacao pendente.';
       });
 
-      final result = await _sync.sincronizarPendencias();
+      final result = await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
       if (!mounted) {
         return;
       }
@@ -148,7 +144,10 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
         if (result.skippedOffline) {
           _syncMessage = 'Sem internet. O inicio da vistoria sera enviado automaticamente depois.';
         } else if (result.failed > 0) {
-          _syncMessage = 'Inicio da vistoria salvo no aparelho. Envio pendente para tentar novamente.';
+          _syncMessage = _syncFailureMessage(
+            result,
+            'Inicio da vistoria salvo no aparelho. Envio pendente para tentar novamente.',
+          );
         } else if (result.synced > 0) {
           _chamado = {
             ..._chamado,
@@ -213,7 +212,7 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
         _syncMessage = 'Inicio do reparo salvo no aparelho. Sincronizacao pendente.';
       });
 
-      final result = await _sync.sincronizarPendencias();
+      final result = await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
       if (!mounted) {
         return;
       }
@@ -222,7 +221,10 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
         if (result.skippedOffline) {
           _syncMessage = 'Sem internet. O inicio do reparo sera enviado automaticamente depois.';
         } else if (result.failed > 0) {
-          _syncMessage = 'Inicio do reparo salvo no aparelho. Envio pendente para tentar novamente.';
+          _syncMessage = _syncFailureMessage(
+            result,
+            'Inicio do reparo salvo no aparelho. Envio pendente para tentar novamente.',
+          );
         } else if (result.synced > 0) {
           _chamado = {
             ..._chamado,
@@ -266,13 +268,6 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
     final observacaoFinal = _observacaoFinalController.text.trim().isNotEmpty
         ? _observacaoFinalController.text.trim()
         : (_chamado['observacao_final'] ?? '').toString().trim();
-
-    if (servicoExecutado.isEmpty) {
-      setState(() {
-        _message = 'Conclua o reparo antes de encerrar o servico.';
-      });
-      return;
-    }
 
     final now = DateTime.now().toIso8601String();
     final observacaoAtual = (_chamado['observacao'] ?? '').toString().trim();
@@ -322,7 +317,7 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
         _syncMessage = 'Conclusao salva no aparelho. Sincronizacao pendente.';
       });
 
-      final result = await _sync.sincronizarPendencias();
+      final result = await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
       if (!mounted) {
         return;
       }
@@ -331,7 +326,10 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
         if (result.skippedOffline) {
           _syncMessage = 'Sem internet. A conclusao sera enviada automaticamente depois.';
         } else if (result.failed > 0) {
-          _syncMessage = 'Conclusao salva no aparelho. Envio pendente para tentar novamente.';
+          _syncMessage = _syncFailureMessage(
+            result,
+            'Conclusao salva no aparelho. Envio pendente para tentar novamente.',
+          );
         } else if (result.synced > 0) {
           _chamado = {
             ..._chamado,
@@ -412,10 +410,10 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
         _novaVistoriaFormAberta = true;
         _execucaoConcluida = false;
         _syncMessage =
-            'Justificativa salva. Informe materiais e ferramentas da nova vistoria.';
+            'Justificativa salva. Informe materiais da nova vistoria.';
       });
 
-      final result = await _sync.sincronizarPendencias();
+      final result = await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
       if (!mounted) {
         return;
       }
@@ -425,15 +423,17 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
           _syncMessage =
               'Sem internet. A justificativa sera enviada automaticamente depois.';
         } else if (result.failed > 0) {
-          _syncMessage =
-              'Justificativa salva no aparelho. Envio pendente para tentar novamente.';
+          _syncMessage = _syncFailureMessage(
+            result,
+            'Justificativa salva no aparelho. Envio pendente para tentar novamente.',
+          );
         } else if (result.synced > 0) {
           _chamado = {
             ..._chamado,
             'sync_status': 'SINCRONIZADO',
           };
           _syncMessage =
-              'Justificativa sincronizada. Informe materiais e ferramentas da nova vistoria.';
+              'Justificativa sincronizada. Informe materiais da nova vistoria.';
         }
       });
 
@@ -518,19 +518,22 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
     }
 
     final novaVistoriaPendente = _novaVistoriaPendente(_chamado);
+    if (!novaVistoriaPendente && !_fotoAntesRegistrada(_chamado)) {
+      setState(() {
+        _message = 'Tire a foto antes para salvar a vistoria.';
+      });
+      return;
+    }
+
     final observacaoTecnica = novaVistoriaPendente
         ? (_chamado['nova_vistoria_justificativa'] ?? '').toString().trim()
         : _observacaoTecnicaController.text.trim();
     final materiais = _materiaisController.text.trim();
-    final ferramentas = _ferramentasController.text.trim();
-    final resolverNaHora = novaVistoriaPendente ? false : _resolverNaHora;
     final now = DateTime.now().toIso8601String();
-    final nextStatus = resolverNaHora ? 'EM_EXECUCAO' : 'EM_ANALISE';
+    const nextStatus = 'EM_ANALISE';
     final resumo = _buildResumoVistoria(
       observacaoTecnica: observacaoTecnica,
       materiais: materiais,
-      ferramentas: ferramentas,
-      resolverNaHora: resolverNaHora,
     );
     final observacaoAtual = (_chamado['observacao'] ?? '').toString();
     final payload = await _withLocation({
@@ -538,8 +541,8 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
       'chamado_id': (_chamado['id'] ?? '').toString(),
       'observacao_tecnica': observacaoTecnica,
       'materiais': materiais,
-      'ferramentas': ferramentas,
-      'resolver_na_hora': resolverNaHora,
+      'ferramentas': '',
+      'resolver_na_hora': false,
     });
     final localChamado = {
       ..._chamado,
@@ -549,8 +552,8 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
           : resumo,
       'observacao_tecnica': observacaoTecnica,
       'materiais': materiais,
-      'ferramentas': ferramentas,
-      'resolver_na_hora': resolverNaHora,
+      'ferramentas': '',
+      'resolver_na_hora': false,
       'forcar_nova_vistoria': false,
       'nova_vistoria_pendente': false,
       'nova_vistoria_justificativa': '',
@@ -580,13 +583,11 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
         _syncMessage = 'Vistoria salva no aparelho. Sincronizacao pendente.';
         _observacaoTecnicaController.clear();
         _materiaisController.clear();
-        _ferramentasController.clear();
-        _resolverNaHora = false;
         _novaVistoriaFormAberta = false;
         _execucaoConcluida = false;
       });
 
-      final result = await _sync.sincronizarPendencias();
+      final result = await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
       if (!mounted) {
         return;
       }
@@ -595,7 +596,10 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
         if (result.skippedOffline) {
           _syncMessage = 'Sem internet. A vistoria sera enviada automaticamente depois.';
         } else if (result.failed > 0) {
-          _syncMessage = 'Vistoria salva no aparelho. Envio pendente para tentar novamente.';
+          _syncMessage = _syncFailureMessage(
+            result,
+            'Vistoria salva no aparelho. Envio pendente para tentar novamente.',
+          );
         } else if (result.synced > 0) {
           _chamado = {
             ..._chamado,
@@ -671,7 +675,7 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
         _syncMessage = 'Foto antes salva no aparelho. Sincronizacao pendente.';
       });
 
-      final result = await _sync.sincronizarPendencias();
+      final result = await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
       if (!mounted) {
         return;
       }
@@ -680,7 +684,10 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
         if (result.skippedOffline) {
           _syncMessage = 'Sem internet. A foto antes sera enviada automaticamente depois.';
         } else if (result.failed > 0) {
-          _syncMessage = 'Foto antes salva no aparelho. Envio pendente para tentar novamente.';
+          _syncMessage = _syncFailureMessage(
+            result,
+            'Foto antes salva no aparelho. Envio pendente para tentar novamente.',
+          );
         } else if (result.synced > 0) {
           _chamado = {
             ..._chamado,
@@ -781,22 +788,20 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
   String _buildResumoVistoria({
     required String observacaoTecnica,
     required String materiais,
-    required String ferramentas,
-    required bool resolverNaHora,
   }) {
-    final parts = [
-      'Vistoria tecnica: $observacaoTecnica',
-    ];
+    final parts = <String>[];
+
+    if (observacaoTecnica.isNotEmpty) {
+      parts.add('Vistoria tecnica: $observacaoTecnica');
+    }
 
     if (materiais.isNotEmpty) {
       parts.add('Materiais necessarios: $materiais');
     }
 
-    if (ferramentas.isNotEmpty) {
-      parts.add('Ferramentas/equipe necessaria: $ferramentas');
+    if (parts.isEmpty) {
+      parts.add('Vistoria registrada pelo aplicativo mobile.');
     }
-
-    parts.add('Resolver na hora: ${resolverNaHora ? 'SIM' : 'NAO'}');
     return parts.join('\n');
   }
 
@@ -804,12 +809,18 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
     required String servicoExecutado,
     required String observacaoFinal,
   }) {
-    final parts = [
-      'Servico executado: $servicoExecutado',
-    ];
+    final parts = <String>[];
+
+    if (servicoExecutado.isNotEmpty) {
+      parts.add('Servico executado: $servicoExecutado');
+    }
 
     if (observacaoFinal.isNotEmpty) {
       parts.add('Observacao final: $observacaoFinal');
+    }
+
+    if (parts.isEmpty) {
+      parts.add('Servico encerrado pelo aplicativo mobile.');
     }
 
     return parts.join('\n');
@@ -837,6 +848,41 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
       ...payload,
       'localizacao': await _location.getCurrentLocationPayload(),
     };
+  }
+
+  String _syncFailureMessage(SyncResult result, String fallback) {
+    final error = result.failedError?.trim();
+    if (error == null || error.isEmpty) {
+      return fallback;
+    }
+
+    final action = _syncActionLabel(result.failedAction);
+    return '$fallback\nFalha em $action: $error';
+  }
+
+  String _syncActionLabel(String? action) {
+    switch (action) {
+      case 'upload_foto':
+        return 'envio de foto';
+      case 'concluir_reparo_tecnico_mobile':
+        return 'encerramento do servico';
+      case 'iniciar_vistoria_tecnico_mobile':
+        return 'inicio da vistoria';
+      case 'salvar_vistoria_tecnico_mobile':
+        return 'vistoria';
+      case 'iniciar_reparo_tecnico_mobile':
+        return 'inicio do reparo';
+      case 'reabrir_vistoria_tecnico_mobile':
+        return 'nova vistoria';
+      default:
+        return action == null || action.trim().isEmpty
+            ? 'sincronizacao'
+            : action;
+    }
+  }
+
+  String _sessionToken() {
+    return (widget.session['token'] ?? '').toString();
   }
 
   @override
@@ -878,8 +924,6 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
                   formKey: _vistoriaFormKey,
                   observacaoTecnicaController: _observacaoTecnicaController,
                   materiaisController: _materiaisController,
-                  ferramentasController: _ferramentasController,
-                  resolverNaHora: _resolverNaHora,
                   saving: _savingVistoria,
                   takingBeforePhoto: _takingBeforePhoto,
                   isNovaVistoria: novaVistoriaPendente,
@@ -887,11 +931,6 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
                       (_chamado['foto_antes_path'] ?? '').toString().isNotEmpty ||
                           (_chamado['foto_antes_sync_status'] ?? '') ==
                               'SINCRONIZADO',
-                  onResolverChanged: (value) {
-                    setState(() {
-                      _resolverNaHora = value;
-                    });
-                  },
                   onTakeBeforePhoto:
                       _takingBeforePhoto ||
                               (_chamado['foto_antes_path'] ?? '')
@@ -1042,13 +1081,7 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
                       labelText: 'Servico executado',
                       prefixIcon: Icon(Icons.build_circle_outlined),
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Descreva o servico executado.';
-                      }
-                      return null;
-                    },
-                  ),
+                ),
                   const SizedBox(height: 14),
                   TextFormField(
                     controller: _observacaoFinalController,
@@ -1112,6 +1145,11 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
         (chamado['foto_final_sync_status'] ?? '') == 'SINCRONIZADO';
   }
 
+  bool _fotoAntesRegistrada(Map<String, dynamic> chamado) {
+    return (chamado['foto_antes_path'] ?? '').toString().isNotEmpty ||
+        (chamado['foto_antes_sync_status'] ?? '') == 'SINCRONIZADO';
+  }
+
   String _statusAtual(Map<String, dynamic> chamado) {
     return (chamado['status'] ?? '').toString().trim().toUpperCase();
   }
@@ -1122,7 +1160,8 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
     final observacao = (chamado['observacao'] ?? '').toString().toLowerCase();
 
     return observacaoTecnica.isNotEmpty ||
-        observacao.contains('vistoria tecnica:');
+        observacao.contains('vistoria tecnica:') ||
+        observacao.contains('vistoria registrada pelo aplicativo mobile.');
   }
 
   bool _novaVistoriaPendente(Map<String, dynamic> chamado) {
@@ -1145,13 +1184,10 @@ class _VistoriaFormCard extends StatelessWidget {
   final GlobalKey<FormState> formKey;
   final TextEditingController observacaoTecnicaController;
   final TextEditingController materiaisController;
-  final TextEditingController ferramentasController;
-  final bool resolverNaHora;
   final bool saving;
   final bool takingBeforePhoto;
   final bool isNovaVistoria;
   final bool hasBeforePhoto;
-  final ValueChanged<bool> onResolverChanged;
   final VoidCallback? onTakeBeforePhoto;
   final VoidCallback? onSubmit;
 
@@ -1159,13 +1195,10 @@ class _VistoriaFormCard extends StatelessWidget {
     required this.formKey,
     required this.observacaoTecnicaController,
     required this.materiaisController,
-    required this.ferramentasController,
-    required this.resolverNaHora,
     required this.saving,
     required this.takingBeforePhoto,
     required this.isNovaVistoria,
     required this.hasBeforePhoto,
-    required this.onResolverChanged,
     required this.onTakeBeforePhoto,
     required this.onSubmit,
   });
@@ -1197,12 +1230,6 @@ class _VistoriaFormCard extends StatelessWidget {
                     labelText: 'Observacao tecnica',
                     prefixIcon: Icon(Icons.notes),
                   ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Informe a observacao tecnica.';
-                    }
-                    return null;
-                  },
                 ),
                 const SizedBox(height: 14),
               ],
@@ -1217,25 +1244,7 @@ class _VistoriaFormCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 14),
-              TextFormField(
-                controller: ferramentasController,
-                minLines: 2,
-                maxLines: 5,
-                textInputAction: TextInputAction.newline,
-                decoration: const InputDecoration(
-                  labelText: 'Ferramentas ou equipe necessaria',
-                  prefixIcon: Icon(Icons.handyman_outlined),
-                ),
-              ),
               if (!isNovaVistoria) ...[
-                const SizedBox(height: 8),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Resolver na hora'),
-                  value: resolverNaHora,
-                  onChanged: saving ? null : onResolverChanged,
-                ),
-                const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: hasBeforePhoto ? null : onTakeBeforePhoto,
                   icon: takingBeforePhoto

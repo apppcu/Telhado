@@ -3,6 +3,7 @@ function consultarClimaDiario() {
     'https://api.open-meteo.com/v1/forecast' +
     '?latitude=-23.3045' +
     '&longitude=-51.1696' +
+    '&current=temperature_2m,is_day,weather_code' +
     '&daily=precipitation_sum' +
     '&forecast_days=4' +
     '&timezone=America/Sao_Paulo';

@@ -65,7 +65,7 @@ class _ChamadosPageState extends State<ChamadosPage> {
 
   Future<void> _syncAndRefresh() async {
     if (_session['trocar_senha'] == true) {
-      await _sync.sincronizarPendencias();
+      await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
       return;
     }
 
@@ -97,7 +97,9 @@ class _ChamadosPageState extends State<ChamadosPage> {
     });
 
     try {
-      await _sync.sincronizarPendencias();
+      final syncResult = await _sync.sincronizarPendencias(
+        tokenAtual: _sessionToken(),
+      );
       final chamados = await _api.listarChamadosTecnico(
         token: (_session['token'] ?? '').toString(),
       );
@@ -116,7 +118,12 @@ class _ChamadosPageState extends State<ChamadosPage> {
           'offline_login': false,
         };
         _chamados = visibleChamados;
-        _chamadosMessage = 'Conexao restabelecida. Servicos atualizados.';
+        _chamadosMessage = syncResult.failed > 0
+            ? _syncFailureMessage(
+                syncResult,
+                'Conexao restabelecida, mas ainda ha pendencias.',
+              )
+            : 'Conexao restabelecida. Servicos atualizados.';
       });
     } catch (_) {
       final cached = await _localDb.listarChamadosCache();
@@ -190,7 +197,9 @@ class _ChamadosPageState extends State<ChamadosPage> {
         return;
       }
 
-      await _sync.sincronizarPendencias();
+      final syncResult = await _sync.sincronizarPendencias(
+        tokenAtual: _sessionToken(),
+      );
       final chamados = await _api.listarChamadosTecnico(
         token: (_session['token'] ?? '').toString(),
       );
@@ -205,6 +214,12 @@ class _ChamadosPageState extends State<ChamadosPage> {
 
       setState(() {
         _chamados = visibleChamados;
+        _chamadosMessage = syncResult.failed > 0
+            ? _syncFailureMessage(
+                syncResult,
+                'Servicos atualizados, mas ainda ha pendencias.',
+              )
+            : '';
       });
     } catch (error) {
       final cached = await _localDb.listarChamadosCache();
@@ -332,6 +347,41 @@ class _ChamadosPageState extends State<ChamadosPage> {
       return (chamado['status'] ?? '').toString().trim().toUpperCase() !=
           'CONCLUIDO';
     }).toList();
+  }
+
+  String _syncFailureMessage(SyncResult result, String fallback) {
+    final error = result.failedError?.trim();
+    if (error == null || error.isEmpty) {
+      return fallback;
+    }
+
+    final action = _syncActionLabel(result.failedAction);
+    return '$fallback\nFalha em $action: $error';
+  }
+
+  String _syncActionLabel(String? action) {
+    switch (action) {
+      case 'upload_foto':
+        return 'envio de foto';
+      case 'concluir_reparo_tecnico_mobile':
+        return 'encerramento do servico';
+      case 'iniciar_vistoria_tecnico_mobile':
+        return 'inicio da vistoria';
+      case 'salvar_vistoria_tecnico_mobile':
+        return 'vistoria';
+      case 'iniciar_reparo_tecnico_mobile':
+        return 'inicio do reparo';
+      case 'reabrir_vistoria_tecnico_mobile':
+        return 'nova vistoria';
+      default:
+        return action == null || action.trim().isEmpty
+            ? 'sincronizacao'
+            : action;
+    }
+  }
+
+  String _sessionToken() {
+    return (_session['token'] ?? '').toString();
   }
 }
 

@@ -162,8 +162,9 @@ class ApiService {
     final body = jsonDecode(resolvedResponse.body) as Map<String, dynamic>;
     if (body['success'] != true) {
       final error = body['error'] as Map<String, dynamic>?;
-      throw Exception(
-        error?['message'] as String? ?? 'Operacao nao concluida.',
+      throw ApiException(
+        code: error?['code'] as String? ?? 'API_ERROR',
+        message: error?['message'] as String? ?? 'Operacao nao concluida.',
       );
     }
 
@@ -192,6 +193,21 @@ class ApiService {
         statusCode == 303 ||
         statusCode == 307 ||
         statusCode == 308;
+  }
+}
+
+class ApiException implements Exception {
+  final String code;
+  final String message;
+
+  const ApiException({
+    required this.code,
+    required this.message,
+  });
+
+  @override
+  String toString() {
+    return message;
   }
 }
 

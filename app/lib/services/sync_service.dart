@@ -36,13 +36,13 @@ class SyncService {
     );
   }
 
-  Future<SyncResult> sincronizarPendencias() {
+  Future<SyncResult> sincronizarPendencias({String? tokenAtual}) {
     final active = _activeSync;
     if (active != null) {
       return active;
     }
 
-    final sync = _sincronizarPendencias();
+    final sync = _sincronizarPendencias(tokenAtual: tokenAtual);
     _activeSync = sync;
     return sync.whenComplete(() {
       if (identical(_activeSync, sync)) {
@@ -51,7 +51,7 @@ class SyncService {
     });
   }
 
-  Future<SyncResult> _sincronizarPendencias() async {
+  Future<SyncResult> _sincronizarPendencias({String? tokenAtual}) async {
     await _localDb.init();
 
     if (!await _hasConnection()) {
@@ -65,6 +65,8 @@ class SyncService {
     final pendencias = await _localDb.listarPendencias();
     var synced = 0;
     var failed = 0;
+    String? failedAction;
+    String? failedError;
 
     for (final item in pendencias) {
       final id = item['id'] as int;
@@ -77,23 +79,39 @@ class SyncService {
         final resolvedPayload = await _resolvePayload(
           payload: payload,
           photoPath: photoPath,
+          tokenAtual: tokenAtual,
         );
         await _api.executarAcaoMobile(action: action, payload: resolvedPayload);
         await _localDb.marcarSincronizado(id);
         await _camera.apagarFotoLocal(photoPath);
         synced++;
       } catch (error) {
+        final cleanError = _cleanError(error);
+        if (_isPendenciaDeChamadoRemovido(error)) {
+          await _localDb.marcarSincronizado(id);
+          await _camera.apagarFotoLocal(photoPath);
+          synced++;
+          continue;
+        }
+
         await _localDb.marcarFalha(
           id,
-          error.toString().replaceFirst('Exception: ', ''),
+          cleanError,
         );
         failed++;
+        failedAction = action;
+        failedError = cleanError;
         break;
       }
     }
 
     await _localDb.removerSincronizados();
-    return SyncResult(synced: synced, failed: failed);
+    return SyncResult(
+      synced: synced,
+      failed: failed,
+      failedAction: failedAction,
+      failedError: failedError,
+    );
   }
 
   Stream<ConnectivityResult> connectivityChanges() {
@@ -109,9 +127,19 @@ class SyncService {
   Future<Map<String, dynamic>> _resolvePayload({
     required Map<String, dynamic> payload,
     required String? photoPath,
+    String? tokenAtual,
   }) async {
+    final resolvedToken = tokenAtual?.trim();
+    final payloadWithCurrentToken =
+        resolvedToken == null || resolvedToken.isEmpty
+            ? payload
+            : {
+                ...payload,
+                'token': resolvedToken,
+              };
+
     if (photoPath == null || photoPath.trim().isEmpty) {
-      return payload;
+      return payloadWithCurrentToken;
     }
 
     final file = File(photoPath);
@@ -120,7 +148,7 @@ class SyncService {
     }
 
     return {
-      ...payload,
+      ...payloadWithCurrentToken,
       'file_name': file.uri.pathSegments.isEmpty
           ? 'foto.jpg'
           : file.uri.pathSegments.last,
@@ -128,16 +156,32 @@ class SyncService {
       'content_base64': base64Encode(await file.readAsBytes()),
     };
   }
+
+  String _cleanError(Object error) {
+    if (error is ApiException) {
+      return error.message;
+    }
+
+    return error.toString().replaceFirst('Exception: ', '');
+  }
+
+  bool _isPendenciaDeChamadoRemovido(Object error) {
+    return error is ApiException && error.code == 'CHAMADO_NAO_ENCONTRADO';
+  }
 }
 
 class SyncResult {
   final int synced;
   final int failed;
   final bool skippedOffline;
+  final String? failedAction;
+  final String? failedError;
 
   const SyncResult({
     required this.synced,
     required this.failed,
     this.skippedOffline = false,
+    this.failedAction,
+    this.failedError,
   });
 }

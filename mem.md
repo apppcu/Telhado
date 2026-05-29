@@ -28,6 +28,14 @@
 - Essa pasta antiga deu 404 para o usuario.
 - Pasta correta confirmada pelo usuario e aplicada no `config.gs`: `1OzzU822EbjFaUnR17DDu8MdJMWp5QVhm`.
 - GAS publicado depois da correcao da pasta: deployment do APK `AKfycbxwO0W0O1Kd8UTVYZMgn62QZIwYVUQJPYgSB2_8b0i4jamcoYerZyPwyrMp5YfpopBQoA` atualizado para versao 72.
+- Diagnostico posterior: fila mobile pode guardar token antigo em pendencias. App passou a reenviar pendencias usando token atual da sessao, e GAS passou a aceitar encerramento mobile vindo de `ENCAMINHADO`, `EM_ANALISE` ou `EM_EXECUCAO` quando o tecnico logado e o responsavel.
+- GAS publicado depois desse ajuste: deployment do APK `AKfycbxwO0W0O1Kd8UTVYZMgn62QZIwYVUQJPYgSB2_8b0i4jamcoYerZyPwyrMp5YfpopBQoA` atualizado para versao 73.
+- Ajuste seguinte: encerramento mobile ficou idempotente no GAS. Se uma pendencia antiga tentar concluir chamado ja `CONCLUIDO`, o GAS retorna sucesso para destravar a fila. Deployment do APK atualizado para versao 74.
+- Regra de campos do fluxo mobile: em vistoria/reparo, textos sao opcionais. Obrigatorios: justificativa em `Nova Vistoria`, foto antes para salvar vistoria normal no APK, e foto final para encerrar servico. GAS publicado com campos opcionais no deployment do APK versao 75.
+- App passou a descartar automaticamente pendencia local quando o GAS retorna `CHAMADO_NAO_ENCONTRADO`, para nao travar a fila depois que um chamado foi apagado manualmente da planilha.
+- APK: remover da tela de vistoria os itens `Ferramentas ou equipe necessaria` e `Resolver na hora`. Manter os botoes principais inalterados.
+- Dashboard GAS: widget de clima passou a mostrar temperatura atual, condicao visual e icone CSS de sol/nuvem/chuva. Deployment do APK/painel atualizado para versao 76.
+- Dashboard GAS: modal `Gerenciar chamado` removeu `Observacao tecnica` e `Salvar alteracao`; status ficou informativo e `Enviar para manutencao` salva/encaminha direto. Deployment atualizado para versao 77.
 
 ## Arquivos Mais Importantes
 
@@ -68,15 +76,16 @@ Esses campos aparecem somente dentro do pop-up do botao `Concluir Reparo`.
 ## Regras do Fluxo Mobile
 
 - `Nova Vistoria` primeiro abre pop-up pedindo justificativa.
-- Depois da justificativa, mostra apenas `Materiais necessarios` e `Ferramentas ou equipe necessaria`.
+- Depois da justificativa, mostra apenas `Materiais necessarios`.
 - Justificativa entra como observacao da nova vistoria.
 - Nova vistoria nao bloqueia `Concluir Reparo`.
 - `Concluir Reparo` pode ser acessado sem nova vistoria.
 - Se status for `EM_ANALISE`, `Concluir Reparo` inicia reparo e abre pop-up.
-- `Concluir Reparo` registra `Servico executado` e `Observacao final` localmente.
+- `Concluir Reparo` registra `Servico executado` e `Observacao final` localmente quando informados; os campos sao opcionais.
 - `Foto Final` so funciona depois de concluir reparo.
 - `Encerrar Servico` so funciona depois de foto final.
 - Foto final deve ficar pendente e sincronizar junto com o encerramento.
+- Foto antes e obrigatoria para salvar vistoria normal no APK.
 
 ## Offline/Login
 
@@ -148,6 +157,15 @@ DRIVE_ROOT_FOLDER_ID/Sistema_Telhados/Chamados/<numero>/conclusao
 - Nao adicionar texto/campo extra na tela principal do servico.
 - `clasp.cmd push` pode ser executado quando for necessario publicar alteracoes no GAS.
 - Usuario prefere solucao direta e pouca enrolacao.
+
+## Dashboard GAS
+
+- Deployment publico atual: `AKfycbxwO0W0O1Kd8UTVYZMgn62QZIwYVUQJPYgSB2_8b0i4jamcoYerZyPwyrMp5YfpopBQoA`.
+- Versao publicada atual: `78 - relatorio de chamados`.
+- `Chamados recentes` abre com filtro de status em `Aberto`.
+- Exportacao saiu de `Chamados recentes`.
+- Novo botao lateral `Relatorio` para admin abre exportacao filtrada em CSV, Excel `.xls` e PDF via janela de impressao.
+- Modal `Gerenciar chamado` nao tem observacao tecnica nem salvar alteracao; `Enviar para manutencao` ja salva/encaminha.
 
 ## Proximo Assunto Provavel
 

@@ -87,7 +87,9 @@ class _LoginPageState extends State<LoginPage> {
         login: login,
         session: session,
       );
-      await _sync.sincronizarPendencias();
+      await _sync.sincronizarPendencias(
+        tokenAtual: (session['token'] ?? '').toString(),
+      );
 
       if (!mounted) {
         return;

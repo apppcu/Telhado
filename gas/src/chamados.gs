@@ -196,10 +196,6 @@ function salvarVistoriaTecnicoMobile(payload) {
       return accessError_('CHAMADO_ID_OBRIGATORIO', 'Informe o chamado para salvar a vistoria.');
     }
 
-    if (!observacaoTecnica) {
-      return accessError_('OBSERVACAO_TECNICA_OBRIGATORIA', 'Informe a observacao tecnica da vistoria.');
-    }
-
     const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
     const tecnicosSheet = getTecnicosSheet_(spreadsheet);
     const tecnicoLocation = findTecnicoRowByToken_(tecnicosSheet, token);
@@ -402,18 +398,31 @@ function concluirReparoTecnicoMobile(payload) {
     const servicoExecutado = String(data.servico_executado || '').trim();
     const observacaoFinal = String(data.observacao_final || '').trim();
 
-    if (!servicoExecutado) {
-      return accessError_('SERVICO_EXECUTADO_OBRIGATORIO', 'Descreva o servico executado.');
-    }
-
     const context = getChamadoTecnicoMobileContext_(payload, 'concluir o reparo');
     if (!context.ok) {
       return context.error;
     }
 
     const statusAnterior = String(context.row[context.index.status] || '').trim().toUpperCase();
-    if (statusAnterior !== 'EM_EXECUCAO') {
-      return accessError_('STATUS_INVALIDO_PARA_CONCLUIR_REPARO', 'O reparo so pode ser concluido quando estiver em execucao.');
+    if (statusAnterior === 'CONCLUIDO') {
+      const response = buildChamadoMobileResponse_(
+        context.spreadsheet,
+        context.row,
+        context.index,
+        context.chamadoId,
+        'CONCLUIDO',
+        statusAnterior,
+        context.row[context.index.updated_at] || now_()
+      );
+      response.servico_executado = servicoExecutado;
+      response.observacao_final = observacaoFinal;
+      response.encerramento_ja_sincronizado = true;
+      return success_(response);
+    }
+
+    const allowedStatus = ['ENCAMINHADO', 'EM_ANALISE', 'EM_EXECUCAO'];
+    if (allowedStatus.indexOf(statusAnterior) < 0) {
+      return accessError_('STATUS_INVALIDO_PARA_CONCLUIR_REPARO', 'O reparo nao pode ser concluido no status atual.');
     }
 
     const now = now_();
@@ -751,9 +760,11 @@ function getPrediosByIdForChamadosMobile_(spreadsheet) {
 }
 
 function buildResumoVistoriaMobile_(observacaoTecnica, materiais, ferramentas, resolverNaHora) {
-  const parts = [
-    'Vistoria tecnica: ' + observacaoTecnica
-  ];
+  const parts = [];
+
+  if (observacaoTecnica) {
+    parts.push('Vistoria tecnica: ' + observacaoTecnica);
+  }
 
   if (materiais) {
     parts.push('Materiais necessarios: ' + materiais);
@@ -764,17 +775,26 @@ function buildResumoVistoriaMobile_(observacaoTecnica, materiais, ferramentas, r
   }
 
   parts.push('Resolver na hora: ' + (resolverNaHora ? 'SIM' : 'NAO'));
+  if (parts.length === 1) {
+    parts.unshift('Vistoria registrada pelo aplicativo mobile.');
+  }
 
   return parts.join('\n');
 }
 
 function buildResumoConclusaoMobile_(servicoExecutado, observacaoFinal) {
-  const parts = [
-    'Servico executado: ' + servicoExecutado
-  ];
+  const parts = [];
+
+  if (servicoExecutado) {
+    parts.push('Servico executado: ' + servicoExecutado);
+  }
 
   if (observacaoFinal) {
     parts.push('Observacao final: ' + observacaoFinal);
+  }
+
+  if (parts.length === 0) {
+    parts.push('Servico encerrado pelo aplicativo mobile.');
   }
 
   return parts.join('\n');
