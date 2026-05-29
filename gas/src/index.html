@@ -1177,8 +1177,8 @@
       <div class="filter-bar">
         <input id="reportSearchInput" type="search" placeholder="Buscar numero ou local">
         <select id="reportStatusFilter" aria-label="Status do relatorio">
-          <option value="">Todos os status</option>
-          <option value="ABERTO" selected>Aberto</option>
+          <option value="" selected>Todos os status</option>
+          <option value="ABERTO">Aberto</option>
           <option value="EM_ANALISE">Em analise</option>
           <option value="ENCAMINHADO">Encaminhado</option>
           <option value="EM_EXECUCAO">Em execucao</option>
@@ -1356,10 +1356,6 @@
         <div class="field full">
           <label for="call_descricao">Descricao</label>
           <textarea id="call_descricao" name="descricao" placeholder="Descreva o ponto de vazamento, ambiente afetado e sinais visiveis." required></textarea>
-        </div>
-        <div class="field full">
-          <label for="call_observacao">Observacao</label>
-          <textarea id="call_observacao" name="observacao" placeholder="Opcional: inclua detalhes adicionais para triagem."></textarea>
         </div>
         <div class="field full">
           <button id="submitCallButton" class="btn btn-primary" type="submit">Abrir chamado</button>
@@ -2154,7 +2150,9 @@
         return;
       }
 
-      els.reportStatusFilter.value = 'ABERTO';
+      els.reportStatusFilter.value = '';
+      els.reportPriorityFilter.value = '';
+      els.reportTechnicianFilter.value = '';
       renderReportSummary();
       els.reportsPanel.classList.add('open');
     }
