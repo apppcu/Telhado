@@ -62,6 +62,79 @@ class ApiService {
     );
   }
 
+  Future<Map<String, dynamic>> salvarVistoriaTecnico({
+    required String token,
+    required String chamadoId,
+    required String observacaoTecnica,
+    required String materiais,
+    required String ferramentas,
+    required bool resolverNaHora,
+  }) async {
+    return _postAction(
+      action: 'salvar_vistoria_tecnico_mobile',
+      payload: {
+        'token': token,
+        'chamado_id': chamadoId,
+        'observacao_tecnica': observacaoTecnica,
+        'materiais': materiais,
+        'ferramentas': ferramentas,
+        'resolver_na_hora': resolverNaHora,
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> iniciarReparoTecnico({
+    required String token,
+    required String chamadoId,
+  }) async {
+    return _postAction(
+      action: 'iniciar_reparo_tecnico_mobile',
+      payload: {
+        'token': token,
+        'chamado_id': chamadoId,
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> reabrirVistoriaTecnico({
+    required String token,
+    required String chamadoId,
+    required String justificativa,
+  }) async {
+    return _postAction(
+      action: 'reabrir_vistoria_tecnico_mobile',
+      payload: {
+        'token': token,
+        'chamado_id': chamadoId,
+        'justificativa': justificativa,
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> concluirReparoTecnico({
+    required String token,
+    required String chamadoId,
+    required String servicoExecutado,
+    required String observacaoFinal,
+  }) async {
+    return _postAction(
+      action: 'concluir_reparo_tecnico_mobile',
+      payload: {
+        'token': token,
+        'chamado_id': chamadoId,
+        'servico_executado': servicoExecutado,
+        'observacao_final': observacaoFinal,
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>> executarAcaoMobile({
+    required String action,
+    required Map<String, dynamic> payload,
+  }) async {
+    return _postAction(action: action, payload: payload);
+  }
+
   Future<Map<String, dynamic>> sync(List<Map<String, dynamic>> items) async {
     throw UnimplementedError('Configurar sincronizacao com Apps Script.');
   }

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../services/api_service.dart';
+import '../services/local_db_service.dart';
+import '../services/sync_service.dart';
 import 'chamado_detalhe_page.dart';
 
 class ChamadosPage extends StatefulWidget {
@@ -20,6 +25,9 @@ class _ChamadosPageState extends State<ChamadosPage> {
   final _novaSenhaController = TextEditingController();
   final _confirmarSenhaController = TextEditingController();
   final _api = const ApiService();
+  final _localDb = LocalDbService.instance;
+  final _sync = SyncService();
+  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
 
   late Map<String, dynamic> _session;
   List<Map<String, dynamic>> _chamados = [];
@@ -34,6 +42,11 @@ class _ChamadosPageState extends State<ChamadosPage> {
   void initState() {
     super.initState();
     _session = Map<String, dynamic>.from(widget.session);
+    _connectivitySubscription = _sync.connectivityChanges().listen((status) {
+      if (status != ConnectivityResult.none) {
+        _syncAndRefresh();
+      }
+    });
     if (_session['trocar_senha'] != true) {
       _loadChamados();
     }
@@ -41,9 +54,72 @@ class _ChamadosPageState extends State<ChamadosPage> {
 
   @override
   void dispose() {
+    _connectivitySubscription?.cancel();
     _novaSenhaController.dispose();
     _confirmarSenhaController.dispose();
     super.dispose();
+  }
+
+  Future<void> _syncAndRefresh() async {
+    if (_session['trocar_senha'] == true) {
+      await _sync.sincronizarPendencias();
+      return;
+    }
+
+    if (_session['offline_login'] == true) {
+      await _tryRestoreOnlineSession();
+      return;
+    }
+
+    await _loadChamados();
+  }
+
+  Future<void> _tryRestoreOnlineSession() async {
+    setState(() {
+      _loadingChamados = true;
+      _chamadosMessage = '';
+    });
+
+    try {
+      await _sync.sincronizarPendencias();
+      final chamados = await _api.listarChamadosTecnico(
+        token: (_session['token'] ?? '').toString(),
+      );
+      for (final chamado in chamados) {
+        await _localDb.salvarChamadoCache(chamado);
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _session = {
+          ..._session,
+          'offline_login': false,
+        };
+        _chamados = chamados;
+        _chamadosMessage = 'Conexao restabelecida. Servicos atualizados.';
+      });
+    } catch (_) {
+      final cached = await _localDb.listarChamadosCache();
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _chamados = cached;
+        _chamadosMessage = cached.isEmpty
+            ? 'Sem servicos salvos neste aparelho.'
+            : 'Modo offline: exibindo servicos salvos.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingChamados = false;
+        });
+      }
+    }
   }
 
   Future<void> _trocarSenha() async {
@@ -92,9 +168,18 @@ class _ChamadosPageState extends State<ChamadosPage> {
     });
 
     try {
+      if (_session['offline_login'] == true) {
+        await _tryRestoreOnlineSession();
+        return;
+      }
+
+      await _sync.sincronizarPendencias();
       final chamados = await _api.listarChamadosTecnico(
         token: (_session['token'] ?? '').toString(),
       );
+      for (final chamado in chamados) {
+        await _localDb.salvarChamadoCache(chamado);
+      }
 
       if (!mounted) {
         return;
@@ -104,8 +189,16 @@ class _ChamadosPageState extends State<ChamadosPage> {
         _chamados = chamados;
       });
     } catch (error) {
+      final cached = await _localDb.listarChamadosCache();
+      if (!mounted) {
+        return;
+      }
+
       setState(() {
-        _chamadosMessage = error.toString().replaceFirst('Exception: ', '');
+        _chamados = cached;
+        _chamadosMessage = cached.isEmpty
+            ? error.toString().replaceFirst('Exception: ', '')
+            : 'Sem conexao. Exibindo servicos salvos no aparelho.';
       });
     } finally {
       if (mounted) {

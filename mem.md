@@ -416,16 +416,18 @@ O Apps Script passou a usar manifesto com configuracao de Web App:
 
 ```json
 "webapp": {
-  "executeAs": "USER_ACCESSING",
-  "access": "DOMAIN"
+  "executeAs": "USER_DEPLOYING",
+  "access": "ANYONE_ANONYMOUS"
 }
 ```
 
+Com `USER_DEPLOYING`, o Apps Script executa com as permissoes da conta que fez o deploy. A planilha central nao deve ser compartilhada com edicao para tecnicos; o controle de acesso fica no proprio backend.
+
 Motivo:
 
-- executar como usuario acessando permite identificar corretamente o e-mail institucional;
-- acesso limitado ao dominio UEL;
-- login validado contra a aba `usuarios`.
+- executar como conta do deploy centraliza a permissao de escrita na planilha;
+- tecnicos e usuarios finais nao precisam receber acesso direto de edicao aos dados;
+- autenticacao/autorizacao continuam sendo validadas pelo backend antes de cada acao.
 
 Ultima implantacao funcional:
 

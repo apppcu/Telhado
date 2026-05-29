@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import '../services/auth_cache_service.dart';
+import '../services/sync_service.dart';
 import 'chamados_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -15,6 +17,8 @@ class _LoginPageState extends State<LoginPage> {
   final _loginController = TextEditingController();
   final _senhaController = TextEditingController();
   final _api = const ApiService();
+  final _authCache = AuthCacheService();
+  final _sync = SyncService();
 
   bool _loading = false;
   bool _obscurePassword = true;
@@ -38,10 +42,29 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
+      final login = _loginController.text.trim();
+      final senha = _senhaController.text;
+      if (senha.isEmpty) {
+        final offlineSession = await _authCache.loginOffline(login: login);
+        if (offlineSession != null) {
+          _abrirSessaoOffline(offlineSession);
+          return;
+        }
+
+        throw Exception(
+          'Informe a senha para entrar online ou conecte-se antes que a sessao salva expire.',
+        );
+      }
+
       final session = await _api.loginTecnico(
-        login: _loginController.text.trim(),
-        senha: _senhaController.text,
+        login: login,
+        senha: senha,
       );
+      await _authCache.salvarSessaoDiaria(
+        login: login,
+        session: session,
+      );
+      await _sync.sincronizarPendencias();
 
       if (!mounted) {
         return;
@@ -53,8 +76,18 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
     } catch (error) {
+      final offlineSession = await _authCache.loginOffline(
+        login: _loginController.text,
+      );
+
+      if (offlineSession != null) {
+        _abrirSessaoOffline(offlineSession);
+        return;
+      }
+
       setState(() {
-        _message = error.toString().replaceFirst('Exception: ', '');
+        _message = '${error.toString().replaceFirst('Exception: ', '')} '
+            'Para entrar offline, e preciso ter uma sessao valida salva neste aparelho.';
       });
     } finally {
       if (mounted) {
@@ -63,6 +96,19 @@ class _LoginPageState extends State<LoginPage> {
         });
       }
     }
+  }
+
+  void _abrirSessaoOffline(Map<String, dynamic> session) {
+    session['offline_login'] = true;
+    if (!mounted) {
+      return;
+    }
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => ChamadosPage(session: session),
+      ),
+    );
   }
 
   @override
@@ -153,12 +199,7 @@ class _LoginPageState extends State<LoginPage> {
                               icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
                             ),
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Informe a senha.';
-                            }
-                            return null;
-                          },
+                          validator: (_) => null,
                         ),
                         if (_message.isNotEmpty) ...[
                           const SizedBox(height: 14),

@@ -56,8 +56,24 @@ function handlePost(e) {
     return jsonResponse_(iniciarVistoriaTecnicoMobile(body.payload || body));
   }
 
+  if (action === 'salvar_vistoria_tecnico_mobile') {
+    return jsonResponse_(salvarVistoriaTecnicoMobile(body.payload || body));
+  }
+
+  if (action === 'iniciar_reparo_tecnico_mobile') {
+    return jsonResponse_(iniciarReparoTecnicoMobile(body.payload || body));
+  }
+
+  if (action === 'reabrir_vistoria_tecnico_mobile') {
+    return jsonResponse_(reabrirVistoriaTecnicoMobile(body.payload || body));
+  }
+
+  if (action === 'concluir_reparo_tecnico_mobile') {
+    return jsonResponse_(concluirReparoTecnicoMobile(body.payload || body));
+  }
+
   if (action === 'upload_foto') {
-    return jsonResponse_({ success: true, data: salvarFoto(body), error: null });
+    return jsonResponse_(salvarFoto(body.payload || body));
   }
 
   return jsonError_('ROTA_NAO_ENCONTRADA', 'Rota POST nao encontrada.');

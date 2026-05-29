@@ -173,6 +173,268 @@ function iniciarVistoriaTecnicoMobile(payload) {
   }
 }
 
+function salvarVistoriaTecnicoMobile(payload) {
+  try {
+    const data = payload || {};
+    const token = String(data.token || '').trim();
+    const chamadoId = String(data.chamado_id || data.id || '').trim();
+    const observacaoTecnica = String(data.observacao_tecnica || '').trim();
+    const materiais = String(data.materiais || '').trim();
+    const ferramentas = String(data.ferramentas || '').trim();
+    const resolverNaHora = data.resolver_na_hora === true || String(data.resolver_na_hora).toUpperCase() === 'TRUE';
+
+    if (!token) {
+      return accessError_('TOKEN_OBRIGATORIO', 'Sessao invalida. Entre novamente.');
+    }
+
+    if (!chamadoId) {
+      return accessError_('CHAMADO_ID_OBRIGATORIO', 'Informe o chamado para salvar a vistoria.');
+    }
+
+    if (!observacaoTecnica) {
+      return accessError_('OBSERVACAO_TECNICA_OBRIGATORIA', 'Informe a observacao tecnica da vistoria.');
+    }
+
+    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const tecnicosSheet = getTecnicosSheet_(spreadsheet);
+    const tecnicoLocation = findTecnicoRowByToken_(tecnicosSheet, token);
+
+    if (!tecnicoLocation) {
+      return accessError_('SESSAO_INVALIDA', 'Sessao expirada. Entre novamente.');
+    }
+
+    const tecnicoIndex = headerIndex_(tecnicoLocation.headers);
+    const tecnicoRow = tecnicoLocation.values;
+    const tecnicoAtivo = String(tecnicoRow[tecnicoIndex.ativo]).toUpperCase() === 'TRUE' || tecnicoRow[tecnicoIndex.ativo] === true;
+
+    if (!tecnicoAtivo) {
+      return accessError_('TECNICO_INATIVO', 'Tecnico inativo.');
+    }
+
+    const tecnicoId = String(tecnicoRow[tecnicoIndex.id] || '').trim();
+    const chamadosSheet = spreadsheet.getSheetByName('chamados');
+    const location = findRowById_(chamadosSheet, chamadoId);
+
+    if (!location) {
+      return accessError_('CHAMADO_NAO_ENCONTRADO', 'Chamado nao encontrado.');
+    }
+
+    const headers = chamadosSheet.getRange(1, 1, 1, chamadosSheet.getLastColumn()).getValues()[0];
+    const index = headerIndex_(headers);
+    const row = chamadosSheet.getRange(location.rowNumber, 1, 1, headers.length).getValues()[0];
+    const executanteId = String(row[index.executante_id] || '').trim();
+
+    if (executanteId !== tecnicoId) {
+      return accessError_('CHAMADO_NAO_ATRIBUIDO', 'Este chamado nao esta atribuido ao tecnico logado.');
+    }
+
+    const statusAnterior = String(row[index.status] || '').trim().toUpperCase();
+    if (statusAnterior !== 'EM_ANALISE') {
+      return accessError_('STATUS_INVALIDO_PARA_SALVAR_VISTORIA', 'A vistoria so pode ser salva em chamados em analise.');
+    }
+
+    const novoStatus = resolverNaHora ? 'EM_EXECUCAO' : 'EM_ANALISE';
+    const now = now_();
+    const resumoVistoria = buildResumoVistoriaMobile_(observacaoTecnica, materiais, ferramentas, resolverNaHora);
+
+    chamadosSheet.getRange(location.rowNumber, index.status + 1).setValue(novoStatus);
+    chamadosSheet.getRange(location.rowNumber, index.observacao + 1).setValue(resumoVistoria);
+    chamadosSheet.getRange(location.rowNumber, index.updated_at + 1).setValue(now);
+
+    appendHistoricoChamado_(
+      spreadsheet,
+      chamadoId,
+      tecnicoId,
+      'VISTORIA_REGISTRADA',
+      statusAnterior,
+      novoStatus,
+      resumoVistoria,
+      'MOBILE'
+    );
+    appendSecurityLog_('SALVAR_VISTORIA_MOBILE', 'Vistoria salva pelo aplicativo mobile.', 'CHAMADO', chamadoId, {
+      tecnico_id: tecnicoId,
+      status_anterior: statusAnterior,
+      status_novo: novoStatus,
+      resolver_na_hora: resolverNaHora
+    });
+
+    const prediosById = getPrediosByIdForChamadosMobile_(spreadsheet);
+    const predioId = row[index.predio_id] || '';
+    const predio = prediosById[predioId] || null;
+
+    return success_({
+      id: chamadoId,
+      numero: row[index.numero] || chamadoId,
+      predio_id: predioId,
+      predio_nome: predio ? predio.nome : predioId,
+      centro_sigla: row[index.centro_sigla] || (predio ? predio.centro_sigla : ''),
+      descricao: row[index.descricao] || '',
+      categoria: row[index.categoria] || '',
+      prioridade: row[index.prioridade] || 'NORMAL',
+      status: novoStatus,
+      status_anterior: statusAnterior,
+      observacao: resumoVistoria,
+      observacao_tecnica: observacaoTecnica,
+      materiais: materiais,
+      ferramentas: ferramentas,
+      resolver_na_hora: resolverNaHora,
+      data_abertura: row[index.data_abertura] || row[index.created_at] || '',
+      data_fechamento: row[index.data_fechamento] || '',
+      updated_at: now
+    });
+  } catch (error) {
+    return accessError_('SALVAR_VISTORIA_ERROR', error.message);
+  }
+}
+
+function iniciarReparoTecnicoMobile(payload) {
+  try {
+    const context = getChamadoTecnicoMobileContext_(payload, 'iniciar o reparo');
+    if (!context.ok) {
+      return context.error;
+    }
+
+    const statusAnterior = String(context.row[context.index.status] || '').trim().toUpperCase();
+    if (statusAnterior !== 'EM_ANALISE') {
+      return accessError_('STATUS_INVALIDO_PARA_INICIAR_REPARO', 'O reparo so pode ser iniciado apos a vistoria.');
+    }
+
+    const now = now_();
+    context.sheet.getRange(context.location.rowNumber, context.index.status + 1).setValue('EM_EXECUCAO');
+    context.sheet.getRange(context.location.rowNumber, context.index.updated_at + 1).setValue(now);
+
+    appendHistoricoChamado_(
+      context.spreadsheet,
+      context.chamadoId,
+      context.tecnicoId,
+      'INICIO_REPARO',
+      statusAnterior,
+      'EM_EXECUCAO',
+      'Reparo iniciado pelo aplicativo mobile.',
+      'MOBILE'
+    );
+    appendSecurityLog_('INICIAR_REPARO_MOBILE', 'Reparo iniciado pelo aplicativo mobile.', 'CHAMADO', context.chamadoId, {
+      tecnico_id: context.tecnicoId,
+      status_anterior: statusAnterior,
+      status_novo: 'EM_EXECUCAO'
+    });
+
+    return success_(buildChamadoMobileResponse_(context.spreadsheet, context.row, context.index, context.chamadoId, 'EM_EXECUCAO', statusAnterior, now));
+  } catch (error) {
+    return accessError_('INICIAR_REPARO_ERROR', error.message);
+  }
+}
+
+function reabrirVistoriaTecnicoMobile(payload) {
+  try {
+    const data = payload || {};
+    const justificativa = String(data.justificativa || '').trim();
+
+    if (!justificativa) {
+      return accessError_('JUSTIFICATIVA_OBRIGATORIA', 'Explique por que uma nova vistoria e necessaria.');
+    }
+
+    const context = getChamadoTecnicoMobileContext_(payload, 'abrir nova vistoria');
+    if (!context.ok) {
+      return context.error;
+    }
+
+    const statusAnterior = String(context.row[context.index.status] || '').trim().toUpperCase();
+    if (statusAnterior !== 'EM_EXECUCAO') {
+      return accessError_('STATUS_INVALIDO_PARA_NOVA_VISTORIA', 'A nova vistoria so pode ser aberta durante a execucao.');
+    }
+
+    const now = now_();
+    const observacaoAtual = String(context.row[context.index.observacao] || '').trim();
+    const observacao = appendObservacaoBloco_(observacaoAtual, 'Nova vistoria: ' + justificativa);
+
+    context.sheet.getRange(context.location.rowNumber, context.index.status + 1).setValue('EM_ANALISE');
+    context.sheet.getRange(context.location.rowNumber, context.index.observacao + 1).setValue(observacao);
+    context.sheet.getRange(context.location.rowNumber, context.index.updated_at + 1).setValue(now);
+
+    appendHistoricoChamado_(
+      context.spreadsheet,
+      context.chamadoId,
+      context.tecnicoId,
+      'NOVA_VISTORIA',
+      statusAnterior,
+      'EM_ANALISE',
+      justificativa,
+      'MOBILE'
+    );
+    appendSecurityLog_('NOVA_VISTORIA_MOBILE', 'Nova vistoria aberta pelo aplicativo mobile.', 'CHAMADO', context.chamadoId, {
+      tecnico_id: context.tecnicoId,
+      status_anterior: statusAnterior,
+      status_novo: 'EM_ANALISE'
+    });
+
+    const response = buildChamadoMobileResponse_(context.spreadsheet, context.row, context.index, context.chamadoId, 'EM_ANALISE', statusAnterior, now);
+    response.observacao = observacao;
+    return success_(response);
+  } catch (error) {
+    return accessError_('NOVA_VISTORIA_ERROR', error.message);
+  }
+}
+
+function concluirReparoTecnicoMobile(payload) {
+  try {
+    const data = payload || {};
+    const servicoExecutado = String(data.servico_executado || '').trim();
+    const observacaoFinal = String(data.observacao_final || '').trim();
+
+    if (!servicoExecutado) {
+      return accessError_('SERVICO_EXECUTADO_OBRIGATORIO', 'Descreva o servico executado.');
+    }
+
+    const context = getChamadoTecnicoMobileContext_(payload, 'concluir o reparo');
+    if (!context.ok) {
+      return context.error;
+    }
+
+    const statusAnterior = String(context.row[context.index.status] || '').trim().toUpperCase();
+    if (statusAnterior !== 'EM_EXECUCAO') {
+      return accessError_('STATUS_INVALIDO_PARA_CONCLUIR_REPARO', 'O reparo so pode ser concluido quando estiver em execucao.');
+    }
+
+    const now = now_();
+    const resumo = buildResumoConclusaoMobile_(servicoExecutado, observacaoFinal);
+    const observacaoAtual = String(context.row[context.index.observacao] || '').trim();
+    const observacao = appendObservacaoBloco_(observacaoAtual, resumo);
+
+    context.sheet.getRange(context.location.rowNumber, context.index.status + 1).setValue('CONCLUIDO');
+    context.sheet.getRange(context.location.rowNumber, context.index.observacao + 1).setValue(observacao);
+    context.sheet.getRange(context.location.rowNumber, context.index.updated_at + 1).setValue(now);
+    if (context.index.data_fechamento >= 0) {
+      context.sheet.getRange(context.location.rowNumber, context.index.data_fechamento + 1).setValue(now);
+    }
+
+    appendHistoricoChamado_(
+      context.spreadsheet,
+      context.chamadoId,
+      context.tecnicoId,
+      'REPARO_CONCLUIDO',
+      statusAnterior,
+      'CONCLUIDO',
+      resumo,
+      'MOBILE'
+    );
+    appendSecurityLog_('CONCLUIR_REPARO_MOBILE', 'Reparo concluido pelo aplicativo mobile.', 'CHAMADO', context.chamadoId, {
+      tecnico_id: context.tecnicoId,
+      status_anterior: statusAnterior,
+      status_novo: 'CONCLUIDO'
+    });
+
+    const response = buildChamadoMobileResponse_(context.spreadsheet, context.row, context.index, context.chamadoId, 'CONCLUIDO', statusAnterior, now);
+    response.observacao = observacao;
+    response.servico_executado = servicoExecutado;
+    response.observacao_final = observacaoFinal;
+    response.data_fechamento = now;
+    return success_(response);
+  } catch (error) {
+    return accessError_('CONCLUIR_REPARO_ERROR', error.message);
+  }
+}
+
 function criarChamado(payload) {
   try {
     const data = payload || {};
@@ -462,6 +724,151 @@ function getPrediosByIdForChamadosMobile_(spreadsheet) {
     }
     return map;
   }, {});
+}
+
+function buildResumoVistoriaMobile_(observacaoTecnica, materiais, ferramentas, resolverNaHora) {
+  const parts = [
+    'Vistoria tecnica: ' + observacaoTecnica
+  ];
+
+  if (materiais) {
+    parts.push('Materiais necessarios: ' + materiais);
+  }
+
+  if (ferramentas) {
+    parts.push('Ferramentas/equipe necessaria: ' + ferramentas);
+  }
+
+  parts.push('Resolver na hora: ' + (resolverNaHora ? 'SIM' : 'NAO'));
+
+  return parts.join('\n');
+}
+
+function buildResumoConclusaoMobile_(servicoExecutado, observacaoFinal) {
+  const parts = [
+    'Servico executado: ' + servicoExecutado
+  ];
+
+  if (observacaoFinal) {
+    parts.push('Observacao final: ' + observacaoFinal);
+  }
+
+  return parts.join('\n');
+}
+
+function appendObservacaoBloco_(observacaoAtual, novoBloco) {
+  const atual = String(observacaoAtual || '').trim();
+  const bloco = String(novoBloco || '').trim();
+
+  if (!atual) {
+    return bloco;
+  }
+
+  if (!bloco) {
+    return atual;
+  }
+
+  return atual + '\n\n' + bloco;
+}
+
+function getChamadoTecnicoMobileContext_(payload, actionLabel) {
+  const data = payload || {};
+  const token = String(data.token || '').trim();
+  const chamadoId = String(data.chamado_id || data.id || '').trim();
+
+  if (!token) {
+    return {
+      ok: false,
+      error: accessError_('TOKEN_OBRIGATORIO', 'Sessao invalida. Entre novamente.')
+    };
+  }
+
+  if (!chamadoId) {
+    return {
+      ok: false,
+      error: accessError_('CHAMADO_ID_OBRIGATORIO', 'Informe o chamado para ' + actionLabel + '.')
+    };
+  }
+
+  const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  const tecnicosSheet = getTecnicosSheet_(spreadsheet);
+  const tecnicoLocation = findTecnicoRowByToken_(tecnicosSheet, token);
+
+  if (!tecnicoLocation) {
+    return {
+      ok: false,
+      error: accessError_('SESSAO_INVALIDA', 'Sessao expirada. Entre novamente.')
+    };
+  }
+
+  const tecnicoIndex = headerIndex_(tecnicoLocation.headers);
+  const tecnicoRow = tecnicoLocation.values;
+  const tecnicoAtivo = String(tecnicoRow[tecnicoIndex.ativo]).toUpperCase() === 'TRUE' || tecnicoRow[tecnicoIndex.ativo] === true;
+
+  if (!tecnicoAtivo) {
+    return {
+      ok: false,
+      error: accessError_('TECNICO_INATIVO', 'Tecnico inativo.')
+    };
+  }
+
+  const tecnicoId = String(tecnicoRow[tecnicoIndex.id] || '').trim();
+  const sheet = spreadsheet.getSheetByName('chamados');
+  const location = findRowById_(sheet, chamadoId);
+
+  if (!location) {
+    return {
+      ok: false,
+      error: accessError_('CHAMADO_NAO_ENCONTRADO', 'Chamado nao encontrado.')
+    };
+  }
+
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const index = headerIndex_(headers);
+  const row = sheet.getRange(location.rowNumber, 1, 1, headers.length).getValues()[0];
+  const executanteId = String(row[index.executante_id] || '').trim();
+
+  if (executanteId !== tecnicoId) {
+    return {
+      ok: false,
+      error: accessError_('CHAMADO_NAO_ATRIBUIDO', 'Este chamado nao esta atribuido ao tecnico logado.')
+    };
+  }
+
+  return {
+    ok: true,
+    spreadsheet: spreadsheet,
+    sheet: sheet,
+    location: location,
+    headers: headers,
+    index: index,
+    row: row,
+    chamadoId: chamadoId,
+    tecnicoId: tecnicoId
+  };
+}
+
+function buildChamadoMobileResponse_(spreadsheet, row, index, chamadoId, status, statusAnterior, updatedAt) {
+  const prediosById = getPrediosByIdForChamadosMobile_(spreadsheet);
+  const predioId = row[index.predio_id] || '';
+  const predio = prediosById[predioId] || null;
+
+  return {
+    id: chamadoId,
+    numero: row[index.numero] || chamadoId,
+    predio_id: predioId,
+    predio_nome: predio ? predio.nome : predioId,
+    centro_sigla: row[index.centro_sigla] || (predio ? predio.centro_sigla : ''),
+    descricao: row[index.descricao] || '',
+    categoria: row[index.categoria] || '',
+    prioridade: row[index.prioridade] || 'NORMAL',
+    status: status,
+    status_anterior: statusAnterior,
+    observacao: row[index.observacao] || '',
+    data_abertura: row[index.data_abertura] || row[index.created_at] || '',
+    data_fechamento: row[index.data_fechamento] || '',
+    updated_at: updatedAt
+  };
 }
 
 function getUsuariosByReferenceForHistorico_(spreadsheet) {
