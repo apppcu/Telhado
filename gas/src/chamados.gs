@@ -77,51 +77,12 @@ function listarChamadosTecnicoMobile(payload) {
 function iniciarVistoriaTecnicoMobile(payload) {
   try {
     const data = payload || {};
-    const token = String(data.token || '').trim();
-    const chamadoId = String(data.chamado_id || data.id || '').trim();
-
-    if (!token) {
-      return accessError_('TOKEN_OBRIGATORIO', 'Sessao invalida. Entre novamente.');
+    const context = getChamadoTecnicoMobileContext_(data, 'iniciar a vistoria');
+    if (!context.ok) {
+      return context.error;
     }
 
-    if (!chamadoId) {
-      return accessError_('CHAMADO_ID_OBRIGATORIO', 'Informe o chamado para iniciar a vistoria.');
-    }
-
-    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-    const tecnicosSheet = getTecnicosSheet_(spreadsheet);
-    const tecnicoLocation = findTecnicoRowByToken_(tecnicosSheet, token);
-
-    if (!tecnicoLocation) {
-      return accessError_('SESSAO_INVALIDA', 'Sessao expirada. Entre novamente.');
-    }
-
-    const tecnicoIndex = headerIndex_(tecnicoLocation.headers);
-    const tecnicoRow = tecnicoLocation.values;
-    const tecnicoAtivo = String(tecnicoRow[tecnicoIndex.ativo]).toUpperCase() === 'TRUE' || tecnicoRow[tecnicoIndex.ativo] === true;
-
-    if (!tecnicoAtivo) {
-      return accessError_('TECNICO_INATIVO', 'Tecnico inativo.');
-    }
-
-    const tecnicoId = String(tecnicoRow[tecnicoIndex.id] || '').trim();
-    const chamadosSheet = spreadsheet.getSheetByName('chamados');
-    const location = findRowById_(chamadosSheet, chamadoId);
-
-    if (!location) {
-      return accessError_('CHAMADO_NAO_ENCONTRADO', 'Chamado nao encontrado.');
-    }
-
-    const headers = chamadosSheet.getRange(1, 1, 1, chamadosSheet.getLastColumn()).getValues()[0];
-    const index = headerIndex_(headers);
-    const row = chamadosSheet.getRange(location.rowNumber, 1, 1, headers.length).getValues()[0];
-    const executanteId = String(row[index.executante_id] || '').trim();
-
-    if (executanteId !== tecnicoId) {
-      return accessError_('CHAMADO_NAO_ATRIBUIDO', 'Este chamado nao esta atribuido ao tecnico logado.');
-    }
-
-    const statusAnterior = String(row[index.status] || '').trim().toUpperCase();
+    const statusAnterior = String(context.row[context.index.status] || '').trim().toUpperCase();
     const allowedStatus = ['ENCAMINHADO', 'EM_ANALISE'];
 
     if (allowedStatus.indexOf(statusAnterior) < 0) {
@@ -130,13 +91,13 @@ function iniciarVistoriaTecnicoMobile(payload) {
 
     const now = now_();
     if (statusAnterior !== 'EM_ANALISE') {
-      chamadosSheet.getRange(location.rowNumber, index.status + 1).setValue('EM_ANALISE');
-      chamadosSheet.getRange(location.rowNumber, index.updated_at + 1).setValue(now);
-      registrarLocalizacaoChamadoMobile_(spreadsheet, chamadoId, tecnicoId, 'INICIO_VISTORIA', data);
+      context.sheet.getRange(context.location.rowNumber, context.index.status + 1).setValue('EM_ANALISE');
+      context.sheet.getRange(context.location.rowNumber, context.index.updated_at + 1).setValue(now);
+      registrarLocalizacaoChamadoMobile_(context.spreadsheet, context.chamadoId, context.tecnicoId, 'INICIO_VISTORIA', data);
       appendHistoricoChamado_(
-        spreadsheet,
-        chamadoId,
-        tecnicoId,
+        context.spreadsheet,
+        context.chamadoId,
+        context.tecnicoId,
         'INICIO_VISTORIA',
         statusAnterior,
         'EM_ANALISE',
@@ -146,31 +107,31 @@ function iniciarVistoriaTecnicoMobile(payload) {
         ),
         'MOBILE'
       );
-      appendSecurityLog_('INICIAR_VISTORIA_MOBILE', 'Vistoria iniciada pelo aplicativo mobile.', 'CHAMADO', chamadoId, {
-        tecnico_id: tecnicoId,
+      appendSecurityLog_('INICIAR_VISTORIA_MOBILE', 'Vistoria iniciada pelo aplicativo mobile.', 'CHAMADO', context.chamadoId, {
+        tecnico_id: context.tecnicoId,
         status_anterior: statusAnterior,
         status_novo: 'EM_ANALISE'
       });
     }
 
-    const prediosById = getPrediosByIdForChamadosMobile_(spreadsheet);
-    const predioId = row[index.predio_id] || '';
+    const prediosById = getPrediosByIdForChamadosMobile_(context.spreadsheet);
+    const predioId = context.row[context.index.predio_id] || '';
     const predio = prediosById[predioId] || null;
 
     return success_({
-      id: chamadoId,
-      numero: row[index.numero] || chamadoId,
+      id: context.chamadoId,
+      numero: context.row[context.index.numero] || context.chamadoId,
       predio_id: predioId,
       predio_nome: predio ? predio.nome : predioId,
-      centro_sigla: row[index.centro_sigla] || (predio ? predio.centro_sigla : ''),
-      descricao: row[index.descricao] || '',
-      categoria: row[index.categoria] || '',
-      prioridade: row[index.prioridade] || 'NORMAL',
+      centro_sigla: context.row[context.index.centro_sigla] || (predio ? predio.centro_sigla : ''),
+      descricao: context.row[context.index.descricao] || '',
+      categoria: context.row[context.index.categoria] || '',
+      prioridade: context.row[context.index.prioridade] || 'NORMAL',
       status: 'EM_ANALISE',
       status_anterior: statusAnterior,
-      observacao: row[index.observacao] || '',
-      data_abertura: row[index.data_abertura] || row[index.created_at] || '',
-      data_fechamento: row[index.data_fechamento] || '',
+      observacao: context.row[context.index.observacao] || '',
+      data_abertura: context.row[context.index.data_abertura] || context.row[context.index.created_at] || '',
+      data_fechamento: context.row[context.index.data_fechamento] || '',
       updated_at: now
     });
   } catch (error) {
@@ -181,55 +142,17 @@ function iniciarVistoriaTecnicoMobile(payload) {
 function salvarVistoriaTecnicoMobile(payload) {
   try {
     const data = payload || {};
-    const token = String(data.token || '').trim();
-    const chamadoId = String(data.chamado_id || data.id || '').trim();
     const observacaoTecnica = String(data.observacao_tecnica || '').trim();
     const materiais = String(data.materiais || '').trim();
     const ferramentas = String(data.ferramentas || '').trim();
     const resolverNaHora = data.resolver_na_hora === true || String(data.resolver_na_hora).toUpperCase() === 'TRUE';
 
-    if (!token) {
-      return accessError_('TOKEN_OBRIGATORIO', 'Sessao invalida. Entre novamente.');
+    const context = getChamadoTecnicoMobileContext_(data, 'salvar a vistoria');
+    if (!context.ok) {
+      return context.error;
     }
 
-    if (!chamadoId) {
-      return accessError_('CHAMADO_ID_OBRIGATORIO', 'Informe o chamado para salvar a vistoria.');
-    }
-
-    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
-    const tecnicosSheet = getTecnicosSheet_(spreadsheet);
-    const tecnicoLocation = findTecnicoRowByToken_(tecnicosSheet, token);
-
-    if (!tecnicoLocation) {
-      return accessError_('SESSAO_INVALIDA', 'Sessao expirada. Entre novamente.');
-    }
-
-    const tecnicoIndex = headerIndex_(tecnicoLocation.headers);
-    const tecnicoRow = tecnicoLocation.values;
-    const tecnicoAtivo = String(tecnicoRow[tecnicoIndex.ativo]).toUpperCase() === 'TRUE' || tecnicoRow[tecnicoIndex.ativo] === true;
-
-    if (!tecnicoAtivo) {
-      return accessError_('TECNICO_INATIVO', 'Tecnico inativo.');
-    }
-
-    const tecnicoId = String(tecnicoRow[tecnicoIndex.id] || '').trim();
-    const chamadosSheet = spreadsheet.getSheetByName('chamados');
-    const location = findRowById_(chamadosSheet, chamadoId);
-
-    if (!location) {
-      return accessError_('CHAMADO_NAO_ENCONTRADO', 'Chamado nao encontrado.');
-    }
-
-    const headers = chamadosSheet.getRange(1, 1, 1, chamadosSheet.getLastColumn()).getValues()[0];
-    const index = headerIndex_(headers);
-    const row = chamadosSheet.getRange(location.rowNumber, 1, 1, headers.length).getValues()[0];
-    const executanteId = String(row[index.executante_id] || '').trim();
-
-    if (executanteId !== tecnicoId) {
-      return accessError_('CHAMADO_NAO_ATRIBUIDO', 'Este chamado nao esta atribuido ao tecnico logado.');
-    }
-
-    const statusAnterior = String(row[index.status] || '').trim().toUpperCase();
+    const statusAnterior = String(context.row[context.index.status] || '').trim().toUpperCase();
     if (statusAnterior !== 'EM_ANALISE') {
       return accessError_('STATUS_INVALIDO_PARA_SALVAR_VISTORIA', 'A vistoria so pode ser salva em chamados em analise.');
     }
@@ -240,44 +163,44 @@ function salvarVistoriaTecnicoMobile(payload) {
       buildResumoVistoriaMobile_(observacaoTecnica, materiais, ferramentas, resolverNaHora),
       buildLocalizacaoResumoMobile_(data)
     );
-    const observacaoAtual = String(row[index.observacao] || '').trim();
+    const observacaoAtual = String(context.row[context.index.observacao] || '').trim();
     const observacaoFinal = appendObservacaoBloco_(observacaoAtual, resumoVistoria);
 
-    chamadosSheet.getRange(location.rowNumber, index.status + 1).setValue(novoStatus);
-    chamadosSheet.getRange(location.rowNumber, index.observacao + 1).setValue(observacaoFinal);
-    chamadosSheet.getRange(location.rowNumber, index.updated_at + 1).setValue(now);
-    registrarLocalizacaoChamadoMobile_(spreadsheet, chamadoId, tecnicoId, 'VISTORIA_REGISTRADA', data);
+    context.sheet.getRange(context.location.rowNumber, context.index.status + 1).setValue(novoStatus);
+    context.sheet.getRange(context.location.rowNumber, context.index.observacao + 1).setValue(observacaoFinal);
+    context.sheet.getRange(context.location.rowNumber, context.index.updated_at + 1).setValue(now);
+    registrarLocalizacaoChamadoMobile_(context.spreadsheet, context.chamadoId, context.tecnicoId, 'VISTORIA_REGISTRADA', data);
 
     appendHistoricoChamado_(
-      spreadsheet,
-      chamadoId,
-      tecnicoId,
+      context.spreadsheet,
+      context.chamadoId,
+      context.tecnicoId,
       'VISTORIA_REGISTRADA',
       statusAnterior,
       novoStatus,
       resumoVistoria,
       'MOBILE'
     );
-    appendSecurityLog_('SALVAR_VISTORIA_MOBILE', 'Vistoria salva pelo aplicativo mobile.', 'CHAMADO', chamadoId, {
-      tecnico_id: tecnicoId,
+    appendSecurityLog_('SALVAR_VISTORIA_MOBILE', 'Vistoria salva pelo aplicativo mobile.', 'CHAMADO', context.chamadoId, {
+      tecnico_id: context.tecnicoId,
       status_anterior: statusAnterior,
       status_novo: novoStatus,
       resolver_na_hora: resolverNaHora
     });
 
-    const prediosById = getPrediosByIdForChamadosMobile_(spreadsheet);
-    const predioId = row[index.predio_id] || '';
+    const prediosById = getPrediosByIdForChamadosMobile_(context.spreadsheet);
+    const predioId = context.row[context.index.predio_id] || '';
     const predio = prediosById[predioId] || null;
 
     return success_({
-      id: chamadoId,
-      numero: row[index.numero] || chamadoId,
+      id: context.chamadoId,
+      numero: context.row[context.index.numero] || context.chamadoId,
       predio_id: predioId,
       predio_nome: predio ? predio.nome : predioId,
-      centro_sigla: row[index.centro_sigla] || (predio ? predio.centro_sigla : ''),
-      descricao: row[index.descricao] || '',
-      categoria: row[index.categoria] || '',
-      prioridade: row[index.prioridade] || 'NORMAL',
+      centro_sigla: context.row[context.index.centro_sigla] || (predio ? predio.centro_sigla : ''),
+      descricao: context.row[context.index.descricao] || '',
+      categoria: context.row[context.index.categoria] || '',
+      prioridade: context.row[context.index.prioridade] || 'NORMAL',
       status: novoStatus,
       status_anterior: statusAnterior,
       observacao: observacaoFinal,
@@ -285,8 +208,8 @@ function salvarVistoriaTecnicoMobile(payload) {
       materiais: materiais,
       ferramentas: ferramentas,
       resolver_na_hora: resolverNaHora,
-      data_abertura: row[index.data_abertura] || row[index.created_at] || '',
-      data_fechamento: row[index.data_fechamento] || '',
+      data_abertura: context.row[context.index.data_abertura] || context.row[context.index.created_at] || '',
+      data_fechamento: context.row[context.index.data_fechamento] || '',
       updated_at: now
     });
   } catch (error) {
