@@ -1,357 +1,149 @@
-# 🏛️ PRD — Sistema de Gestão de Chamados de Manutenção de Telhados
+# PRD - Controle Telhado
 
-## Plataforma
-Google Workspace + Google Apps Script
+## 1. Visao geral
 
----
+O Controle Telhado centraliza chamados de vazamento e manutencao de telhados da UEL, combinando dashboard web, app tecnico offline-first e Google Workspace.
 
-# 1. Visão Geral
+Objetivo: reduzir perda de informacao entre solicitante, gestor e tecnico, mantendo historico, fotos, status e dados climaticos em um fluxo unico.
 
-Sistema institucional para gerenciamento de chamados de manutenção de telhados com vazamentos nos prédios do campus universitário de Londrina/PR.
+## 2. Usuarios
 
-O sistema utilizará:
+| Perfil | Responsabilidade |
+|---|---|
+| Solicitante | Abrir chamados e acompanhar solicitacoes |
+| Admin/Gestor | Triar, encaminhar, acompanhar e exportar relatorios |
+| Tecnico | Executar vistoria, reparo, fotos e encerramento pelo APK |
 
-- Google Apps Script
-- Google Sheets
-- Google Drive
-- Gmail
-- HTML Service
-- Google Charts
-- Open-Meteo API
-
-Objetivo principal:
-
-- centralizar chamados;
-- controlar manutenção;
-- registrar histórico técnico;
-- automatizar monitoramento pós-chuva.
-
----
-
-# 2. Objetivos
-
-## Operacionais
-
-- abrir chamados;
-- controlar execução;
-- armazenar fotos;
-- registrar histórico;
-- enviar notificações.
-
-## Estratégicos
-
-- identificar reincidência;
-- gerar indicadores;
-- monitorar impacto climático;
-- apoiar manutenção preventiva.
-
----
-
-# 3. Arquitetura
+## 3. Arquitetura de produto
 
 ```text
-Usuário
-↓
-HTML Service
-↓
-Google Apps Script
-↓
-Google Sheets + Drive
-↓
-Gmail + Open-Meteo API
+Dashboard Web / Flutter APK
+  -> Google Apps Script
+  -> Google Sheets, Drive, Gmail e Open-Meteo
 ```
 
----
+Requisito obrigatorio: app mobile nao acessa Sheets/Drive diretamente.
 
-# 4. Usuários
+## 4. Fluxo operacional
 
-| Perfil | Função |
-|---|---|
-| Solicitante | Abrir chamados |
-| Executante | Executar reparos |
-| Gestor | Gerenciar chamados |
-| Admin | Configuração geral |
+1. Chamado e aberto no dashboard web com centro/local, descricao e prioridade.
+2. Status inicial: `ABERTO`.
+3. Admin encaminha para tecnico de manutencao.
+4. Status passa para `ENCAMINHADO`.
+5. Tecnico visualiza no APK em `Meus servicos`.
+6. Tecnico registra vistoria normal com foto antes, ou abre nova vistoria com justificativa.
+7. Tecnico registra conclusao do reparo; textos sao opcionais.
+8. Tecnico adiciona foto final.
+9. Tecnico encerra o servico; status final: `CONCLUIDO`.
+10. Dashboard atualiza indicadores, historico e relatorios.
 
----
-
-# 5. Fluxo Operacional
-
-## Abertura
-
-Solicitante informa:
-
-- prédio;
-- descrição;
-- prioridade;
-- fotos.
-
-Status:
+## 5. Status
 
 ```text
 ABERTO
-```
-
----
-
-## Triagem
-
-Gestor define:
-
-- prioridade;
-- executante.
-
-Status:
-
-```text
+ENCAMINHADO
 EM_ANALISE
-```
-
----
-
-## Execução
-
-Executante registra:
-
-- descrição técnica;
-- materiais;
-- fotos;
-- observações.
-
-Status:
-
-```text
 EM_EXECUCAO
-```
-
----
-
-## Finalização
-
-Gestor encerra chamado.
-
-Status:
-
-```text
 CONCLUIDO
 ```
 
-Após conclusão o sistema inicia monitoramento climático.
+## 6. Regras mobile
 
----
+- Tecnico ve apenas chamados atribuidos a ele.
+- App funciona offline com SQLite e fila de sincronizacao.
+- Login salva sessao local; botao `Sair` limpa sessao.
+- Pendencias devem sincronizar usando token atual.
+- Se pendencia antiga referenciar chamado apagado, a fila nao deve ficar travada.
+- `Nova Vistoria` exige justificativa.
+- Campos de texto dentro de vistoria e reparo nao sao obrigatorios.
+- Foto antes e obrigatoria na vistoria normal.
+- Foto final e obrigatoria antes de encerrar.
+- GPS e enviado quando disponivel; falha de GPS nao bloqueia o fluxo.
 
-# 6. Estrutura das Planilhas
+## 7. Regras do dashboard
 
-## usuarios
+- Login institucional.
+- Admin/gestor pode abrir chamado, gerenciar chamados, aprovar acessos, cadastrar tecnicos e gerar relatorios.
+- `Gerenciar chamado` encaminha para manutencao e salva direto.
+- Nao ha campo obrigatorio de observacao tecnica no encaminhamento.
+- `Chamados recentes` abre filtrado por `Aberto`.
+- Exportacao de chamados fica em `Relatorio`, com CSV, Excel e PDF.
+- Widget de clima mostra chuva prevista, temperatura atual e condicao visual.
 
-```text
-id
-nome
-email
-tipo
-ativo
-```
+## 8. Dados principais
 
----
-
-## predios
-
-```text
-id
-codigo
-nome
-localizacao
-setor_responsavel
-```
-
----
-
-## chamados
+Aba `chamados`:
 
 ```text
-id
-numero
-predio_id
-descricao
-prioridade
-status
-executante
-data_abertura
-data_fechamento
+id, numero, centro_sigla, predio_id, descricao, prioridade,
+status, executante_id, executante_nome, data_abertura, data_fechamento
 ```
 
----
-
-## historico_chamado
+Aba `historico_chamado`:
 
 ```text
-id
-chamado_id
-usuario
-acao
-created_at
+id, chamado_id, usuario_id, acao, status_anterior, status_novo,
+observacao, created_at
 ```
 
----
-
-## eventos_chuva
+Aba `fotos_chamado`:
 
 ```text
-id
-data_evento
-volume_mm
-processado
+id, chamado_id, tipo, nome_arquivo, drive_file_id, drive_url,
+origem, created_at
 ```
 
----
+Aba `gps_chamado`:
 
-# 7. Google Drive
+```text
+id, chamado_id, usuario_id, acao, origem, gps_disponivel,
+latitude, longitude, precisao_metros, gps_capturado_em,
+gps_motivo, created_at
+```
+
+## 9. Fotos e Drive
+
+Fotos ficam no Google Drive. Sheets guarda apenas metadados e links.
+
+Pasta raiz confirmada:
+
+```text
+1OzzU822EbjFaUnR17DDu8MdJMWp5QVhm
+```
 
 Estrutura:
 
 ```text
-Drive/
-└── Sistema_Telhados/
-    ├── Chamados/
-    ├── Relatorios/
-    └── Backup/
+Sistema_Telhados/Chamados/<numero>/vistoria
+Sistema_Telhados/Chamados/<numero>/conclusao
 ```
 
----
+## 10. Clima
 
-# 8. Monitoramento Climático
+Fonte: Open-Meteo.
 
-## API
+Dashboard usa previsao de chuva de Londrina/PR, temperatura atual e codigo de tempo para mostrar sol, nuvem ou chuva.
 
-Open-Meteo
+## 11. Requisitos nao funcionais
 
-:contentReference[oaicite:0]{index=0}
+- Historico auditavel por chamado.
+- API GAS com resposta estruturada e codigo de erro preservado.
+- Fluxo mobile tolerante a sessao expirada e pendencias antigas.
+- Interface simples em campo, com botoes grandes e pouca friccao.
+- Relatorios exportaveis para uso administrativo.
 
----
+## 12. Fora do escopo atual
 
-## Endpoint
+- IA preditiva.
+- QR Code de predios.
+- Aprovacao manual do gestor depois do tecnico encerrar.
+- Monitoramento pos-chuva automatizado completo.
+- Teste offline completo em producao.
 
-```text
-https://api.open-meteo.com/v1/forecast
-```
+## 13. Sucesso do MVP
 
----
-
-## Configuração
-
-```text
-Latitude: -23.3045
-Longitude: -51.1696
-Cidade: Londrina/PR
-Variável: precipitation (mm)
-Threshold: ≥ 5 mm
-```
-
----
-
-## Fluxo
-
-```text
-Trigger diário
-↓
-Consulta Open-Meteo
-↓
-Verifica chuva ≥ 5mm
-↓
-Busca chamados recentes
-↓
-Envia notificação
-```
-
----
-
-## Exemplo GAS
-
-```javascript
-const url =
-"https://api.open-meteo.com/v1/forecast" +
-"?latitude=-23.3045" +
-"&longitude=-51.1696" +
-"&daily=precipitation_sum";
-
-const response = UrlFetchApp.fetch(url);
-const data = JSON.parse(response.getContentText());
-```
-
----
-
-# 9. Notificações
-
-Eventos:
-
-- abertura;
-- atribuição;
-- conclusão;
-- chuva detectada;
-- reincidência.
-
-Canal:
-
-- Gmail institucional.
-
----
-
-# 10. Dashboard
-
-Indicadores:
-
-- chamados abertos;
-- chamados concluídos;
-- tempo médio;
-- reincidência;
-- ranking de prédios;
-- chuva x vazamentos.
-
----
-
-# 11. Segurança
-
-- login Google institucional;
-- controle por perfil;
-- auditoria de alterações;
-- registro de histórico.
-
----
-
-# 12. Estrutura do Projeto
-
-```text
-project/
-├── appsscript/
-├── html/
-├── docs/
-└── drive/
-```
-
----
-
-# 13. Roadmap
-
-## Fase 1
-
-- autenticação;
-- chamados;
-- anexos;
-- monitoramento climático.
-
-## Fase 2
-
-- dashboard avançado;
-- QR Code;
-- inspeções preventivas.
-
-## Fase 3
-
-- IA preditiva;
-- análise histórica;
-- expansão manutenção predial.
-
----
-
-# 14. Objetivo Final
-
-Criar uma plataforma institucional moderna baseada em Google Workspace para gerenciamento inteligente de manutenção predial com foco inicial em vazamentos de telhados.
+- Chamado aberto no dashboard chega ao tecnico correto.
+- Tecnico consegue vistoriar, fotografar, reparar e encerrar.
+- Fotos aparecem no Drive correto.
+- Sheets recebe status, historico, fotos e GPS.
+- Dashboard mostra chamados, clima e relatorios administrativos.
