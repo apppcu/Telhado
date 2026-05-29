@@ -98,6 +98,84 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
     }
   }
 
+  Future<void> _executarAcaoComSync({
+    required String action,
+    required Map<String, dynamic> payload,
+    required Map<String, dynamic> localChamado,
+    String? photoPath,
+    required ValueSetter<bool> setLoading,
+    VoidCallback? onLocalSaved,
+    required String pendingMessage,
+    required String offlineMessage,
+    required String failureFallback,
+    required String syncedMessage,
+    required String snackMessage,
+    Map<String, dynamic> Function(Map<String, dynamic> chamado)? syncedUpdate,
+  }) async {
+    setState(() {
+      setLoading(true);
+      _message = '';
+      _syncMessage = '';
+    });
+
+    try {
+      await _localDb.salvarChamadoCache(localChamado);
+      await _sync.enfileirar(
+        action: action,
+        payload: payload,
+        photoPath: photoPath,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _chamado = localChamado;
+        onLocalSaved?.call();
+        _syncMessage = pendingMessage;
+      });
+
+      final result = await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        if (result.skippedOffline) {
+          _syncMessage = offlineMessage;
+        } else if (result.failed > 0) {
+          _syncMessage = _syncFailureMessage(result, failureFallback);
+        } else if (result.synced > 0) {
+          _chamado = syncedUpdate?.call(_chamado) ??
+              {
+                ..._chamado,
+                'sync_status': 'SINCRONIZADO',
+              };
+          _syncMessage = syncedMessage;
+        }
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(snackMessage)),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _message = error.toString().replaceFirst('Exception: ', '');
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          setLoading(false);
+        });
+      }
+    }
+  }
+
   Future<void> _iniciarVistoria() async {
     final now = DateTime.now().toIso8601String();
     final payload = await _withLocation({
@@ -111,70 +189,24 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
       'updated_at': now,
     };
 
-    setState(() {
-      _starting = true;
-      _message = '';
-      _syncMessage = '';
-    });
-
-    try {
-      await _localDb.salvarChamadoCache(localChamado);
-      await _sync.enfileirar(
-        action: 'iniciar_vistoria_tecnico_mobile',
-        payload: payload,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _chamado = localChamado;
+    await _executarAcaoComSync(
+      action: 'iniciar_vistoria_tecnico_mobile',
+      payload: payload,
+      localChamado: localChamado,
+      setLoading: (value) => _starting = value,
+      onLocalSaved: () {
         _observacaoTecnicaController.clear();
         _materiaisController.clear();
-        _syncMessage = 'Inicio da vistoria salvo no aparelho. Sincronizacao pendente.';
-      });
-
-      final result = await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        if (result.skippedOffline) {
-          _syncMessage = 'Sem internet. O inicio da vistoria sera enviado automaticamente depois.';
-        } else if (result.failed > 0) {
-          _syncMessage = _syncFailureMessage(
-            result,
-            'Inicio da vistoria salvo no aparelho. Envio pendente para tentar novamente.',
-          );
-        } else if (result.synced > 0) {
-          _chamado = {
-            ..._chamado,
-            'sync_status': 'SINCRONIZADO',
-          };
-          _syncMessage = 'Inicio da vistoria sincronizado com sucesso.';
-        }
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vistoria iniciada.')),
-      );
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _message = error.toString().replaceFirst('Exception: ', '');
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _starting = false;
-        });
-      }
-    }
+      },
+      pendingMessage:
+          'Inicio da vistoria salvo no aparelho. Sincronizacao pendente.',
+      offlineMessage:
+          'Sem internet. O inicio da vistoria sera enviado automaticamente depois.',
+      failureFallback:
+          'Inicio da vistoria salvo no aparelho. Envio pendente para tentar novamente.',
+      syncedMessage: 'Inicio da vistoria sincronizado com sucesso.',
+      snackMessage: 'Vistoria iniciada.',
+    );
   }
 
   Future<void> _iniciarReparo() async {
@@ -190,68 +222,20 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
       'updated_at': now,
     };
 
-    setState(() {
-      _startingRepair = true;
-      _message = '';
-      _syncMessage = '';
-    });
-
-    try {
-      await _localDb.salvarChamadoCache(localChamado);
-      await _sync.enfileirar(
-        action: 'iniciar_reparo_tecnico_mobile',
-        payload: payload,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _chamado = localChamado;
-        _syncMessage = 'Inicio do reparo salvo no aparelho. Sincronizacao pendente.';
-      });
-
-      final result = await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        if (result.skippedOffline) {
-          _syncMessage = 'Sem internet. O inicio do reparo sera enviado automaticamente depois.';
-        } else if (result.failed > 0) {
-          _syncMessage = _syncFailureMessage(
-            result,
-            'Inicio do reparo salvo no aparelho. Envio pendente para tentar novamente.',
-          );
-        } else if (result.synced > 0) {
-          _chamado = {
-            ..._chamado,
-            'sync_status': 'SINCRONIZADO',
-          };
-          _syncMessage = 'Inicio do reparo sincronizado com sucesso.';
-        }
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reparo iniciado.')),
-      );
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _message = error.toString().replaceFirst('Exception: ', '');
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _startingRepair = false;
-        });
-      }
-    }
+    await _executarAcaoComSync(
+      action: 'iniciar_reparo_tecnico_mobile',
+      payload: payload,
+      localChamado: localChamado,
+      setLoading: (value) => _startingRepair = value,
+      pendingMessage:
+          'Inicio do reparo salvo no aparelho. Sincronizacao pendente.',
+      offlineMessage:
+          'Sem internet. O inicio do reparo sera enviado automaticamente depois.',
+      failureFallback:
+          'Inicio do reparo salvo no aparelho. Envio pendente para tentar novamente.',
+      syncedMessage: 'Inicio do reparo sincronizado com sucesso.',
+      snackMessage: 'Reparo iniciado.',
+    );
   }
 
   Future<void> _concluirReparo() async {
@@ -292,71 +276,24 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
       'updated_at': now,
     };
 
-    setState(() {
-      _finishingRepair = true;
-      _message = '';
-      _syncMessage = '';
-    });
-
-    try {
-      await _localDb.salvarChamadoCache(localChamado);
-      await _sync.enfileirar(
-        action: 'concluir_reparo_tecnico_mobile',
-        payload: payload,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _chamado = localChamado;
+    await _executarAcaoComSync(
+      action: 'concluir_reparo_tecnico_mobile',
+      payload: payload,
+      localChamado: localChamado,
+      setLoading: (value) => _finishingRepair = value,
+      onLocalSaved: () {
         _execucaoConcluida = true;
         _servicoExecutadoController.clear();
         _observacaoFinalController.clear();
-        _syncMessage = 'Conclusao salva no aparelho. Sincronizacao pendente.';
-      });
-
-      final result = await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        if (result.skippedOffline) {
-          _syncMessage = 'Sem internet. A conclusao sera enviada automaticamente depois.';
-        } else if (result.failed > 0) {
-          _syncMessage = _syncFailureMessage(
-            result,
-            'Conclusao salva no aparelho. Envio pendente para tentar novamente.',
-          );
-        } else if (result.synced > 0) {
-          _chamado = {
-            ..._chamado,
-            'sync_status': 'SINCRONIZADO',
-          };
-          _syncMessage = 'Conclusao sincronizada com sucesso.';
-        }
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Reparo concluido.')),
-      );
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _message = error.toString().replaceFirst('Exception: ', '');
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _finishingRepair = false;
-        });
-      }
-    }
+      },
+      pendingMessage: 'Conclusao salva no aparelho. Sincronizacao pendente.',
+      offlineMessage:
+          'Sem internet. A conclusao sera enviada automaticamente depois.',
+      failureFallback:
+          'Conclusao salva no aparelho. Envio pendente para tentar novamente.',
+      syncedMessage: 'Conclusao sincronizada com sucesso.',
+      snackMessage: 'Reparo concluido.',
+    );
   }
 
   Future<void> _reabrirVistoria(String justificativa) async {
@@ -388,73 +325,24 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
       'nova_vistoria_justificativa': justificativa,
     };
 
-    setState(() {
-      _reopeningInspection = true;
-      _message = '';
-      _syncMessage = '';
-    });
-
-    try {
-      await _localDb.salvarChamadoCache(localChamado);
-      await _sync.enfileirar(
-        action: 'reabrir_vistoria_tecnico_mobile',
-        payload: payload,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _chamado = localChamado;
+    await _executarAcaoComSync(
+      action: 'reabrir_vistoria_tecnico_mobile',
+      payload: payload,
+      localChamado: localChamado,
+      setLoading: (value) => _reopeningInspection = value,
+      onLocalSaved: () {
         _novaVistoriaFormAberta = true;
         _execucaoConcluida = false;
-        _syncMessage =
-            'Justificativa salva. Informe materiais da nova vistoria.';
-      });
-
-      final result = await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        if (result.skippedOffline) {
-          _syncMessage =
-              'Sem internet. A justificativa sera enviada automaticamente depois.';
-        } else if (result.failed > 0) {
-          _syncMessage = _syncFailureMessage(
-            result,
-            'Justificativa salva no aparelho. Envio pendente para tentar novamente.',
-          );
-        } else if (result.synced > 0) {
-          _chamado = {
-            ..._chamado,
-            'sync_status': 'SINCRONIZADO',
-          };
-          _syncMessage =
-              'Justificativa sincronizada. Informe materiais da nova vistoria.';
-        }
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Justificativa registrada.')),
-      );
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _message = error.toString().replaceFirst('Exception: ', '');
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _reopeningInspection = false;
-        });
-      }
-    }
+      },
+      pendingMessage: 'Justificativa salva. Informe materiais da nova vistoria.',
+      offlineMessage:
+          'Sem internet. A justificativa sera enviada automaticamente depois.',
+      failureFallback:
+          'Justificativa salva no aparelho. Envio pendente para tentar novamente.',
+      syncedMessage:
+          'Justificativa sincronizada. Informe materiais da nova vistoria.',
+      snackMessage: 'Justificativa registrada.',
+    );
   }
 
   Future<void> _showNovaVistoriaDialog() async {
@@ -561,72 +449,25 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
       'updated_at': now,
     };
 
-    setState(() {
-      _savingVistoria = true;
-      _message = '';
-      _syncMessage = '';
-    });
-
-    try {
-      await _localDb.salvarChamadoCache(localChamado);
-      await _sync.enfileirar(
-        action: 'salvar_vistoria_tecnico_mobile',
-        payload: payload,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _chamado = localChamado;
-        _syncMessage = 'Vistoria salva no aparelho. Sincronizacao pendente.';
+    await _executarAcaoComSync(
+      action: 'salvar_vistoria_tecnico_mobile',
+      payload: payload,
+      localChamado: localChamado,
+      setLoading: (value) => _savingVistoria = value,
+      onLocalSaved: () {
         _observacaoTecnicaController.clear();
         _materiaisController.clear();
         _novaVistoriaFormAberta = false;
         _execucaoConcluida = false;
-      });
-
-      final result = await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        if (result.skippedOffline) {
-          _syncMessage = 'Sem internet. A vistoria sera enviada automaticamente depois.';
-        } else if (result.failed > 0) {
-          _syncMessage = _syncFailureMessage(
-            result,
-            'Vistoria salva no aparelho. Envio pendente para tentar novamente.',
-          );
-        } else if (result.synced > 0) {
-          _chamado = {
-            ..._chamado,
-            'sync_status': 'SINCRONIZADO',
-          };
-          _syncMessage = 'Vistoria sincronizada com sucesso.';
-        }
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vistoria salva.')),
-      );
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _message = error.toString().replaceFirst('Exception: ', '');
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _savingVistoria = false;
-        });
-      }
-    }
+      },
+      pendingMessage: 'Vistoria salva no aparelho. Sincronizacao pendente.',
+      offlineMessage:
+          'Sem internet. A vistoria sera enviada automaticamente depois.',
+      failureFallback:
+          'Vistoria salva no aparelho. Envio pendente para tentar novamente.',
+      syncedMessage: 'Vistoria sincronizada com sucesso.',
+      snackMessage: 'Vistoria salva.',
+    );
   }
 
   Future<void> _tirarFotoAntes() async {
@@ -655,51 +496,28 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
         'updated_at': DateTime.now().toIso8601String(),
       };
 
-      await _localDb.salvarChamadoCache(updated);
-      await _sync.enfileirar(
+      await _executarAcaoComSync(
         action: 'upload_foto',
         payload: await _withLocation({
           'token': (widget.session['token'] ?? '').toString(),
           'chamado_id': chamadoId,
           'tipo': 'VISTORIA_ANTES',
         }),
+        localChamado: updated,
         photoPath: photoPath,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _chamado = updated;
-        _syncMessage = 'Foto antes salva no aparelho. Sincronizacao pendente.';
-      });
-
-      final result = await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        if (result.skippedOffline) {
-          _syncMessage = 'Sem internet. A foto antes sera enviada automaticamente depois.';
-        } else if (result.failed > 0) {
-          _syncMessage = _syncFailureMessage(
-            result,
+        setLoading: (value) => _takingBeforePhoto = value,
+        pendingMessage: 'Foto antes salva no aparelho. Sincronizacao pendente.',
+        offlineMessage:
+            'Sem internet. A foto antes sera enviada automaticamente depois.',
+        failureFallback:
             'Foto antes salva no aparelho. Envio pendente para tentar novamente.',
-          );
-        } else if (result.synced > 0) {
-          _chamado = {
-            ..._chamado,
-            'foto_antes_sync_status': 'SINCRONIZADO',
-            'sync_status': 'SINCRONIZADO',
-          };
-          _syncMessage = 'Foto antes sincronizada com sucesso.';
-        }
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Foto antes registrada.')),
+        syncedMessage: 'Foto antes sincronizada com sucesso.',
+        snackMessage: 'Foto antes registrada.',
+        syncedUpdate: (chamado) => {
+          ...chamado,
+          'foto_antes_sync_status': 'SINCRONIZADO',
+          'sync_status': 'SINCRONIZADO',
+        },
       );
     } catch (error) {
       if (!mounted) {
