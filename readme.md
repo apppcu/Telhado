@@ -451,3 +451,118 @@ git commit -m "fix: corrige validação de email no GAS"
 
 **Última atualização:** 2026-05-24  
 **Versão:** 2.0.0
+---
+
+## Ponto de Parada Atual - 2026-05-29
+
+### Git
+
+```text
+Branch atual para continuar: dev-2026-05-30
+Ultimo commit entregue: 594a2f7 gps on
+main enviada para GitHub: sim
+dev-2026-05-30 enviada para GitHub: sim
+```
+
+### Entregue no APK
+
+- Fluxo mobile offline-first para tecnico.
+- Login com sessao salva e botao `Sair`.
+- Lista `Meus servicos`.
+- Tela de detalhe do chamado.
+- Fluxo de vistoria, nova vistoria, reparo, foto final e encerramento.
+- GPS integrado nas acoes do APK.
+- Design geral do app revisado com tema global, cards, botoes e mensagens melhores.
+
+### Tela de Servico
+
+Na tela principal do servico, o bloco de acoes deve manter somente estes botoes:
+
+```text
+Nova Vistoria
+Concluir Reparo
+Foto Final
+Encerrar Servico
+```
+
+Regras:
+
+- `Nova Vistoria` primeiro pede justificativa em pop-up.
+- Depois da justificativa, mostra apenas materiais e ferramentas/equipe.
+- `Concluir Reparo` abre pop-up com `Servico executado` e `Observacao final`.
+- `Foto Final` libera depois de concluir o reparo.
+- `Encerrar Servico` libera depois da foto final.
+- Nao mostrar `Execucao do reparo`, `Servico executado` ou `Observacao final` fixos na tela principal.
+
+### GPS
+
+A localizacao foi adicionada ao APK e ao GAS.
+
+Aba prevista no Google Sheets:
+
+```text
+gps_chamado
+```
+
+Funcao manual no GAS para criar/atualizar a aba:
+
+```javascript
+criarAbaGpsChamadoUmaVez()
+```
+
+Arquivo:
+
+```text
+gas/src/installer.gs
+```
+
+### Fotos
+
+As fotos nao ficam na planilha. A planilha guarda somente os metadados/link na aba:
+
+```text
+fotos_chamado
+```
+
+As fotos sao enviadas para o Google Drive pelo GAS.
+
+Caminho usado pelo codigo:
+
+```text
+DRIVE_ROOT_FOLDER_ID/Sistema_Telhados/Chamados/<numero_chamado>/vistoria
+DRIVE_ROOT_FOLDER_ID/Sistema_Telhados/Chamados/<numero_chamado>/conclusao
+```
+
+Pendencia para o proximo trabalho:
+
+- Confirmar/corrigir o `DRIVE_ROOT_FOLDER_ID`.
+- O ID antigo retornou 404 para o usuario.
+- Pasta indicada pelo usuario para verificar:
+
+```text
+https://drive.google.com/drive/folders/1OzzU822EbjFaUnR17DDu8MdJMWp5QVhm
+```
+
+Arquivo:
+
+```text
+gas/src/config.gs
+```
+
+### Validacao
+
+Ultima validacao executada:
+
+```text
+flutter analyze
+Resultado: sem erros
+```
+
+Observacao:
+
+```text
+dart format travou no ambiente; nao insistir sem necessidade.
+```
+
+**Ultima atualizacao real:** 2026-05-29
+**Versao de acompanhamento:** 2.1.0
