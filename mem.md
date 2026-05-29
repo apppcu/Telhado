@@ -26,8 +26,8 @@
 - Conta corporativa do projeto: `apppcu@uel.br`.
 - Pasta Drive antiga no `config.gs`: `197iqHWkSoFRKYKrckPhhTfLvuctBhMg_`.
 - Essa pasta antiga deu 404 para o usuario.
-- Pasta indicada pelo usuario para verificar amanha: `1OzzU822EbjFaUnR17DDu8MdJMWp5QVhm`.
-- Nao trocar o `DRIVE_ROOT_FOLDER_ID` sem confirmar com o usuario.
+- Pasta correta confirmada pelo usuario e aplicada no `config.gs`: `1OzzU822EbjFaUnR17DDu8MdJMWp5QVhm`.
+- GAS publicado depois da correcao da pasta: deployment do APK `AKfycbxwO0W0O1Kd8UTVYZMgn62QZIwYVUQJPYgSB2_8b0i4jamcoYerZyPwyrMp5YfpopBQoA` atualizado para versao 72.
 
 ## Arquivos Mais Importantes
 
@@ -125,8 +125,7 @@ DRIVE_ROOT_FOLDER_ID/Sistema_Telhados/Chamados/<numero>/vistoria
 DRIVE_ROOT_FOLDER_ID/Sistema_Telhados/Chamados/<numero>/conclusao
 ```
 
-- Pendencia para amanha: confirmar qual pasta raiz do Drive usar.
-- Arquivo para trocar pasta raiz: `gas/src/config.gs`.
+- Pasta raiz do Drive corrigida em `gas/src/config.gs`.
 
 ## Design do APK
 
@@ -147,12 +146,9 @@ DRIVE_ROOT_FOLDER_ID/Sistema_Telhados/Chamados/<numero>/conclusao
 - Antes de mexer em fluxo de tela, explicar claramente o que foi entendido.
 - Nao escrever codigo quando o usuario pedir primeiro entendimento.
 - Nao adicionar texto/campo extra na tela principal do servico.
-- Nao executar `clasp.cmd push` automaticamente.
-- Se o usuario pedir explicitamente `clasp push`, pode executar.
+- `clasp.cmd push` pode ser executado quando for necessario publicar alteracoes no GAS.
 - Usuario prefere solucao direta e pouca enrolacao.
 
 ## Proximo Assunto Provavel
 
-- Resolver pasta correta das fotos no Drive.
-- Confirmar se `DRIVE_ROOT_FOLDER_ID` deve virar `1OzzU822EbjFaUnR17DDu8MdJMWp5QVhm`.
-- Depois publicar no GAS somente se o usuario pedir.
+- Testar upload real de foto no APK depois da publicacao.
