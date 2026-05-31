@@ -10,8 +10,7 @@ function renderWebApp_() {
   return HtmlService
     .createTemplateFromFile('src/index')
     .evaluate()
-    .setTitle('Sistema de Manutencao de Telhados')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+    .setTitle('Sistema de Manutencao de Telhados');
 }
 
 function doGetApi(e) {
@@ -19,6 +18,13 @@ function doGetApi(e) {
 }
 
 function doPost(e) {
+  if (getParam_(e, 'action') === 'confirmar_validacao_pos_chuva') {
+    return responderValidacaoPosChuva(
+      getParam_(e, 'token'),
+      getParam_(e, 'resposta')
+    );
+  }
+
   return handlePost(e);
 }
 

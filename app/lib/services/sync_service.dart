@@ -87,7 +87,7 @@ class SyncService {
         synced++;
       } catch (error) {
         final cleanError = _cleanError(error);
-        if (_isPendenciaDeChamadoRemovido(error)) {
+        if (_isPendenciaDescartavel(action, error)) {
           await _localDb.marcarSincronizado(id);
           await _camera.apagarFotoLocal(photoPath);
           synced++;
@@ -167,6 +167,41 @@ class SyncService {
 
   bool _isPendenciaDeChamadoRemovido(Object error) {
     return error is ApiException && error.code == 'CHAMADO_NAO_ENCONTRADO';
+  }
+
+  bool _isPendenciaDescartavel(String action, Object error) {
+    if (_isPendenciaDeChamadoRemovido(error)) {
+      return true;
+    }
+
+    if (error is! ApiException) {
+      return false;
+    }
+
+    final staleStatusByAction = <String, Set<String>>{
+      'iniciar_vistoria_tecnico_mobile': {
+        'STATUS_INVALIDO_PARA_VISTORIA',
+      },
+      'salvar_vistoria_tecnico_mobile': {
+        'STATUS_INVALIDO_PARA_SALVAR_VISTORIA',
+      },
+      'iniciar_reparo_tecnico_mobile': {
+        'STATUS_INVALIDO_PARA_INICIAR_REPARO',
+      },
+      'reabrir_vistoria_tecnico_mobile': {
+        'STATUS_INVALIDO_PARA_NOVA_VISTORIA',
+      },
+      'concluir_reparo_tecnico_mobile': {
+        'STATUS_INVALIDO_PARA_CONCLUIR_REPARO',
+      },
+    };
+
+    final allowedCodes = staleStatusByAction[action];
+    if (allowedCodes == null) {
+      return false;
+    }
+
+    return allowedCodes.contains(error.code);
   }
 }
 

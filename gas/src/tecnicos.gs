@@ -1,20 +1,5 @@
-const TECNICOS_SCHEMA = [
-  'id',
-  'nome',
-  'email',
-  'telefone',
-  'especialidade',
-  'ativo',
-  'created_at',
-  'updated_at',
-  'login',
-  'senha_hash',
-  'senha_temporaria',
-  'trocar_senha',
-  'ultimo_login',
-  'token_sessao',
-  'token_expira_em'
-];
+const TECNICO_LOGIN_MAX_ATTEMPTS = 5;
+const TECNICO_LOGIN_BLOCK_SECONDS = 15 * 60;
 
 function listarTecnicosManutencao(payload) {
   try {
@@ -290,24 +275,34 @@ function loginTecnicoMobile(payload) {
       return accessError_('LOGIN_INVALIDO', 'Login ou senha invalidos.');
     }
 
+    if (isTecnicoLoginBlocked_(login)) {
+      return accessError_(
+        'LOGIN_TEMPORARIAMENTE_BLOQUEADO',
+        'Muitas tentativas de acesso. Aguarde alguns minutos e tente novamente.'
+      );
+    }
+
     const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
     const sheet = getTecnicosSheet_(spreadsheet);
     const location = findTecnicoRowByLogin_(sheet, login);
 
     if (!location) {
+      registerTecnicoLoginFailure_(login);
       return accessError_('LOGIN_INVALIDO', 'Login ou senha invalidos.');
     }
 
     const index = headerIndex_(location.headers);
     const row = location.values;
-    const active = String(row[index.ativo]).toUpperCase() === 'TRUE' || row[index.ativo] === true;
+    const active = isTrue_(row[index.ativo]);
     const expectedHash = String(row[index.senha_hash] || '');
     const receivedHash = hashTecnicoPassword_(senha);
 
     if (!active || !expectedHash || expectedHash !== receivedHash) {
+      registerTecnicoLoginFailure_(login);
       return accessError_('LOGIN_INVALIDO', 'Login ou senha invalidos.');
     }
 
+    clearTecnicoLoginFailures_(login);
     const now = now_();
     const token = 'MOB-' + Utilities.getUuid();
     const expiresAt = Utilities.formatDate(new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), CONFIG.TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss");
@@ -323,7 +318,7 @@ function loginTecnicoMobile(payload) {
     return success_({
       token: token,
       token_expira_em: expiresAt,
-      trocar_senha: String(row[index.trocar_senha]).toUpperCase() === 'TRUE' || row[index.trocar_senha] === true,
+      trocar_senha: isTrue_(row[index.trocar_senha]),
       tecnico: {
         id: row[index.id] || '',
         nome: row[index.nome] || '',
@@ -363,7 +358,7 @@ function trocarSenhaTecnicoMobile(payload) {
 
     const index = headerIndex_(location.headers);
     const row = location.values;
-    const active = String(row[index.ativo]).toUpperCase() === 'TRUE' || row[index.ativo] === true;
+    const active = isTrue_(row[index.ativo]);
 
     if (!active) {
       return accessError_('TECNICO_INATIVO', 'Tecnico inativo.');
@@ -402,7 +397,7 @@ function getTecnicosAtivos_() {
   const sheet = getTecnicosSheet_(spreadsheet);
   return readSheetObjects_(sheet)
     .filter(function(row) {
-      return String(row.ativo).toUpperCase() === 'TRUE' || row.ativo === true;
+      return isTrue_(row.ativo);
     })
     .map(function(row) {
       return {
@@ -431,7 +426,7 @@ function getTecnicoById_(spreadsheet, tecnicoId) {
   const target = String(tecnicoId || '').trim();
 
   for (var i = 0; i < rows.length; i++) {
-    const active = String(rows[i].ativo).toUpperCase() === 'TRUE' || rows[i].ativo === true;
+    const active = isTrue_(rows[i].ativo);
     if (active && String(rows[i].id || '').trim() === target) {
       return {
         id: rows[i].id || '',
@@ -449,54 +444,22 @@ function getTecnicoById_(spreadsheet, tecnicoId) {
 
 function getTecnicosSheet_(spreadsheet) {
   const sheet = spreadsheet.getSheetByName('tecnicos') || spreadsheet.insertSheet('tecnicos');
-  ensureHeaders_(sheet, TECNICOS_SCHEMA);
+  ensureHeaders_(sheet, WORKSPACE_SCHEMA.tecnicos);
   return sheet;
 }
 
 function findTecnicoRowByEmail_(sheet, email) {
-  if (!sheet || sheet.getLastRow() < 2) {
-    return null;
-  }
-
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const index = headerIndex_(headers);
-  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues();
   const normalized = normalizeEmail_(email);
-
-  for (var i = 0; i < values.length; i++) {
-    if (normalizeEmail_(values[i][index.email]) === normalized) {
-      return {
-        rowNumber: i + 2,
-        headers: headers,
-        values: values[i]
-      };
-    }
-  }
-
-  return null;
+  return findTecnicoRow_(sheet, function(row, index) {
+    return normalizeEmail_(row[index.email]) === normalized;
+  });
 }
 
 function findTecnicoRowById_(sheet, tecnicoId) {
-  if (!sheet || sheet.getLastRow() < 2) {
-    return null;
-  }
-
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const index = headerIndex_(headers);
-  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues();
   const target = String(tecnicoId || '').trim();
-
-  for (var i = 0; i < values.length; i++) {
-    if (String(values[i][index.id] || '').trim() === target) {
-      return {
-        rowNumber: i + 2,
-        headers: headers,
-        values: values[i]
-      };
-    }
-  }
-
-  return null;
+  return findTecnicoRow_(sheet, function(row, index) {
+    return String(row[index.id] || '').trim() === target;
+  });
 }
 
 function buildTecnicoFromValues_(headers, values) {
@@ -518,32 +481,37 @@ function buildTecnicoFromValues_(headers, values) {
 }
 
 function findTecnicoRowByLoginOrEmail_(sheet, login, email) {
-  if (!sheet || sheet.getLastRow() < 2) {
-    return null;
-  }
-
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const index = headerIndex_(headers);
-  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues();
   const targetLogin = normalizeTecnicoLogin_(login);
   const targetEmail = normalizeEmail_(email);
-
-  for (var i = 0; i < values.length; i++) {
-    const currentLogin = normalizeTecnicoLogin_(values[i][index.login]);
-    const currentEmail = normalizeEmail_(values[i][index.email]);
+  return findTecnicoRow_(sheet, function(row, index) {
+    const currentLogin = normalizeTecnicoLogin_(row[index.login]);
+    const currentEmail = normalizeEmail_(row[index.email]);
     if ((targetLogin && currentLogin === targetLogin) || (targetEmail && currentEmail === targetEmail)) {
-      return {
-        rowNumber: i + 2,
-        headers: headers,
-        values: values[i]
-      };
+      return true;
     }
-  }
-
-  return null;
+    return false;
+  });
 }
 
 function findTecnicoRowByLogin_(sheet, login) {
+  const targetLogin = normalizeTecnicoLogin_(login);
+  return findTecnicoRow_(sheet, function(row, index) {
+    return normalizeTecnicoLogin_(row[index.login]) === targetLogin;
+  });
+}
+
+function findTecnicoRowByToken_(sheet, token) {
+  const target = String(token || '').trim();
+  const now = new Date();
+  return findTecnicoRow_(sheet, function(row, index) {
+    const currentToken = String(row[index.token_sessao] || '').trim();
+    const expiresAt = row[index.token_expira_em] ? new Date(row[index.token_expira_em]) : null;
+    const tokenActive = expiresAt && !isNaN(expiresAt.getTime()) && expiresAt >= now;
+    return currentToken && currentToken === target && tokenActive;
+  });
+}
+
+function findTecnicoRow_(sheet, predicate) {
   if (!sheet || sheet.getLastRow() < 2) {
     return null;
   }
@@ -551,10 +519,9 @@ function findTecnicoRowByLogin_(sheet, login) {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const index = headerIndex_(headers);
   const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues();
-  const targetLogin = normalizeTecnicoLogin_(login);
 
   for (var i = 0; i < values.length; i++) {
-    if (normalizeTecnicoLogin_(values[i][index.login]) === targetLogin) {
+    if (predicate(values[i], index)) {
       return {
         rowNumber: i + 2,
         headers: headers,
@@ -566,32 +533,34 @@ function findTecnicoRowByLogin_(sheet, login) {
   return null;
 }
 
-function findTecnicoRowByToken_(sheet, token) {
-  if (!sheet || sheet.getLastRow() < 2) {
-    return null;
-  }
+function isTecnicoLoginBlocked_(login) {
+  const attempts = Number(getTecnicoLoginCache_().get(tecnicoLoginCacheKey_(login)) || 0);
+  return attempts >= TECNICO_LOGIN_MAX_ATTEMPTS;
+}
 
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const index = headerIndex_(headers);
-  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues();
-  const target = String(token || '').trim();
-  const now = new Date();
+function registerTecnicoLoginFailure_(login) {
+  const cache = getTecnicoLoginCache_();
+  const key = tecnicoLoginCacheKey_(login);
+  const attempts = Number(cache.get(key) || 0) + 1;
+  cache.put(key, String(attempts), TECNICO_LOGIN_BLOCK_SECONDS);
+}
 
-  for (var i = 0; i < values.length; i++) {
-    const currentToken = String(values[i][index.token_sessao] || '').trim();
-    const expiresAt = values[i][index.token_expira_em] ? new Date(values[i][index.token_expira_em]) : null;
-    const tokenActive = !expiresAt || isNaN(expiresAt.getTime()) || expiresAt >= now;
+function clearTecnicoLoginFailures_(login) {
+  getTecnicoLoginCache_().remove(tecnicoLoginCacheKey_(login));
+}
 
-    if (currentToken && currentToken === target && tokenActive) {
-      return {
-        rowNumber: i + 2,
-        headers: headers,
-        values: values[i]
-      };
-    }
-  }
+function getTecnicoLoginCache_() {
+  return CacheService.getScriptCache();
+}
 
-  return null;
+function tecnicoLoginCacheKey_(login) {
+  const bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    normalizeTecnicoLogin_(login),
+    Utilities.Charset.UTF_8
+  );
+  const digest = Utilities.base64EncodeWebSafe(bytes).replace(/=+$/g, '');
+  return 'tecnico-login-failures-' + digest;
 }
 
 function gerarSenhaTemporariaTecnico_() {
@@ -650,7 +619,7 @@ function hashTecnicoPassword_(password) {
 }
 
 function normalizeTecnicoLogin_(value) {
-  return String(value || '').trim().toLowerCase();
+  return normalizeLowerText_(value);
 }
 
 function isValidEmail_(email) {
@@ -658,6 +627,6 @@ function isValidEmail_(email) {
 }
 
 function isActiveAdmin_(user) {
-  const active = user && (String(user.ativo).toUpperCase() === 'TRUE' || user.ativo === true);
+  const active = user && isTrue_(user.ativo);
   return active && canManageAccess_(user);
 }

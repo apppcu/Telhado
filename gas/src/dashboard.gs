@@ -10,7 +10,7 @@ function getDashboardData(payload) {
       return accessError_('USUARIO_NAO_ENCONTRADO', 'Usuario nao encontrado.');
     }
 
-    const active = String(user.ativo).toUpperCase() === 'TRUE' || user.ativo === true;
+    const active = isTrue_(user.ativo);
     if (!active) {
       return accessError_('USUARIO_PENDENTE', 'Usuario ainda aguarda aprovacao.');
     }
@@ -95,7 +95,7 @@ function getPendingAccessRequests_(spreadsheet) {
 
   return rows
     .filter(function(row) {
-      return !(String(row.ativo).toUpperCase() === 'TRUE' || row.ativo === true);
+      return !isTrue_(row.ativo);
     })
     .map(function(row) {
       return {
@@ -115,6 +115,7 @@ function getPendingAccessRequests_(spreadsheet) {
 function buildDashboardMetrics_(chamados, pendencias) {
   const metrics = {
     abertos: 0,
+    em_analise: 0,
     em_execucao: 0,
     encaminhados: 0,
     concluidos: 0,
@@ -130,12 +131,18 @@ function buildDashboardMetrics_(chamados, pendencias) {
       return;
     }
 
+    if (status === 'EM_ANALISE') {
+      metrics.em_analise++;
+      return;
+    }
+
     if (status === 'ENCAMINHADO') {
       metrics.encaminhados++;
       return;
     }
 
     if (status === 'EM_EXECUCAO') {
+      metrics.em_analise++;
       metrics.em_execucao++;
       return;
     }
@@ -145,6 +152,12 @@ function buildDashboardMetrics_(chamados, pendencias) {
       return;
     }
 
+    if (status === 'ABERTO') {
+      metrics.abertos++;
+      return;
+    }
+
+    // Compatibilidade com estados legados/inesperados.
     metrics.abertos++;
   });
 
@@ -261,6 +274,8 @@ function canManageAccess_(user) {
 function normalizeStatus_(status) {
   return String(status || '')
     .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toUpperCase()
     .replace(/\s+/g, '_')
     .replace(/-/g, '_');

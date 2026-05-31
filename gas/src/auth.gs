@@ -18,7 +18,8 @@ function getSessionContext(payload) {
   try {
     const data = payload || {};
     const typedEmail = normalizeEmail_(data.email || data.auth_email);
-    const email = getCurrentUserEmail_();
+    const sessionEmail = getCurrentUserEmail_();
+    const email = sessionEmail || typedEmail;
 
     if (!email) {
       return success_({
@@ -29,7 +30,7 @@ function getSessionContext(payload) {
       });
     }
 
-    if (typedEmail && typedEmail !== email) {
+    if (sessionEmail && typedEmail && typedEmail !== sessionEmail) {
       return accessError_(
         'EMAIL_DIVERGENTE',
         'O e-mail digitado nao confere com a conta Google logada no navegador.'
@@ -55,7 +56,7 @@ function getSessionContext(payload) {
       });
     }
 
-    const active = String(user.ativo).toUpperCase() === 'TRUE' || user.ativo === true;
+    const active = isTrue_(user.ativo);
     if (active) {
       appendSecurityLog_('LOGIN_WEB', 'Entrada autorizada no painel web.', 'USUARIO', user.email || email, {
         usuario_id: user.id || '',
@@ -85,7 +86,7 @@ function diagnosticarSessao() {
       effectiveEmail: effectiveEmail,
       domainAllowed: isUelEmail_(activeEmail),
       usuarioEncontrado: Boolean(user),
-      usuarioAtivo: user ? (String(user.ativo).toUpperCase() === 'TRUE' || user.ativo === true) : false,
+      usuarioAtivo: user ? isTrue_(user.ativo) : false,
       usuarioPerfil: user ? user.perfil : '',
       usuarioCentro: user ? user.centro_sigla : ''
     });
@@ -127,7 +128,7 @@ function registrarAcesso(payload) {
     const existing = findUsuarioByEmail_(email);
     if (existing) {
       return success_({
-        accessState: String(existing.ativo).toUpperCase() === 'TRUE' ? ACCESS_STATES.ACTIVE : ACCESS_STATES.PENDING,
+        accessState: isTrue_(existing.ativo) ? ACCESS_STATES.ACTIVE : ACCESS_STATES.PENDING,
         user: existing
       });
     }
@@ -175,7 +176,7 @@ function aprovarAcesso(payload) {
   try {
     const data = payload || {};
     const admin = getAuthorizedUserFromPayload_(data);
-    const adminActive = admin && (String(admin.ativo).toUpperCase() === 'TRUE' || admin.ativo === true);
+    const adminActive = admin && isTrue_(admin.ativo);
 
     if (!adminActive || !canManageAccess_(admin)) {
       return accessError_('ADMIN_NAO_AUTORIZADO', 'Apenas administradores podem aprovar acessos.');
@@ -230,7 +231,7 @@ function rejeitarAcesso(payload) {
   try {
     const data = payload || {};
     const admin = getAuthorizedUserFromPayload_(data);
-    const adminActive = admin && (String(admin.ativo).toUpperCase() === 'TRUE' || admin.ativo === true);
+    const adminActive = admin && isTrue_(admin.ativo);
 
     if (!adminActive || !canManageAccess_(admin)) {
       return accessError_('ADMIN_NAO_AUTORIZADO', 'Apenas administradores podem rejeitar acessos.');
@@ -266,6 +267,317 @@ function rejeitarAcesso(payload) {
   }
 }
 
+function listarUsuariosAcesso(payload) {
+  try {
+    const data = payload || {};
+    const admin = getAuthorizedUserFromPayload_(data);
+    const adminActive = admin && isTrue_(admin.ativo);
+
+    if (!adminActive || !canManageAccess_(admin)) {
+      return accessError_('ADMIN_NAO_AUTORIZADO', 'Apenas administradores podem gerenciar usuarios.');
+    }
+
+    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const sheet = spreadsheet.getSheetByName('usuarios');
+    const usuarios = readSheetObjects_(sheet)
+      .map(function(row) {
+        const ativo = isTrue_(row.ativo);
+        return {
+          id: String(row.id || '').trim(),
+          nome: String(row.nome || '').trim(),
+          email: normalizeEmail_(row.email),
+          perfil: normalizeAccessProfile_(row.perfil) || ACCESS_PROFILES.USUARIO,
+          centro_sigla: String(row.centro_sigla || '').trim().toUpperCase(),
+          telefone: String(row.telefone || '').trim(),
+          ativo: ativo,
+          pendente: !ativo,
+          created_at: row.created_at || '',
+          updated_at: row.updated_at || ''
+        };
+      })
+      .sort(function(a, b) {
+        if (a.ativo !== b.ativo) {
+          return a.ativo ? 1 : -1;
+        }
+        return dateValue_(b.updated_at || b.created_at) - dateValue_(a.updated_at || a.created_at);
+      });
+
+    const resumo = usuarios.reduce(function(acc, item) {
+      acc.total++;
+      if (item.ativo) {
+        acc.ativos++;
+      } else {
+        acc.pendentes++;
+      }
+      if (item.perfil === ACCESS_PROFILES.ADMIN) {
+        acc.admins++;
+      }
+      return acc;
+    }, {
+      total: 0,
+      ativos: 0,
+      pendentes: 0,
+      admins: 0
+    });
+
+    return success_({
+      usuarios: usuarios,
+      resumo: resumo
+    });
+  } catch (error) {
+    return accessError_('LISTAR_USUARIOS_ACESSO_ERROR', error.message);
+  }
+}
+
+function criarUsuarioAcesso(payload) {
+  try {
+    const data = payload || {};
+    const admin = getAuthorizedUserFromPayload_(data);
+    const adminActive = admin && isTrue_(admin.ativo);
+
+    if (!adminActive || !canManageAccess_(admin)) {
+      return accessError_('ADMIN_NAO_AUTORIZADO', 'Apenas administradores podem criar usuarios.');
+    }
+
+    const nome = String(data.nome || '').trim();
+    const email = normalizeEmail_(data.email);
+    const perfil = normalizeAccessProfile_(data.perfil || ACCESS_PROFILES.USUARIO);
+    const centroSigla = String(data.centro_sigla || '').trim().toUpperCase();
+    const telefone = String(data.telefone || '').trim();
+    const ativo = data.ativo === undefined ? true : isTrue_(data.ativo);
+
+    if (!nome) {
+      return accessError_('NOME_OBRIGATORIO', 'Informe o nome do usuario.');
+    }
+
+    if (!email || !isUelEmail_(email)) {
+      return accessError_('EMAIL_INVALIDO', 'Informe um e-mail institucional valido.');
+    }
+
+    if (!perfil) {
+      return accessError_('PERFIL_INVALIDO', 'Selecione um perfil valido.');
+    }
+
+    if (!centroSigla || !centroExists_(centroSigla)) {
+      return accessError_('CENTRO_INVALIDO', 'Selecione um centro institucional valido.');
+    }
+
+    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const sheet = spreadsheet.getSheetByName('usuarios');
+    const existing = findUsuarioRowByEmail_(sheet, email);
+
+    if (existing) {
+      return accessError_('USUARIO_JA_EXISTE', 'Ja existe um usuario cadastrado com este e-mail.');
+    }
+
+    const now = now_();
+    sheet.appendRow([
+      'USR-' + Utilities.getUuid(),
+      nome,
+      email,
+      perfil,
+      centroSigla,
+      telefone,
+      ativo,
+      now,
+      now
+    ]);
+
+    appendSecurityLog_('CRIAR_USUARIO_ACESSO', 'Usuario criado manualmente no painel web.', 'USUARIO', email, {
+      criado_por: admin.email || '',
+      perfil: perfil,
+      ativo: ativo,
+      centro_sigla: centroSigla
+    });
+
+    return success_({
+      nome: nome,
+      email: email,
+      perfil: perfil,
+      centro_sigla: centroSigla,
+      telefone: telefone,
+      ativo: ativo
+    });
+  } catch (error) {
+    return accessError_('CRIAR_USUARIO_ACESSO_ERROR', error.message);
+  }
+}
+
+function atualizarUsuarioAcesso(payload) {
+  try {
+    const data = payload || {};
+    const admin = getAuthorizedUserFromPayload_(data);
+    const adminActive = admin && isTrue_(admin.ativo);
+
+    if (!adminActive || !canManageAccess_(admin)) {
+      return accessError_('ADMIN_NAO_AUTORIZADO', 'Apenas administradores podem atualizar usuarios.');
+    }
+
+    const userId = String(data.user_id || '').trim();
+    const originalEmail = normalizeEmail_(data.original_email || data.email);
+    const nome = String(data.nome || '').trim();
+    const email = normalizeEmail_(data.email);
+    const perfil = normalizeAccessProfile_(data.perfil || ACCESS_PROFILES.USUARIO);
+    const centroSigla = String(data.centro_sigla || '').trim().toUpperCase();
+    const telefone = String(data.telefone || '').trim();
+
+    if (!nome) {
+      return accessError_('NOME_OBRIGATORIO', 'Informe o nome do usuario.');
+    }
+
+    if (!email || !isUelEmail_(email)) {
+      return accessError_('EMAIL_INVALIDO', 'Informe um e-mail institucional valido.');
+    }
+
+    if (!perfil) {
+      return accessError_('PERFIL_INVALIDO', 'Selecione um perfil valido.');
+    }
+
+    if (!centroSigla || !centroExists_(centroSigla)) {
+      return accessError_('CENTRO_INVALIDO', 'Selecione um centro institucional valido.');
+    }
+
+    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const sheet = spreadsheet.getSheetByName('usuarios');
+    const location = userId ? findUsuarioRowById_(sheet, userId) : findUsuarioRowByEmail_(sheet, originalEmail);
+
+    if (!location) {
+      return accessError_('USUARIO_NAO_ENCONTRADO', 'Usuario nao encontrado.');
+    }
+
+    const index = headerIndex_(location.headers);
+    const currentEmail = normalizeEmail_(location.values[index.email]);
+    const emailChanged = email !== currentEmail;
+
+    if (emailChanged) {
+      const duplicate = findUsuarioRowByEmail_(sheet, email);
+      if (duplicate && duplicate.rowNumber !== location.rowNumber) {
+        return accessError_('USUARIO_JA_EXISTE', 'Ja existe um usuario cadastrado com este e-mail.');
+      }
+    }
+
+    const now = now_();
+    sheet.getRange(location.rowNumber, index.nome + 1).setValue(nome);
+    sheet.getRange(location.rowNumber, index.email + 1).setValue(email);
+    sheet.getRange(location.rowNumber, index.perfil + 1).setValue(perfil);
+    sheet.getRange(location.rowNumber, index.centro_sigla + 1).setValue(centroSigla);
+    sheet.getRange(location.rowNumber, index.telefone + 1).setValue(telefone);
+    if (typeof index.updated_at === 'number' && index.updated_at >= 0) {
+      sheet.getRange(location.rowNumber, index.updated_at + 1).setValue(now);
+    }
+
+    appendSecurityLog_('ATUALIZAR_USUARIO_ACESSO', 'Usuario atualizado no painel web.', 'USUARIO', email, {
+      atualizado_por: admin.email || '',
+      user_id: userId || '',
+      email_anterior: currentEmail
+    });
+
+    return success_({
+      id: userId || String(location.values[index.id] || '').trim(),
+      nome: nome,
+      email: email,
+      perfil: perfil,
+      centro_sigla: centroSigla,
+      telefone: telefone,
+      updated_at: now
+    });
+  } catch (error) {
+    return accessError_('ATUALIZAR_USUARIO_ACESSO_ERROR', error.message);
+  }
+}
+
+function alternarAtivoUsuarioAcesso(payload) {
+  try {
+    const data = payload || {};
+    const admin = getAuthorizedUserFromPayload_(data);
+    const adminActive = admin && isTrue_(admin.ativo);
+
+    if (!adminActive || !canManageAccess_(admin)) {
+      return accessError_('ADMIN_NAO_AUTORIZADO', 'Apenas administradores podem alterar status de usuario.');
+    }
+
+    const userId = String(data.user_id || '').trim();
+    const email = normalizeEmail_(data.email);
+    const ativo = isTrue_(data.ativo);
+
+    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const sheet = spreadsheet.getSheetByName('usuarios');
+    const location = userId ? findUsuarioRowById_(sheet, userId) : findUsuarioRowByEmail_(sheet, email);
+
+    if (!location) {
+      return accessError_('USUARIO_NAO_ENCONTRADO', 'Usuario nao encontrado.');
+    }
+
+    const index = headerIndex_(location.headers);
+    const targetEmail = normalizeEmail_(location.values[index.email]);
+    if (targetEmail && targetEmail === normalizeEmail_(admin.email)) {
+      return accessError_('OPERACAO_NAO_PERMITIDA', 'Nao e permitido bloquear seu proprio acesso.');
+    }
+
+    const now = now_();
+    sheet.getRange(location.rowNumber, index.ativo + 1).setValue(ativo);
+    if (typeof index.updated_at === 'number' && index.updated_at >= 0) {
+      sheet.getRange(location.rowNumber, index.updated_at + 1).setValue(now);
+    }
+
+    appendSecurityLog_('ALTERAR_STATUS_USUARIO_ACESSO', ativo ? 'Usuario ativado.' : 'Usuario bloqueado.', 'USUARIO', targetEmail, {
+      alterado_por: admin.email || '',
+      ativo: ativo
+    });
+
+    return success_({
+      email: targetEmail,
+      ativo: ativo,
+      updated_at: now
+    });
+  } catch (error) {
+    return accessError_('ALTERAR_STATUS_USUARIO_ACESSO_ERROR', error.message);
+  }
+}
+
+function excluirUsuarioAcesso(payload) {
+  try {
+    const data = payload || {};
+    const admin = getAuthorizedUserFromPayload_(data);
+    const adminActive = admin && isTrue_(admin.ativo);
+
+    if (!adminActive || !canManageAccess_(admin)) {
+      return accessError_('ADMIN_NAO_AUTORIZADO', 'Apenas administradores podem excluir usuarios.');
+    }
+
+    const userId = String(data.user_id || '').trim();
+    const email = normalizeEmail_(data.email);
+
+    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const sheet = spreadsheet.getSheetByName('usuarios');
+    const location = userId ? findUsuarioRowById_(sheet, userId) : findUsuarioRowByEmail_(sheet, email);
+
+    if (!location) {
+      return accessError_('USUARIO_NAO_ENCONTRADO', 'Usuario nao encontrado.');
+    }
+
+    const index = headerIndex_(location.headers);
+    const targetEmail = normalizeEmail_(location.values[index.email]);
+    if (targetEmail && targetEmail === normalizeEmail_(admin.email)) {
+      return accessError_('OPERACAO_NAO_PERMITIDA', 'Nao e permitido excluir seu proprio acesso.');
+    }
+
+    sheet.deleteRow(location.rowNumber);
+
+    appendSecurityLog_('EXCLUIR_USUARIO_ACESSO', 'Usuario excluido no painel web.', 'USUARIO', targetEmail, {
+      excluido_por: admin.email || '',
+      user_id: userId || ''
+    });
+
+    return success_({
+      email: targetEmail,
+      excluido: true
+    });
+  } catch (error) {
+    return accessError_('EXCLUIR_USUARIO_ACESSO_ERROR', error.message);
+  }
+}
+
 function getCentrosAtivos() {
   try {
     const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
@@ -273,7 +585,7 @@ function getCentrosAtivos() {
     const rows = readSheetObjects_(sheet);
     const centros = rows
       .filter(function(row) {
-        return String(row.ativo).toUpperCase() === 'TRUE' || row.ativo === true;
+      return isTrue_(row.ativo);
       })
       .map(function(row) {
         return {
@@ -339,7 +651,7 @@ function centroExists_(sigla) {
   const target = String(sigla || '').trim().toUpperCase();
 
   return rows.some(function(row) {
-    const active = String(row.ativo).toUpperCase() === 'TRUE' || row.ativo === true;
+    const active = isTrue_(row.ativo);
     return active && String(row.sigla || '').trim().toUpperCase() === target;
   });
 }
@@ -406,8 +718,42 @@ function getCurrentUserEmail_() {
   return normalizeEmail_(Session.getActiveUser().getEmail());
 }
 
+function findUsuarioRowById_(sheet, userId) {
+  if (!sheet || sheet.getLastRow() < 2) {
+    return null;
+  }
+
+  const target = String(userId || '').trim();
+  if (!target) {
+    return null;
+  }
+
+  const lastColumn = sheet.getLastColumn();
+  const headers = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+  const index = headerIndex_(headers);
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, lastColumn).getValues();
+
+  for (var i = 0; i < values.length; i++) {
+    if (String(values[i][index.id] || '').trim() === target) {
+      return {
+        rowNumber: i + 2,
+        headers: headers,
+        values: values[i]
+      };
+    }
+  }
+
+  return null;
+}
+
 function getAccessEmailFromPayload_(payload) {
-  return getCurrentUserEmail_();
+  const sessionEmail = getCurrentUserEmail_();
+  if (sessionEmail) {
+    return sessionEmail;
+  }
+
+  const data = payload || {};
+  return normalizeEmail_(data.auth_email || data.email);
 }
 
 function getAuthorizedUserFromPayload_(payload) {
@@ -424,7 +770,12 @@ function isUelEmail_(email) {
 }
 
 function normalizeEmail_(email) {
-  return String(email || '').trim().toLowerCase();
+  return String(email || '')
+    .trim()
+    .replace(/\u200B/g, '')
+    .replace(/\s+/g, '')
+    .replace(/,/g, '.')
+    .toLowerCase();
 }
 
 function normalizeAccessProfile_(profile) {

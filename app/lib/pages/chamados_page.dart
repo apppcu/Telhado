@@ -7,6 +7,7 @@ import '../services/api_service.dart';
 import '../services/auth_cache_service.dart';
 import '../services/local_db_service.dart';
 import '../services/sync_service.dart';
+import '../widgets/chamado_badges.dart';
 import 'chamado_detalhe_page.dart';
 import 'login_page.dart';
 
@@ -344,8 +345,7 @@ class _ChamadosPageState extends State<ChamadosPage> {
     List<Map<String, dynamic>> chamados,
   ) {
     return chamados.where((chamado) {
-      return (chamado['status'] ?? '').toString().trim().toUpperCase() !=
-          'CONCLUIDO';
+      return _normalizeStatusValue(chamado['status']) != 'CONCLUIDO';
     }).toList();
   }
 
@@ -481,87 +481,6 @@ class _NoticeBox extends StatelessWidget {
   }
 }
 
-class _BadgeColors {
-  final Color background;
-  final Color foreground;
-
-  const _BadgeColors({
-    required this.background,
-    required this.foreground,
-  });
-}
-
-_BadgeColors _statusColors(BuildContext context, String label) {
-  final colorScheme = Theme.of(context).colorScheme;
-  switch (label.trim().toUpperCase()) {
-    case 'EM_EXECUCAO':
-      return const _BadgeColors(
-        background: Color(0xFFFFE8B7),
-        foreground: Color(0xFF5A3A00),
-      );
-    case 'EM_ANALISE':
-      return const _BadgeColors(
-        background: Color(0xFFE4EDFF),
-        foreground: Color(0xFF16427D),
-      );
-    case 'CONCLUIDO':
-      return const _BadgeColors(
-        background: Color(0xFFDFF4E9),
-        foreground: Color(0xFF0A5C48),
-      );
-    default:
-      return _BadgeColors(
-        background: colorScheme.surfaceContainerHighest,
-        foreground: colorScheme.onSurfaceVariant,
-      );
-  }
-}
-
-_BadgeColors _priorityColors(BuildContext context, String label) {
-  final colorScheme = Theme.of(context).colorScheme;
-  switch (label.trim().toUpperCase()) {
-    case 'ALTA':
-    case 'URGENTE':
-      return _BadgeColors(
-        background: colorScheme.errorContainer,
-        foreground: colorScheme.onErrorContainer,
-      );
-    case 'MEDIA':
-      return const _BadgeColors(
-        background: Color(0xFFFFE8B7),
-        foreground: Color(0xFF5A3A00),
-      );
-    default:
-      return const _BadgeColors(
-        background: Color(0xFFE7F3EE),
-        foreground: Color(0xFF0D5F4D),
-      );
-  }
-}
-
-class _InfoChip extends StatelessWidget {
-  final String label;
-  final _BadgeColors colors;
-
-  const _InfoChip({
-    required this.label,
-    required this.colors,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Chip(
-      label: Text(label),
-      visualDensity: VisualDensity.compact,
-      backgroundColor: colors.background,
-      labelStyle: TextStyle(
-        color: colors.foreground,
-        fontWeight: FontWeight.w800,
-      ),
-    );
-  }
-}
-
 class _ServicesSummary extends StatelessWidget {
   final bool loading;
   final int total;
@@ -665,7 +584,7 @@ class _ChamadoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final priority = (chamado['prioridade'] ?? 'NORMAL').toString();
-    final status = (chamado['status'] ?? '-').toString();
+    final status = _normalizeStatusValue(chamado['status']);
     final colorScheme = Theme.of(context).colorScheme;
 
     return Card(
@@ -695,7 +614,7 @@ class _ChamadoCard extends StatelessWidget {
                                   ?.copyWith(fontWeight: FontWeight.w900),
                             ),
                           ),
-                          _StatusChip(label: status),
+                          ChamadoStatusChip(label: status),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -726,7 +645,7 @@ class _ChamadoCard extends StatelessWidget {
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          _PriorityChip(label: priority),
+                          ChamadoPriorityChip(label: priority),
                           const Spacer(),
                           TextButton.icon(
                             onPressed: onOpen,
@@ -747,26 +666,33 @@ class _ChamadoCard extends StatelessWidget {
   }
 }
 
-class _StatusChip extends StatelessWidget {
-  final String label;
-
-  const _StatusChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return _InfoChip(label: label, colors: _statusColors(context, label));
+String _normalizeStatusValue(dynamic value) {
+  final normalized = _normalizeStatusKey(value)
+      .replaceAll(RegExp(r'\s+'), '_')
+      .replaceAll('-', '_');
+  switch (normalized) {
+    case 'EM_EXECUCAO':
+    case 'EM_ANALISE':
+    case 'ENCAMINHADO':
+    case 'ABERTO':
+    case 'CONCLUIDO':
+      return normalized;
+    default:
+      return 'ABERTO';
   }
 }
 
-class _PriorityChip extends StatelessWidget {
-  final String label;
-
-  const _PriorityChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return _InfoChip(label: label, colors: _priorityColors(context, label));
-  }
+String _normalizeStatusKey(dynamic value) {
+  return (value ?? '')
+      .toString()
+      .trim()
+      .toUpperCase()
+      .replaceAll(RegExp(r'[ÁÀÂÃÄ]'), 'A')
+      .replaceAll(RegExp(r'[ÉÈÊË]'), 'E')
+      .replaceAll(RegExp(r'[ÍÌÎÏ]'), 'I')
+      .replaceAll(RegExp(r'[ÓÒÔÕÖ]'), 'O')
+      .replaceAll(RegExp(r'[ÚÙÛÜ]'), 'U')
+      .replaceAll('Ç', 'C');
 }
 
 class _ChangePasswordCard extends StatelessWidget {

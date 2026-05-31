@@ -155,7 +155,22 @@ class LocalDbService {
   }
 
   bool _isChamadoConcluido(Map<String, dynamic> chamado) {
-    return (chamado['status'] ?? '').toString().trim().toUpperCase() ==
-        'CONCLUIDO';
+    final status = _normalizeStatusKey(chamado['status'])
+        .replaceAll(RegExp(r'\s+'), '_')
+        .replaceAll('-', '_');
+    return status == 'CONCLUIDO';
+  }
+
+  String _normalizeStatusKey(dynamic value) {
+    return (value ?? '')
+        .toString()
+        .trim()
+        .toUpperCase()
+        .replaceAll(RegExp(r'[ÁÀÂÃÄ]'), 'A')
+        .replaceAll(RegExp(r'[ÉÈÊË]'), 'E')
+        .replaceAll(RegExp(r'[ÍÌÎÏ]'), 'I')
+        .replaceAll(RegExp(r'[ÓÒÔÕÖ]'), 'O')
+        .replaceAll(RegExp(r'[ÚÙÛÜ]'), 'U')
+        .replaceAll('Ç', 'C');
   }
 }

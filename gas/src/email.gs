@@ -103,36 +103,6 @@ function removerTriggerMonitoramentoPosChuva() {
   });
 }
 
-function simularEmailValidacaoPosChuvaFabio() {
-  const destinatario = 'fabiodias@uel.br';
-  const assunto = 'Simulacao - Validacao pos-chuva do chamado CH-TESTE';
-  const simUrl = ScriptApp.getService().getUrl() + '?action=validar_pos_chuva&token=SIMULACAO&resposta=sim';
-  const naoUrl = ScriptApp.getService().getUrl() + '?action=validar_pos_chuva&token=SIMULACAO&resposta=nao';
-  const texto =
-    'Ola, Fabio.\n\n' +
-    'Esta e uma simulacao do e-mail de validacao pos-chuva do Sistema de Telhados.\n\n' +
-    'Chamado: CH-TESTE\n' +
-    'Chuva registrada: 5 mm ou mais\n\n' +
-    'Sim, resolveu: ' + simUrl + '\n' +
-    'Nao, ainda vaza: ' + naoUrl + '\n\n' +
-    'Sistema de Telhados - Prefeitura do Campus Universitario';
-  const html =
-    '<p>Ola, Fabio.</p>' +
-    '<p>Esta e uma simulacao do e-mail de validacao pos-chuva do <strong>Sistema de Telhados</strong>.</p>' +
-    '<p><strong>Chamado:</strong> CH-TESTE<br><strong>Chuva registrada:</strong> 5 mm ou mais</p>' +
-    '<p>' +
-      '<a href="' + simUrl + '" style="display:inline-block;padding:12px 16px;margin-right:8px;background:#0b6b57;color:#fff;text-decoration:none;border-radius:6px;font-weight:700;">Sim, resolveu</a>' +
-      '<a href="' + naoUrl + '" style="display:inline-block;padding:12px 16px;background:#9d2d20;color:#fff;text-decoration:none;border-radius:6px;font-weight:700;">Nao, ainda vaza</a>' +
-    '</p>' +
-    '<p>Sistema de Telhados - Prefeitura do Campus Universitario</p>';
-
-  GmailApp.sendEmail(destinatario, assunto, texto, { htmlBody: html });
-  return success_({
-    enviado_para: destinatario,
-    assunto: assunto
-  });
-}
-
 function responderValidacaoPosChuva(token, resposta) {
   const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
   const normalizedToken = String(token || '').trim();
@@ -149,6 +119,10 @@ function responderValidacaoPosChuva(token, resposta) {
   const validacao = findValidacaoByToken_(spreadsheet, normalizedToken);
   if (!validacao) {
     return renderValidacaoPosChuvaPage_('Validacao nao encontrada', 'Nao encontramos esta solicitacao de validacao.');
+  }
+
+  if (isValidacaoPosChuvaExpirada_(validacao.meta)) {
+    return renderValidacaoPosChuvaPage_('Link expirado', 'Esta validacao pos-chuva expirou. Entre em contato com a equipe responsavel.');
   }
 
   if (validacao.row.status_validacao !== VALIDACAO_POS_CHUVA_STATUS.EMAIL_ENVIADO) {
@@ -177,6 +151,56 @@ function responderValidacaoPosChuva(token, resposta) {
   );
 }
 
+function renderConfirmacaoValidacaoPosChuva_(token, resposta) {
+  const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  const normalizedToken = String(token || '').trim();
+  const normalizedResposta = String(resposta || '').trim().toLowerCase();
+
+  if (!normalizedToken) {
+    return renderValidacaoPosChuvaPage_('Link invalido', 'Token de validacao nao informado.');
+  }
+
+  if (['sim', 'nao'].indexOf(normalizedResposta) < 0) {
+    return renderValidacaoPosChuvaPage_('Resposta invalida', 'Use um dos botoes enviados por e-mail.');
+  }
+
+  const validacao = findValidacaoByToken_(spreadsheet, normalizedToken);
+  if (!validacao) {
+    return renderValidacaoPosChuvaPage_('Validacao nao encontrada', 'Nao encontramos esta solicitacao de validacao.');
+  }
+
+  if (isValidacaoPosChuvaExpirada_(validacao.meta)) {
+    return renderValidacaoPosChuvaPage_('Link expirado', 'Esta validacao pos-chuva expirou. Entre em contato com a equipe responsavel.');
+  }
+
+  if (validacao.row.status_validacao !== VALIDACAO_POS_CHUVA_STATUS.EMAIL_ENVIADO) {
+    return renderValidacaoPosChuvaPage_('Validacao ja respondida', 'Esta validacao pos-chuva ja foi registrada.');
+  }
+
+  const confirmouResolucao = normalizedResposta === 'sim';
+  const title = confirmouResolucao ? 'Confirmar servico concluido' : 'Confirmar reincidencia';
+  const message = confirmouResolucao
+    ? 'Confirma que o reparo resolveu o vazamento?'
+    : 'Confirma que ainda existe vazamento apos o reparo?';
+  const buttonLabel = confirmouResolucao ? 'Sim, confirmar resolucao' : 'Sim, abrir novo chamado';
+  const actionUrl = ScriptApp.getService().getUrl();
+
+  return HtmlService
+    .createHtmlOutput(
+      '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer">' +
+      '<title>' + escapeEmailHtml_(title) + '</title>' +
+      '<style>body{font-family:Arial,sans-serif;background:#f3f7f4;color:#10201b;margin:0;min-height:100vh;display:grid;place-items:center;padding:24px}.card{max-width:560px;background:#fff;border:1px solid #dce6e1;border-radius:8px;padding:28px}h1{margin:0 0 12px;font-size:26px}p{line-height:1.5;color:#66726d}.button{border:0;border-radius:6px;padding:12px 16px;background:#0b6b57;color:#fff;font-weight:700;cursor:pointer}</style>' +
+      '</head><body><main class="card"><h1>' + escapeEmailHtml_(title) + '</h1><p>' + escapeEmailHtml_(message) + '</p>' +
+      '<form method="post" action="' + escapeEmailHtml_(actionUrl) + '">' +
+      '<input type="hidden" name="action" value="confirmar_validacao_pos_chuva">' +
+      '<input type="hidden" name="token" value="' + escapeEmailHtml_(normalizedToken) + '">' +
+      '<input type="hidden" name="resposta" value="' + escapeEmailHtml_(normalizedResposta) + '">' +
+      '<button class="button" type="submit">' + escapeEmailHtml_(buttonLabel) + '</button></form>' +
+      '</main></body></html>'
+    )
+    .setTitle(title);
+}
+
 function getOrCreateEventoChuva_(spreadsheet, chuva) {
   const sheet = spreadsheet.getSheetByName('eventos_chuva');
   const rows = readSheetObjects_(sheet);
@@ -189,7 +213,7 @@ function getOrCreateEventoChuva_(spreadsheet, chuva) {
       id: existing.id,
       data_referencia: existing.data_referencia,
       volume_mm: Number(existing.volume_mm || 0),
-      processado: String(existing.processado).toUpperCase() === 'TRUE' || existing.processado === true
+      processado: isTrue_(existing.processado)
     };
   }
 
@@ -250,6 +274,7 @@ function createValidacaoPosChuva_(spreadsheet, chamado, evento, solicitante) {
   const now = now_();
   const meta = {
     token: token,
+    token_expira_em: Utilities.formatDate(new Date(Date.now() + 1000 * 60 * 60 * 24 * 30), CONFIG.TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss"),
     chamado_numero: chamado.numero || chamado.id,
     evento_data: evento.data_referencia,
     evento_volume_mm: evento.volume_mm,
@@ -272,6 +297,11 @@ function createValidacaoPosChuva_(spreadsheet, chamado, evento, solicitante) {
     id: id,
     token: token
   };
+}
+
+function isValidacaoPosChuvaExpirada_(meta) {
+  const expiresAt = meta && meta.token_expira_em ? new Date(meta.token_expira_em) : null;
+  return !expiresAt || isNaN(expiresAt.getTime()) || expiresAt < new Date();
 }
 
 function enviarEmailValidacaoPosChuva_(solicitante, chamado, evento, validacao) {
@@ -406,7 +436,7 @@ function parseValidacaoMeta_(value) {
 function renderValidacaoPosChuvaPage_(title, message) {
   return HtmlService
     .createHtmlOutput(
-      '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+      '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer">' +
       '<title>' + escapeEmailHtml_(title) + '</title>' +
       '<style>body{font-family:Arial,sans-serif;background:#f3f7f4;color:#10201b;margin:0;min-height:100vh;display:grid;place-items:center;padding:24px}.card{max-width:560px;background:#fff;border:1px solid #dce6e1;border-radius:8px;padding:28px}h1{margin:0 0 12px;font-size:26px}p{line-height:1.5;color:#66726d}</style>' +
       '</head><body><main class="card"><h1>' + escapeEmailHtml_(title) + '</h1><p>' + escapeEmailHtml_(message) + '</p></main></body></html>'
