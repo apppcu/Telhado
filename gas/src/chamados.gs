@@ -1101,9 +1101,9 @@ function ensurePecasVistoriaSheet_(spreadsheet) {
 function registrarPecasVistoria_(spreadsheet, context, payload, now) {
   const data = payload || {};
   const token = String(data.vistoria_token || '').trim();
-  const materiaisTexto = String(data.materiais || '').trim();
+  const materiaisTexto = normalizePecasMateriaisTexto_(data.materiais);
   const observacaoTecnica = String(data.observacao_tecnica || '').trim();
-  const resumo = String(data.resumo_vistoria || '').trim();
+  const resumo = normalizePecasMateriaisTexto_(data.resumo_vistoria);
   const materiaisFinal = materiaisTexto || resumo || 'Sem materiais informados na vistoria.';
   const timestamp = now || now_();
 
@@ -1213,12 +1213,46 @@ function mapPecaVistoriaRow_(row) {
     predio_nome: raw.predio_nome || '',
     tecnico_id: raw.tecnico_id || '',
     tecnico_nome: raw.tecnico_nome || '',
-    materiais_texto: raw.materiais_texto || '',
+    materiais_texto: normalizePecasMateriaisTexto_(raw.materiais_texto || ''),
     observacao_tecnica: raw.observacao_tecnica || '',
     status_lista: raw.status_lista || 'PENDENTE',
     created_at: raw.created_at || '',
     updated_at: raw.updated_at || ''
   };
+}
+
+function normalizePecasMateriaisTexto_(value) {
+  const source = String(value || '').replace(/\r\n?/g, '\n').trim();
+  if (!source) {
+    return '';
+  }
+
+  let normalized = source
+    .split('\n')
+    .map(function(line) {
+      return String(line || '').trim();
+    })
+    .filter(Boolean)
+    .join('\n');
+
+  if (normalized.indexOf('\n') < 0) {
+    normalized = normalized.replace(/\s*[,;]\s*/g, '\n');
+  }
+
+  if (normalized.indexOf('\n') < 0) {
+    const quantityTokens = normalized.match(/\b\d{1,4}(?:[.,]\d+)?\s*[A-Za-zÀ-ÿ]/g) || [];
+    if (quantityTokens.length > 1) {
+      normalized = normalized.replace(/\s+(?=\d{1,4}(?:[.,]\d+)?\s*[A-Za-zÀ-ÿ])/g, '\n');
+    }
+  }
+
+  return normalized
+    .split('\n')
+    .map(function(line) {
+      return String(line || '').trim();
+    })
+    .filter(Boolean)
+    .join('\n');
 }
 
 function listarPecasFallbackDosChamados_(spreadsheet, chamadoIdFiltro) {
@@ -1279,7 +1313,7 @@ function listarPecasFallbackDosChamados_(spreadsheet, chamadoIdFiltro) {
         predio_nome: row.predio_id || '',
         tecnico_id: tecnicoId,
         tecnico_nome: tecnicoNome,
-        materiais_texto: bloco.materiais_texto || 'Sem materiais informados na vistoria.',
+        materiais_texto: normalizePecasMateriaisTexto_(bloco.materiais_texto || '') || 'Sem materiais informados na vistoria.',
         observacao_tecnica: bloco.observacao_tecnica || '',
         status_lista: 'PENDENTE',
         created_at: row.created_at || '',
