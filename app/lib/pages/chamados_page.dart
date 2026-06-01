@@ -35,6 +35,7 @@ class _ChamadosPageState extends State<ChamadosPage> {
 
   late Map<String, dynamic> _session;
   List<Map<String, dynamic>> _chamados = [];
+  bool _showChamadosList = false;
   bool _loading = false;
   bool _loadingChamados = false;
   bool _obscureNewPassword = true;
@@ -52,7 +53,7 @@ class _ChamadosPageState extends State<ChamadosPage> {
       }
     });
     if (_session['trocar_senha'] != true) {
-      _loadChamados();
+      unawaited(_loadChamados(silent: true));
     }
   }
 
@@ -70,9 +71,28 @@ class _ChamadosPageState extends State<ChamadosPage> {
       return;
     }
 
+    if (!_showChamadosList) {
+      await _loadChamados(silent: true);
+      return;
+    }
+
     if (_session['offline_login'] == true) {
       await _tryRestoreOnlineSession();
       return;
+    }
+
+    await _loadChamados();
+  }
+
+  Future<void> _abrirChamados() async {
+    if (_loadingChamados) {
+      return;
+    }
+
+    if (!_showChamadosList && mounted) {
+      setState(() {
+        _showChamadosList = true;
+      });
     }
 
     await _loadChamados();
@@ -91,11 +111,13 @@ class _ChamadosPageState extends State<ChamadosPage> {
     );
   }
 
-  Future<void> _tryRestoreOnlineSession() async {
-    setState(() {
-      _loadingChamados = true;
-      _chamadosMessage = '';
-    });
+  Future<void> _tryRestoreOnlineSession({bool silent = false}) async {
+    if (!silent && mounted) {
+      setState(() {
+        _loadingChamados = true;
+        _chamadosMessage = '';
+      });
+    }
 
     try {
       final syncResult = await _sync.sincronizarPendencias(
@@ -119,12 +141,14 @@ class _ChamadosPageState extends State<ChamadosPage> {
           'offline_login': false,
         };
         _chamados = visibleChamados;
-        _chamadosMessage = syncResult.failed > 0
-            ? _syncFailureMessage(
-                syncResult,
-                'Conexao restabelecida, mas ainda ha pendencias.',
-              )
-            : 'Conexao restabelecida. Servicos atualizados.';
+        if (!silent) {
+          _chamadosMessage = syncResult.failed > 0
+              ? _syncFailureMessage(
+                  syncResult,
+                  'Conexao restabelecida, mas ainda ha pendencias.',
+                )
+              : 'Conexao restabelecida. Servicos atualizados.';
+        }
       });
     } catch (_) {
       final cached = await _localDb.listarChamadosCache();
@@ -134,12 +158,14 @@ class _ChamadosPageState extends State<ChamadosPage> {
 
       setState(() {
         _chamados = cached;
-        _chamadosMessage = cached.isEmpty
-            ? 'Sem servicos salvos neste aparelho.'
-            : 'Modo offline: exibindo servicos salvos.';
+        if (!silent) {
+          _chamadosMessage = cached.isEmpty
+              ? 'Sem servicos salvos neste aparelho.'
+              : 'Modo offline: exibindo servicos salvos.';
+        }
       });
     } finally {
-      if (mounted) {
+      if (!silent && mounted) {
         setState(() {
           _loadingChamados = false;
         });
@@ -171,8 +197,10 @@ class _ChamadosPageState extends State<ChamadosPage> {
         _session = updatedSession;
         _novaSenhaController.clear();
         _confirmarSenhaController.clear();
+        _showChamadosList = false;
+        _chamados = [];
+        _chamadosMessage = '';
       });
-      await _loadChamados();
     } catch (error) {
       setState(() {
         _message = error.toString().replaceFirst('Exception: ', '');
@@ -186,15 +214,17 @@ class _ChamadosPageState extends State<ChamadosPage> {
     }
   }
 
-  Future<void> _loadChamados() async {
-    setState(() {
-      _loadingChamados = true;
-      _chamadosMessage = '';
-    });
+  Future<void> _loadChamados({bool silent = false}) async {
+    if (!silent && mounted) {
+      setState(() {
+        _loadingChamados = true;
+        _chamadosMessage = '';
+      });
+    }
 
     try {
       if (_session['offline_login'] == true) {
-        await _tryRestoreOnlineSession();
+        await _tryRestoreOnlineSession(silent: silent);
         return;
       }
 
@@ -215,12 +245,14 @@ class _ChamadosPageState extends State<ChamadosPage> {
 
       setState(() {
         _chamados = visibleChamados;
-        _chamadosMessage = syncResult.failed > 0
-            ? _syncFailureMessage(
-                syncResult,
-                'Servicos atualizados, mas ainda ha pendencias.',
-              )
-            : '';
+        if (!silent) {
+          _chamadosMessage = syncResult.failed > 0
+              ? _syncFailureMessage(
+                  syncResult,
+                  'Servicos atualizados, mas ainda ha pendencias.',
+                )
+              : '';
+        }
       });
     } catch (error) {
       final cached = await _localDb.listarChamadosCache();
@@ -230,12 +262,14 @@ class _ChamadosPageState extends State<ChamadosPage> {
 
       setState(() {
         _chamados = cached;
-        _chamadosMessage = cached.isEmpty
-            ? error.toString().replaceFirst('Exception: ', '')
-            : 'Sem conexao. Exibindo servicos salvos no aparelho.';
+        if (!silent) {
+          _chamadosMessage = cached.isEmpty
+              ? error.toString().replaceFirst('Exception: ', '')
+              : 'Sem conexao. Exibindo servicos salvos no aparelho.';
+        }
       });
     } finally {
-      if (mounted) {
+      if (!silent && mounted) {
         setState(() {
           _loadingChamados = false;
         });
@@ -255,7 +289,7 @@ class _ChamadosPageState extends State<ChamadosPage> {
           if (!trocarSenha)
             IconButton(
               tooltip: 'Atualizar',
-              onPressed: _loadingChamados ? null : _loadChamados,
+              onPressed: _loadingChamados ? null : _abrirChamados,
               icon: const Icon(Icons.refresh),
             ),
           IconButton(
@@ -266,7 +300,8 @@ class _ChamadosPageState extends State<ChamadosPage> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: trocarSenha ? () async {} : _loadChamados,
+        onRefresh:
+            trocarSenha || !_showChamadosList ? () async {} : _loadChamados,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
@@ -294,31 +329,65 @@ class _ChamadosPageState extends State<ChamadosPage> {
                 onSubmit: _loading ? null : _trocarSenha,
               ),
             ] else ...[
-              _ServicesSummary(
-                loading: _loadingChamados,
-                total: _chamados.length,
-                message: _chamadosMessage,
-              ),
-              const SizedBox(height: 12),
-              if (_loadingChamados && _chamados.isEmpty)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: CircularProgressIndicator(),
+              if (!_showChamadosList)
+                ...[
+                  _ServicesSummary(
+                    loading: _loadingChamados,
+                    total: _chamados.length,
+                    message: 'Toque em CHAMADAS para listar seus servicos.',
                   ),
-                )
-              else if (_chamados.isEmpty)
-                const _EmptyServicesCard()
-              else
-                ..._chamados.map(
-                  (chamado) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _ChamadoCard(
-                      chamado: chamado,
-                      onOpen: () => _showChamadoDetails(chamado),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: _loadingChamados ? null : _abrirChamados,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(58),
+                      backgroundColor: const Color(0xFF1D4ED8),
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: _loadingChamados
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.list_alt),
+                    label: const Text(
+                      'CHAMADAS',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.2,
+                      ),
                     ),
                   ),
-                ),
+                ]
+              else ...[
+                if (_chamadosMessage.isNotEmpty) ...[
+                  _NoticeBox(
+                    message: _chamadosMessage,
+                    isError: _chamadosMessage.toLowerCase().contains('erro'),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (_loadingChamados && _chamados.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else if (_chamados.isEmpty)
+                  const _EmptyServicesCard()
+                else
+                  ..._chamados.map(
+                    (chamado) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _ChamadoCard(
+                        chamado: chamado,
+                        onOpen: () => _showChamadoDetails(chamado),
+                      ),
+                    ),
+                  ),
+              ],
             ],
           ],
         ),
@@ -395,9 +464,16 @@ class _TechnicianHeader extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: colorScheme.primary,
+        gradient: LinearGradient(
+          colors: [
+            colorScheme.primary,
+            const Color(0xFF0A7A60),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -505,14 +581,18 @@ class _ServicesSummary extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: 48,
+                  height: 48,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE7F3EE),
+                    color: const Color(0xFFDDF3EB),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(Icons.roofing, color: colorScheme.primary),
+                  child: Icon(
+                    Icons.roofing,
+                    color: colorScheme.primary,
+                    size: 28,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -520,7 +600,7 @@ class _ServicesSummary extends StatelessWidget {
                     loading
                         ? 'Atualizando servicos...'
                         : '$total servico(s) atribuido(s)',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w900,
                         ),
                   ),
@@ -586,6 +666,8 @@ class _ChamadoCard extends StatelessWidget {
     final priority = (chamado['prioridade'] ?? 'NORMAL').toString();
     final status = _normalizeStatusValue(chamado['status']);
     final colorScheme = Theme.of(context).colorScheme;
+    final stripeColor = _priorityStripeColor(priority);
+    final openColor = _openButtonColor(status);
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -595,7 +677,7 @@ class _ChamadoCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(width: 5, color: colorScheme.primary),
+              Container(width: 8, color: stripeColor),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -643,16 +725,39 @@ class _ChamadoCard extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      Row(
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
                         children: [
                           ChamadoPriorityChip(label: priority),
-                          const Spacer(),
-                          TextButton.icon(
-                            onPressed: onOpen,
-                            icon: const Icon(Icons.chevron_right),
-                            label: const Text('Abrir'),
-                          ),
+                          if ((chamado['categoria'] ?? '')
+                              .toString()
+                              .trim()
+                              .isNotEmpty)
+                            Chip(
+                              label: Text(
+                                (chamado['categoria'] ?? '-').toString(),
+                              ),
+                              backgroundColor: const Color(0xFFE7EEF7),
+                            ),
                         ],
+                      ),
+                      const SizedBox(height: 14),
+                      FilledButton.icon(
+                        onPressed: onOpen,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: openColor,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(60),
+                        ),
+                        icon: const Icon(Icons.chevron_right, size: 22),
+                        label: const Text(
+                          'ABRIR SERVICO',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -663,6 +768,30 @@ class _ChamadoCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+Color _priorityStripeColor(String priority) {
+  switch (priority.trim().toUpperCase()) {
+    case 'URGENTE':
+      return const Color(0xFFC2410C);
+    case 'ALTA':
+      return const Color(0xFFD97706);
+    default:
+      return const Color(0xFF0A7A60);
+  }
+}
+
+Color _openButtonColor(String status) {
+  switch (status.trim().toUpperCase()) {
+    case 'EM_ANALISE':
+      return const Color(0xFF1D4ED8);
+    case 'EM_EXECUCAO':
+      return const Color(0xFF0A7A60);
+    case 'ENCAMINHADO':
+      return const Color(0xFF0E7490);
+    default:
+      return const Color(0xFFC2410C);
   }
 }
 
@@ -752,7 +881,9 @@ class _ChangePasswordCard extends StatelessWidget {
                         obscureNewPassword ? 'Mostrar senha' : 'Ocultar senha',
                     onPressed: onToggleNewPassword,
                     icon: Icon(
-                      obscureNewPassword ? Icons.visibility : Icons.visibility_off,
+                      obscureNewPassword
+                          ? Icons.visibility
+                          : Icons.visibility_off,
                     ),
                   ),
                 ),
@@ -784,7 +915,9 @@ class _ChangePasswordCard extends StatelessWidget {
                         : 'Ocultar senha',
                     onPressed: onToggleConfirmPassword,
                     icon: Icon(
-                      obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                      obscureConfirmPassword
+                          ? Icons.visibility
+                          : Icons.visibility_off,
                     ),
                   ),
                 ),

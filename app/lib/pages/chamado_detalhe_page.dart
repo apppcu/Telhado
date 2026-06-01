@@ -76,7 +76,8 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
   }
 
   Future<void> _sincronizarPendenciasDaTela() async {
-    final result = await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
+    final result =
+        await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
     if (!mounted || result.skippedOffline) {
       return;
     }
@@ -321,7 +322,8 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
         _novaVistoriaFormAberta = true;
         _execucaoConcluida = false;
       },
-      pendingMessage: 'Justificativa salva. Informe materiais da nova vistoria.',
+      pendingMessage:
+          'Justificativa salva. Informe materiais da nova vistoria.',
       offlineMessage:
           'Sem internet. A justificativa sera enviada automaticamente depois.',
       failureFallback:
@@ -503,8 +505,7 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
 
       setState(() {
         _chamado = updated;
-        _syncMessage =
-            'Foto antes salva no aparelho. Envio em segundo plano.';
+        _syncMessage = 'Foto antes salva no aparelho. Envio em segundo plano.';
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -571,8 +572,7 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
 
       setState(() {
         _chamado = updated;
-        _syncMessage =
-            'Foto final salva no aparelho. Envio em segundo plano.';
+        _syncMessage = 'Foto final salva no aparelho. Envio em segundo plano.';
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -698,7 +698,8 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
 
   void _sincronizarPendenciasFotoEmSegundoPlano() {
     _sincronizarPendenciasEmSegundoPlano(
-      failureFallback: 'Foto salva no aparelho. Ainda ha pendencias para sincronizar.',
+      failureFallback:
+          'Foto salva no aparelho. Ainda ha pendencias para sincronizar.',
       syncedMessage: 'Pendencias sincronizadas.',
     );
   }
@@ -710,7 +711,8 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
     Map<String, dynamic> Function(Map<String, dynamic> chamado)? syncedUpdate,
   }) {
     unawaited(() async {
-      final result = await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
+      final result =
+          await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
       if (!mounted) {
         return;
       }
@@ -786,19 +788,19 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
                   saving: _savingVistoria,
                   takingBeforePhoto: _takingBeforePhoto,
                   isNovaVistoria: novaVistoriaPendente,
-                  hasBeforePhoto:
-                      (_chamado['foto_antes_path'] ?? '').toString().isNotEmpty ||
+                  hasBeforePhoto: (_chamado['foto_antes_path'] ?? '')
+                          .toString()
+                          .isNotEmpty ||
+                      (_chamado['foto_antes_sync_status'] ?? '') ==
+                          'SINCRONIZADO',
+                  onTakeBeforePhoto: _takingBeforePhoto ||
+                          (_chamado['foto_antes_path'] ?? '')
+                              .toString()
+                              .isNotEmpty ||
                           (_chamado['foto_antes_sync_status'] ?? '') ==
-                              'SINCRONIZADO',
-                  onTakeBeforePhoto:
-                      _takingBeforePhoto ||
-                              (_chamado['foto_antes_path'] ?? '')
-                                  .toString()
-                                  .isNotEmpty ||
-                              (_chamado['foto_antes_sync_status'] ?? '') ==
-                                  'SINCRONIZADO'
-                          ? null
-                          : _tirarFotoAntes,
+                              'SINCRONIZADO'
+                      ? null
+                      : _tirarFotoAntes,
                   onSubmit: _savingVistoria ? null : _salvarVistoria,
                 ),
                 const SizedBox(height: 12),
@@ -836,6 +838,11 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
               if (canStart || (alreadyStarted && !inspectionSaved))
                 FilledButton.icon(
                   onPressed: canStart && !_starting ? _iniciarVistoria : null,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(62),
+                    backgroundColor: const Color(0xFF1D4ED8),
+                    foregroundColor: Colors.white,
+                  ),
                   icon: _starting
                       ? const SizedBox(
                           width: 18,
@@ -940,7 +947,7 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
                       labelText: 'Servico executado',
                       prefixIcon: Icon(Icons.build_circle_outlined),
                     ),
-                ),
+                  ),
                   const SizedBox(height: 14),
                   TextFormField(
                     controller: _observacaoFinalController,
@@ -1140,6 +1147,14 @@ class _VistoriaFormCard extends StatelessWidget {
               if (!isNovaVistoria) ...[
                 OutlinedButton.icon(
                   onPressed: hasBeforePhoto ? null : onTakeBeforePhoto,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(60),
+                    foregroundColor: const Color(0xFFD97706),
+                    side: const BorderSide(
+                      color: Color(0xFFD97706),
+                      width: 1.6,
+                    ),
+                  ),
                   icon: takingBeforePhoto
                       ? const SizedBox(
                           width: 18,
@@ -1159,6 +1174,11 @@ class _VistoriaFormCard extends StatelessWidget {
               ],
               FilledButton.icon(
                 onPressed: onSubmit,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(62),
+                  backgroundColor: const Color(0xFF0A7A60),
+                  foregroundColor: Colors.white,
+                ),
                 icon: saving
                     ? const SizedBox(
                         width: 18,
@@ -1199,64 +1219,70 @@ class _ServicoAcoesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            OutlinedButton.icon(
+            _ActionPaletteButton(
               onPressed: newInspectionLoading ? null : onNewInspection,
+              backgroundColor: const Color(0xFF1D4ED8),
+              foregroundColor: Colors.white,
+              title: 'Nova Vistoria',
+              subtitle: 'Abrir nova avaliacao no local',
               icon: newInspectionLoading
                   ? const SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.assignment_return),
-              label: const Text('Nova Vistoria'),
+                  : const Icon(Icons.assignment_return, size: 22),
             ),
             const SizedBox(height: 10),
-            FilledButton.icon(
+            _ActionPaletteButton(
               onPressed: onFinishRepair,
+              backgroundColor: const Color(0xFF0A7A60),
+              foregroundColor: Colors.white,
+              title: 'Concluir Reparo',
+              subtitle: 'Registrar servico executado',
               icon: starting
                   ? const SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.build_circle),
-              label: const Text('Concluir Reparo'),
+                  : const Icon(Icons.build_circle, size: 22),
             ),
             const SizedBox(height: 10),
-            OutlinedButton.icon(
+            _ActionPaletteButton(
               onPressed: onFinalPhoto,
+              backgroundColor: const Color(0xFFD97706),
+              foregroundColor: Colors.white,
+              title: 'Foto Final',
+              subtitle: 'Evidencia para fechamento',
               icon: takingFinalPhoto
                   ? const SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.photo_camera),
-              label: const Text('Foto Final'),
+                  : const Icon(Icons.photo_camera, size: 22),
             ),
             const SizedBox(height: 10),
-            OutlinedButton.icon(
+            _ActionPaletteButton(
               onPressed: onCloseService,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: colorScheme.primary,
-                side: BorderSide(color: colorScheme.primary, width: 1.2),
-              ),
+              backgroundColor: const Color(0xFFB42318),
+              foregroundColor: Colors.white,
+              title: 'Encerrar Servico',
+              subtitle: 'Finalizar chamado no sistema',
               icon: closingService
                   ? const SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.check_circle),
-              label: const Text('Encerrar Servico'),
+                  : const Icon(Icons.check_circle, size: 22),
             ),
           ],
         ),
@@ -1347,38 +1373,119 @@ class _HeaderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final status = (chamado['status'] ?? '-').toString();
     final colorScheme = Theme.of(context).colorScheme;
+    final prioridade = (chamado['prioridade'] ?? 'NORMAL').toString();
 
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              colorScheme.surface,
+              const Color(0xFFF1F8F4),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      (chamado['numero'] ?? '-').toString(),
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                color: colorScheme.onSurface,
+                              ),
+                    ),
+                  ),
+                  ChamadoStatusChip(label: status),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ChamadoPriorityChip(label: prioridade),
+              const SizedBox(height: 12),
+              Text(
+                (chamado['descricao'] ?? '').toString(),
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      height: 1.35,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionPaletteButton extends StatelessWidget {
+  final VoidCallback? onPressed;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final Widget icon;
+  final String title;
+  final String subtitle;
+
+  const _ActionPaletteButton({
+    required this.onPressed,
+    required this.backgroundColor,
+    required this.foregroundColor,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        minimumSize: const Size.fromHeight(66),
+        backgroundColor: backgroundColor,
+        foregroundColor: foregroundColor,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      ),
+      child: Row(
+        children: [
+          icon,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: Text(
-                    (chamado['numero'] ?? '-').toString(),
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: colorScheme.onSurface,
-                        ),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                ChamadoStatusChip(label: status),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: foregroundColor.withValues(alpha: 0.92),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              (chamado['descricao'] ?? '').toString(),
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    height: 1.35,
-                  ),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+          const Icon(Icons.chevron_right, size: 22),
+        ],
       ),
     );
   }
@@ -1472,4 +1579,3 @@ class _DetailLine extends StatelessWidget {
     );
   }
 }
-
