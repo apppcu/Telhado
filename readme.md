@@ -179,3 +179,4 @@ Para validar o offline: atualizar a lista online, desligar a internet e confirma
 - [Schema Sheets](./sheets/schema.md)
 
 Última atualização: 2026-05-31.
+ Desenvolvido Fábio Dias - DMPE
