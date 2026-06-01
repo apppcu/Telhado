@@ -143,6 +143,22 @@ clasp.cmd version "descricao"
 clasp.cmd deploy -i <deployment_id> -V <versao> -d "descricao"
 ```
 
+## Proximos passos
+
+### WhatsApp institucional PCU
+
+- Integrar a WhatsApp Business Platform da Meta como canal adicional, mantendo o e-mail atual.
+- Deixar o envio automatico por WhatsApp desativado por padrao ate o cadastro do numero institucional e das credenciais da Meta.
+- Exibir no dashboard um card executivo `WhatsApp PCU` para apresentacao ao diretor da UEL e ao prefeito da PCU.
+- Mostrar no card o status da integracao, o botao de ativacao, o total enviado e o saldo estimado decrescente de mensagens.
+- Usar como referencia inicial de apresentacao: `1.000 mensagens disponiveis` e `R$ 34,00 de credito estimado`.
+- Disparar mensagens automaticamente apenas para validacoes pos-chuva elegiveis, em paralelo com o e-mail.
+
+### Relatorios com evidencias
+
+- Incluir nos relatorios as fotos inicial e final registradas pelo aplicativo.
+- Incluir nos relatorios a posicao GPS capturada durante o atendimento, com indicacao quando a localizacao estiver indisponivel.
+
 O `dart format` travou neste ambiente anteriormente; evitar repetir sem necessidade.
 
 ## Validação

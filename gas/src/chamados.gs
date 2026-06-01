@@ -897,11 +897,12 @@ function listarChamadosPecas(payload) {
     const itens = rows.length
       ? rows.map(mapPecaVistoriaRow_)
       : listarPecasFallbackDosChamados_(spreadsheet);
+    const chamadosAtivos = getChamadosAtivosByIdPecas_(spreadsheet);
     const byChamado = {};
 
     itens.forEach(function(row) {
       const chamadoId = String(row.chamado_id || '').trim();
-      if (!chamadoId) {
+      if (!chamadoId || !chamadosAtivos[chamadoId]) {
         return;
       }
 
@@ -943,6 +944,22 @@ function listarChamadosPecas(payload) {
   } catch (error) {
     return accessError_('LISTAR_CHAMADOS_PECAS_ERROR', error.message);
   }
+}
+
+function getChamadosAtivosByIdPecas_(spreadsheet) {
+  const sheet = spreadsheet.getSheetByName('chamados');
+  if (!sheet) {
+    return {};
+  }
+
+  return readSheetObjects_(sheet).reduce(function(map, row) {
+    const chamadoId = String(row.id || '').trim();
+    const status = normalizeStatus_(row.status);
+    if (chamadoId && status !== 'CONCLUIDO') {
+      map[chamadoId] = true;
+    }
+    return map;
+  }, {});
 }
 
 function listarPecasPorChamado(payload) {

@@ -406,15 +406,16 @@
 
     .dashboard {
       display: none;
-      min-height: 100vh;
-      padding: 34px 34px 34px 224px;
+      height: 100vh;
+      overflow: hidden;
+      padding: 16px 16px 16px 206px;
       background:
-        linear-gradient(180deg, rgba(18, 98, 79, 0.08), rgba(18, 98, 79, 0) 280px),
-        #f3f6f4;
+        radial-gradient(circle at 82% 0%, rgba(74, 165, 139, 0.18), transparent 30%),
+        linear-gradient(135deg, #eef6f2, #f8fbf9 55%, #edf5f1);
     }
 
     .dashboard.no-rail {
-      padding-left: 34px;
+      padding-left: 16px;
     }
 
     .dashboard.active {
@@ -422,8 +423,12 @@
     }
 
     .dash-band {
-      max-width: 1240px;
+      height: 100%;
+      max-width: none;
       margin: 0 auto;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      gap: 12px;
     }
 
     .dash-head {
@@ -431,16 +436,14 @@
       justify-content: space-between;
       align-items: center;
       gap: 20px;
-      margin-bottom: 22px;
-      padding-bottom: 18px;
-      border-bottom: 1px solid var(--line);
+      padding: 2px 4px;
     }
 
     .dash-head h2 {
       margin: 0;
       font-family: "Fraunces", serif;
-      font-size: clamp(30px, 4vw, 46px);
-      letter-spacing: 0;
+      font-size: clamp(28px, 3vw, 38px);
+      letter-spacing: -0.04em;
     }
 
     .dash-actions {
@@ -450,24 +453,33 @@
     }
 
     .btn-compact {
-      min-height: 44px;
-      padding: 0 16px;
+      min-height: 36px;
+      padding: 0 13px;
     }
 
     .dash-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
     }
 
     .dashboard-rail {
       position: fixed;
-      left: 24px;
-      top: 34px;
+      left: 16px;
+      top: 16px;
+      bottom: 16px;
       z-index: 4;
-      display: grid;
-      gap: 10px;
-      width: 188px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 174px;
+      padding: 18px 14px;
+      border-radius: 22px;
+      color: #eaf8f3;
+      background:
+        radial-gradient(circle at 22% 7%, rgba(74, 205, 162, 0.28), transparent 23%),
+        linear-gradient(165deg, #17352d, #10251f);
+      box-shadow: 0 20px 40px rgba(8, 38, 31, 0.18);
     }
 
     .dashboard-rail[hidden] {
@@ -475,39 +487,37 @@
     }
 
     .rail-button {
-      min-height: 56px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--white);
-      color: var(--leaf-dark);
-      box-shadow: var(--shadow-soft);
+      min-height: 38px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: rgba(234, 248, 243, 0.78);
       cursor: pointer;
       font-weight: 800;
       line-height: 1.15;
       text-align: left;
-      padding: 10px 12px;
+      padding: 9px;
       transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, border-color 160ms ease;
     }
 
     .rail-button:hover {
-      transform: translateY(-1px);
-      border-color: rgba(18, 98, 79, 0.32);
-      box-shadow: 0 14px 30px rgba(20, 38, 32, 0.12);
+      color: var(--white);
+      background: rgba(255, 255, 255, 0.11);
     }
 
     .rail-section-title {
-      color: var(--muted);
-      font-size: 11px;
+      color: rgba(234, 248, 243, 0.45);
+      font-size: 9px;
       font-weight: 800;
       letter-spacing: 0.14em;
       text-transform: uppercase;
-      padding: 2px 4px;
-      margin-top: 2px;
+      padding: 2px 7px;
+      margin-top: 5px;
     }
 
     .rail-group {
       display: grid;
-      gap: 8px;
+      gap: 4px;
     }
 
     .admin-only[hidden] {
@@ -515,55 +525,63 @@
     }
 
     .metric {
-      min-height: 118px;
-      background: var(--white);
+      min-height: 78px;
+      background: rgba(255, 255, 255, 0.86);
       border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 16px;
+      border-radius: 15px;
+      padding: 11px 12px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       box-shadow: var(--shadow-soft);
-      border-left: 4px solid var(--leaf);
+      border-bottom: 3px solid var(--leaf);
     }
 
     .metric-open {
-      border-left-color: var(--amber);
+      border-bottom-color: var(--amber);
     }
 
     .metric-progress {
-      border-left-color: var(--rain);
+      border-bottom-color: var(--rain);
     }
 
     .metric-done {
-      border-left-color: var(--success);
+      border-bottom-color: var(--success);
     }
 
     .metric-rain {
-      border-left-color: #4f7f9b;
+      border-bottom-color: #4f7f9b;
     }
 
     .metric-pending {
-      border-left-color: var(--danger);
+      border-bottom-color: var(--danger);
+    }
+
+    .metric-whatsapp {
+      border-bottom-color: #25d366;
+    }
+
+    .metric-whatsapp strong {
+      font-size: 27px;
     }
 
     .metric strong {
-      font-size: 34px;
+      font-size: 27px;
       line-height: 1;
       color: var(--ink);
     }
 
     .metric span {
       color: var(--muted);
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 700;
     }
 
     .dashboard-layout {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 16px;
-      margin-top: 16px;
+      gap: 12px;
+      min-height: 0;
       align-items: start;
     }
 
@@ -582,7 +600,8 @@
     }
 
     .weather-card {
-      min-height: 226px;
+      min-height: 0;
+      height: 100%;
       background:
         radial-gradient(circle at 88% 12%, rgba(255, 255, 255, 0.18), transparent 24%),
         linear-gradient(135deg, rgba(7, 60, 52, 0.96), rgba(39, 95, 122, 0.92)),
@@ -612,7 +631,7 @@
       justify-content: space-between;
       gap: 12px;
       align-items: flex-start;
-      margin-bottom: 18px;
+      margin-bottom: 10px;
     }
 
     .weather-top h3 {
@@ -641,17 +660,17 @@
 
     .weather-current {
       display: grid;
-      grid-template-columns: 76px minmax(0, 1fr);
-      gap: 18px;
+      grid-template-columns: 64px minmax(0, 1fr);
+      gap: 14px;
       align-items: center;
-      margin-bottom: 18px;
+      margin-bottom: 12px;
     }
 
     .weather-icon {
       position: relative;
-      width: 76px;
-      height: 76px;
-      border-radius: 22px;
+      width: 64px;
+      height: 64px;
+      border-radius: 20px;
       background: rgba(255, 255, 255, 0.12);
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
     }
@@ -663,10 +682,10 @@
     }
 
     .weather-icon-sun::before {
-      width: 38px;
-      height: 38px;
-      left: 19px;
-      top: 19px;
+      width: 34px;
+      height: 34px;
+      left: 15px;
+      top: 15px;
       border-radius: 50%;
       background: #FFD166;
       box-shadow:
@@ -685,8 +704,8 @@
     .weather-icon-rain::before {
       width: 46px;
       height: 22px;
-      left: 15px;
-      top: 33px;
+      left: 9px;
+      top: 29px;
       border-radius: 20px;
       background: rgba(255, 255, 255, 0.94);
       box-shadow:
@@ -698,8 +717,8 @@
     .weather-icon-rain::after {
       width: 4px;
       height: 13px;
-      left: 29px;
-      top: 57px;
+      left: 23px;
+      top: 51px;
       border-radius: 3px;
       background: #9EE7FF;
       box-shadow:
@@ -985,7 +1004,7 @@
       }
 
       .dash-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
       }
 
       .filter-bar {
@@ -996,6 +1015,7 @@
         align-items: flex-start;
         flex-direction: column;
       }
+
     }
 
     @media (max-width: 620px) {
@@ -1010,6 +1030,9 @@
       }
 
       .dashboard {
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
         padding: 92px 16px 24px;
       }
 
@@ -1089,6 +1112,7 @@
       <div class="rail-section-title">Principal</div>
       <div class="rail-group">
         <button id="openRecentCallsButton" class="rail-button admin-only" type="button" hidden>Chamados</button>
+        <button id="openMyCallsButton" class="rail-button user-only" type="button" hidden>Meus chamados</button>
       </div>
       <div class="rail-section-title">Cadastros</div>
       <div class="rail-group">
@@ -1099,14 +1123,15 @@
       <div class="rail-group">
         <button id="openReportsButton" class="rail-button admin-only" type="button" hidden>Relatório</button>
         <button id="openPartsButton" class="rail-button admin-only" type="button" hidden>Peças</button>
+        <button id="openWhatsappPcuButton" class="rail-button admin-only" type="button" hidden>WhatsApp</button>
       </div>
     </nav>
 
     <div class="dash-band">
       <div class="dash-head">
         <div>
-          <h2>Controle Telhado</h2>
-          <p id="dashboardGreeting" class="lead">Entrada autorizada.</p>
+          <h2>Visão geral</h2>
+          <p id="dashboardGreeting" class="lead">Resumo operacional.</p>
         </div>
         <div class="dash-actions">
           <button id="newCallButton" class="btn btn-primary btn-compact" type="button">Novo chamado</button>
@@ -1121,6 +1146,10 @@
         <div class="metric metric-done"><span>Concluídos</span><strong id="metricDone">0</strong></div>
         <div class="metric metric-rain"><span>Alertas de chuva</span><strong id="metricRain">0</strong></div>
         <div id="pendingMetric" class="metric metric-pending admin-only" hidden><span>Usuários pendentes</span><strong id="metricPendingAccess">0</strong></div>
+        <div id="whatsappPcuMetric" class="metric metric-whatsapp admin-only" hidden>
+          <span>WhatsApp PCU</span>
+          <strong id="whatsappPcuAvailable">1.000</strong>
+        </div>
       </div>
 
       <div class="dashboard-layout">
@@ -1233,7 +1262,7 @@
       <div class="modal-head">
         <div>
           <h2 id="partsTitle">Peças por chamado</h2>
-          <p class="lead">Liste materiais por vistoria e exporte para impressão no almoxarifado/SICOR.</p>
+          <p class="lead">Acompanhe solicitações de peças dos chamados em andamento.</p>
         </div>
         <button id="closePartsPanelButton" class="close" type="button" aria-label="Fechar">x</button>
       </div>
@@ -1246,9 +1275,9 @@
         <button id="partsExportPdfButton" class="btn btn-secondary btn-compact" type="button">PDF consolidado</button>
         <button id="partsExportExcelButton" class="btn btn-primary btn-compact" type="button">Excel consolidado</button>
       </div>
-      <div id="partsSummary" class="empty-state">Selecione um chamado para visualizar as vistorias.</div>
+      <div id="partsSummary" class="empty-state">Nenhuma solicitação de peças pendente.</div>
       <div id="partsList" class="data-list">
-        <div class="empty-state">Nenhuma vistoria de peças carregada.</div>
+        <div class="empty-state">Os chamados concluídos não aparecem neste painel operacional.</div>
       </div>
     </div>
   </div>
@@ -1316,6 +1345,37 @@
       <div id="usersSummary" class="empty-state">Carregando usuários...</div>
       <div id="pendingAccessList" class="data-list">
         <div class="empty-state">Carregando usuários...</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="myCallsPanel" class="modal panel-modal" role="dialog" aria-modal="true" aria-labelledby="myCallsTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h2 id="myCallsTitle">Meus chamados</h2>
+          <p class="lead">Acompanhe suas solicitações e o andamento dos serviços.</p>
+        </div>
+        <button id="closeMyCallsPanelButton" class="close" type="button" aria-label="Fechar">x</button>
+      </div>
+      <div id="myCallsPanelList" class="data-list">
+        <div class="empty-state">Carregando seus chamados...</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="whatsappPcuPanel" class="modal panel-modal" role="dialog" aria-modal="true" aria-labelledby="whatsappPcuTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h2 id="whatsappPcuTitle">WhatsApp PCU</h2>
+          <p class="lead">Números cadastrados para receber validações automáticas pós-chuva.</p>
+        </div>
+        <button id="closeWhatsappPcuPanelButton" class="close" type="button" aria-label="Fechar">x</button>
+      </div>
+      <div id="whatsappPcuRecipientsSummary" class="empty-state">Nenhum destinatário carregado.</div>
+      <div id="whatsappPcuRecipientsList" class="data-list">
+        <div class="empty-state">Nenhum telefone cadastrado.</div>
       </div>
     </div>
   </div>
@@ -1536,6 +1596,7 @@
       partsCalls: [],
       partsItems: [],
       partsCurrentCallId: '',
+      whatsappPcu: {},
       chamados: [],
       filteredChamados: [],
       dashboardAutoRefreshTimer: null,
@@ -1554,24 +1615,30 @@
       newCallButton: document.getElementById('newCallButton'),
       logoutButton: document.getElementById('logoutButton'),
       openRecentCallsButton: document.getElementById('openRecentCallsButton'),
+      openMyCallsButton: document.getElementById('openMyCallsButton'),
       openReportsButton: document.getElementById('openReportsButton'),
       openPartsButton: document.getElementById('openPartsButton'),
+      openWhatsappPcuButton: document.getElementById('openWhatsappPcuButton'),
       openPendingAccessButton: document.getElementById('openPendingAccessButton'),
       openTechniciansButton: document.getElementById('openTechniciansButton'),
       registerModal: document.getElementById('registerModal'),
       callModal: document.getElementById('callModal'),
       manageCallModal: document.getElementById('manageCallModal'),
       recentCallsPanel: document.getElementById('recentCallsPanel'),
+      myCallsPanel: document.getElementById('myCallsPanel'),
       reportsPanel: document.getElementById('reportsPanel'),
       partsPanel: document.getElementById('partsPanel'),
+      whatsappPcuPanel: document.getElementById('whatsappPcuPanel'),
       pendingAccessPanel: document.getElementById('pendingAccessPanel'),
       techniciansPanel: document.getElementById('techniciansPanel'),
       closeModalButton: document.getElementById('closeModalButton'),
       closeCallModalButton: document.getElementById('closeCallModalButton'),
       closeManageCallModalButton: document.getElementById('closeManageCallModalButton'),
       closeRecentCallsPanelButton: document.getElementById('closeRecentCallsPanelButton'),
+      closeMyCallsPanelButton: document.getElementById('closeMyCallsPanelButton'),
       closeReportsPanelButton: document.getElementById('closeReportsPanelButton'),
       closePartsPanelButton: document.getElementById('closePartsPanelButton'),
+      closeWhatsappPcuPanelButton: document.getElementById('closeWhatsappPcuPanelButton'),
       closePendingAccessPanelButton: document.getElementById('closePendingAccessPanelButton'),
       closeTechniciansPanelButton: document.getElementById('closeTechniciansPanelButton'),
       registerForm: document.getElementById('registerForm'),
@@ -1609,9 +1676,14 @@
       metricRain: document.getElementById('metricRain'),
       pendingMetric: document.getElementById('pendingMetric'),
       metricPendingAccess: document.getElementById('metricPendingAccess'),
+      whatsappPcuMetric: document.getElementById('whatsappPcuMetric'),
+      whatsappPcuAvailable: document.getElementById('whatsappPcuAvailable'),
+      whatsappPcuRecipientsSummary: document.getElementById('whatsappPcuRecipientsSummary'),
+      whatsappPcuRecipientsList: document.getElementById('whatsappPcuRecipientsList'),
       recentCallsList: document.getElementById('recentCallsList'),
       myCallsCard: document.getElementById('myCallsCard'),
       myCallsList: document.getElementById('myCallsList'),
+      myCallsPanelList: document.getElementById('myCallsPanelList'),
       callSearchInput: document.getElementById('callSearchInput'),
       callStatusFilter: document.getElementById('callStatusFilter'),
       callPriorityFilter: document.getElementById('callPriorityFilter'),
@@ -1783,20 +1855,25 @@
       state.partsCalls = [];
       state.partsItems = [];
       state.partsCurrentCallId = '';
+      state.whatsappPcu = {};
       closeRegisterModal();
       closeCallModal();
       closeManageCallModal();
       closeRecentCallsPanel();
+      closeMyCallsPanel();
       closeReportsPanel();
       closePartsPanel();
+      closeWhatsappPcuPanel();
       closePendingAccessPanel();
       closeTechniciansPanel();
       els.dashboardView.classList.remove('active');
       els.dashboardView.classList.add('no-rail');
       els.dashboardRail.hidden = true;
       els.openRecentCallsButton.hidden = true;
+      els.openMyCallsButton.hidden = true;
       els.openReportsButton.hidden = true;
       els.openPartsButton.hidden = true;
+      els.openWhatsappPcuButton.hidden = true;
       els.openPendingAccessButton.hidden = true;
       els.openTechniciansButton.hidden = true;
       els.pendingMetric.hidden = true;
@@ -1878,6 +1955,7 @@
       els.metricPendingAccess.textContent = metrics.pendencias_acesso || 0;
 
       renderDashboardAdminControls(canManageAccess);
+      renderWhatsappPcu(data.whatsappPcu || {}, canManageAccess);
       renderWeather(data.weather || {});
       renderChamados(data.chamados || []);
       renderMyCalls(data.meusChamados || []);
@@ -1888,21 +1966,58 @@
       }
     }
 
+    function renderWhatsappPcu(whatsappPcu, canManageAccess) {
+      state.whatsappPcu = whatsappPcu || {};
+      if (!canManageAccess) {
+        return;
+      }
+
+      const available = Number(whatsappPcu.estimated_messages_available || 0);
+      els.whatsappPcuAvailable.textContent = available.toLocaleString('pt-BR');
+      renderWhatsappPcuRecipients(whatsappPcu);
+    }
+
+    function renderWhatsappPcuRecipients(whatsappPcu) {
+      const recipients = whatsappPcu.recipients || [];
+      const missingPhone = Number(whatsappPcu.active_users_without_phone || 0);
+
+      els.whatsappPcuRecipientsSummary.textContent =
+        recipients.length.toLocaleString('pt-BR') + ' destinatários cadastrados' +
+        (missingPhone ? ' · ' + missingPhone.toLocaleString('pt-BR') + ' usuários ativos sem telefone' : '');
+
+      if (!recipients.length) {
+        els.whatsappPcuRecipientsList.innerHTML = '<div class="empty-state">Nenhum telefone cadastrado.</div>';
+        return;
+      }
+
+      els.whatsappPcuRecipientsList.innerHTML = recipients.map((recipient) => (
+        '<article class="data-row">' +
+          '<div><strong>' + escapeHtml(recipient.nome || '-') + '</strong><span>Usuário</span></div>' +
+          '<div><strong>' + escapeHtml(recipient.telefone || '-') + '</strong><span>WhatsApp</span></div>' +
+          '<div><strong>' + escapeHtml(recipient.centro_sigla || '-') + '</strong><span>Centro</span></div>' +
+        '</article>'
+      )).join('');
+    }
+
     function renderDashboardAdminControls(canManageAccess) {
-      els.dashboardRail.hidden = !canManageAccess;
-      els.dashboardView.classList.toggle('no-rail', !canManageAccess);
+      els.dashboardRail.hidden = false;
+      els.dashboardView.classList.remove('no-rail');
       els.openRecentCallsButton.hidden = !canManageAccess;
+      els.openMyCallsButton.hidden = canManageAccess;
       els.openReportsButton.hidden = !canManageAccess;
       els.openPartsButton.hidden = !canManageAccess;
+      els.openWhatsappPcuButton.hidden = !canManageAccess;
       els.openPendingAccessButton.hidden = !canManageAccess;
       els.openTechniciansButton.hidden = !canManageAccess;
       els.pendingMetric.hidden = !canManageAccess;
-      els.myCallsCard.hidden = canManageAccess;
+      els.whatsappPcuMetric.hidden = !canManageAccess;
+      els.myCallsCard.hidden = true;
 
       if (!canManageAccess) {
         closeRecentCallsPanel();
         closeReportsPanel();
         closePartsPanel();
+        closeWhatsappPcuPanel();
         closePendingAccessPanel();
         closeTechniciansPanel();
       } else {
@@ -1994,11 +2109,13 @@
 
     function renderMyCalls(chamados) {
       if (!chamados.length) {
-        els.myCallsList.innerHTML = '<div class="empty-state">Voce ainda nao abriu chamados.</div>';
+        const empty = '<div class="empty-state">Voce ainda nao abriu chamados.</div>';
+        els.myCallsList.innerHTML = empty;
+        els.myCallsPanelList.innerHTML = empty;
         return;
       }
 
-      els.myCallsList.innerHTML = chamados.map((chamado) => {
+      const rows = chamados.map((chamado) => {
         return '<div class="list-row user-row">' +
           '<div><strong>' + escapeHtml(chamado.numero || '-') + '</strong><span>' + formatDate(chamado.data_abertura) + '</span></div>' +
           '<div><strong>' + escapeHtml(chamado.descricao || '-') + '</strong><span>' + escapeHtml((chamado.predio_id || 'Local nao informado') + ' - ' + (chamado.centro_sigla || '-')) + '</span></div>' +
@@ -2006,6 +2123,8 @@
           '<div class="status-badge ' + statusBadgeClass(chamado.status) + '">' + escapeHtml(statusLabel(chamado.status)) + '</div>' +
         '</div>';
       }).join('');
+      els.myCallsList.innerHTML = rows;
+      els.myCallsPanelList.innerHTML = rows;
     }
 
     function getReportRows() {
@@ -2147,6 +2266,19 @@
       els.partsPanel.classList.remove('open');
     }
 
+    function openWhatsappPcuPanel() {
+      if (els.openWhatsappPcuButton.hidden) {
+        return;
+      }
+
+      renderWhatsappPcuRecipients(state.whatsappPcu || {});
+      els.whatsappPcuPanel.classList.add('open');
+    }
+
+    function closeWhatsappPcuPanel() {
+      els.whatsappPcuPanel.classList.remove('open');
+    }
+
     function loadPartsCalls(force) {
       if (state.partsCallsLoaded && !force) {
         renderPartsCalls(state.partsCalls);
@@ -2191,8 +2323,8 @@
       els.partsCallSelect.innerHTML = options;
 
       if (!filtered.length) {
-        els.partsSummary.innerHTML = '<div>Nenhum chamado com peças encontrado.</div>';
-        els.partsList.innerHTML = '<div class="empty-state">Sem vistorias de peças para o filtro atual.</div>';
+        els.partsSummary.innerHTML = '<div>Nenhuma solicitação de peças pendente.</div>';
+        els.partsList.innerHTML = '<div class="empty-state">Os chamados concluídos não aparecem neste painel operacional.</div>';
         state.partsCurrentCallId = '';
         state.partsItems = [];
         return;
@@ -2678,6 +2810,17 @@
 
     function closeRecentCallsPanel() {
       els.recentCallsPanel.classList.remove('open');
+    }
+
+    function openMyCallsPanel() {
+      if (els.openMyCallsButton.hidden) {
+        return;
+      }
+      els.myCallsPanel.classList.add('open');
+    }
+
+    function closeMyCallsPanel() {
+      els.myCallsPanel.classList.remove('open');
     }
 
     function openReportsPanel() {
@@ -3332,8 +3475,10 @@
     els.newCallButton.addEventListener('click', openCallModal);
     els.logoutButton.addEventListener('click', logout);
     els.openRecentCallsButton.addEventListener('click', openRecentCallsPanel);
+    els.openMyCallsButton.addEventListener('click', openMyCallsPanel);
     els.openReportsButton.addEventListener('click', openReportsPanel);
     els.openPartsButton.addEventListener('click', openPartsPanel);
+    els.openWhatsappPcuButton.addEventListener('click', openWhatsappPcuPanel);
     els.openPendingAccessButton.addEventListener('click', openPendingAccessPanel);
     els.openTechniciansButton.addEventListener('click', openTechniciansPanel);
     els.registerButton.addEventListener('click', openRegisterModal);
@@ -3341,8 +3486,10 @@
     els.closeCallModalButton.addEventListener('click', closeCallModal);
     els.closeManageCallModalButton.addEventListener('click', closeManageCallModal);
     els.closeRecentCallsPanelButton.addEventListener('click', closeRecentCallsPanel);
+    els.closeMyCallsPanelButton.addEventListener('click', closeMyCallsPanel);
     els.closeReportsPanelButton.addEventListener('click', closeReportsPanel);
     els.closePartsPanelButton.addEventListener('click', closePartsPanel);
+    els.closeWhatsappPcuPanelButton.addEventListener('click', closeWhatsappPcuPanel);
     els.closePendingAccessPanelButton.addEventListener('click', closePendingAccessPanel);
     els.closeTechniciansPanelButton.addEventListener('click', closeTechniciansPanel);
     els.registerForm.addEventListener('submit', handleRegister);
@@ -3457,6 +3604,11 @@
         closeRecentCallsPanel();
       }
     });
+    els.myCallsPanel.addEventListener('click', (event) => {
+      if (event.target === els.myCallsPanel) {
+        closeMyCallsPanel();
+      }
+    });
     els.reportsPanel.addEventListener('click', (event) => {
       if (event.target === els.reportsPanel) {
         closeReportsPanel();
@@ -3465,6 +3617,11 @@
     els.partsPanel.addEventListener('click', (event) => {
       if (event.target === els.partsPanel) {
         closePartsPanel();
+      }
+    });
+    els.whatsappPcuPanel.addEventListener('click', (event) => {
+      if (event.target === els.whatsappPcuPanel) {
+        closeWhatsappPcuPanel();
       }
     });
     els.pendingAccessPanel.addEventListener('click', (event) => {

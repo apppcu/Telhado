@@ -29,11 +29,45 @@ function getDashboardData(payload) {
       chamados: canManageAccess ? chamados.slice(0, 8) : [],
       meusChamados: meusChamados.slice(0, 12),
       pendingAccess: canManageAccess ? pendencias : [],
+      whatsappPcu: canManageAccess ? getWhatsappPcuDashboard_(spreadsheet) : null,
       canManageAccess: canManageAccess
     });
   } catch (error) {
     return accessError_('DASHBOARD_ERROR', error.message);
   }
+}
+
+function getWhatsappPcuDashboard_(spreadsheet) {
+  const config = CONFIG.WHATSAPP_PCU || {};
+  const sheet = spreadsheet.getSheetByName('usuarios');
+  const activeUsers = sheet ? readSheetObjects_(sheet).filter(function(row) {
+    return isTrue_(row.ativo);
+  }) : [];
+  const recipients = activeUsers
+    .filter(function(row) {
+      return String(row.telefone || '').trim();
+    })
+    .map(function(row) {
+      return {
+        nome: row.nome || '-',
+        telefone: String(row.telefone || '').trim(),
+        centro_sigla: row.centro_sigla || '-'
+      };
+    })
+    .sort(function(a, b) {
+      return String(a.nome).localeCompare(String(b.nome));
+    });
+
+  return {
+    configured: config.CONFIGURED === true,
+    enabled: config.ENABLED === true,
+    messages_sent: Number(config.MESSAGES_SENT || 0),
+    estimated_messages_available: Number(config.ESTIMATED_MESSAGES_AVAILABLE || 0),
+    estimated_credit_brl: Number(config.ESTIMATED_CREDIT_BRL || 0),
+    threshold_mm: Number(CONFIG.CHUVA_THRESHOLD_MM || 5),
+    recipients: recipients,
+    active_users_without_phone: activeUsers.length - recipients.length
+  };
 }
 
 function getChamadosDashboard_(spreadsheet) {
