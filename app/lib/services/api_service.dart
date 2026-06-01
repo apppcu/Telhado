@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:http/http.dart' as http;
 
@@ -6,6 +7,7 @@ import '../config.dart';
 
 class ApiService {
   const ApiService();
+  static const Duration _requestTimeout = Duration(seconds: 25);
 
   Future<Map<String, dynamic>> loginTecnico({
     required String login,
@@ -144,14 +146,16 @@ class ApiService {
     required Map<String, dynamic> payload,
   }) async {
     final uri = Uri.parse(AppConfig.apiBaseUrl);
-    final response = await http.post(
-      uri,
-      headers: const {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'action': action,
-        'payload': payload,
-      }),
-    );
+    final response = await http
+        .post(
+          uri,
+          headers: const {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'action': action,
+            'payload': payload,
+          }),
+        )
+        .timeout(_requestTimeout, onTimeout: _onRequestTimeout);
     final resolvedResponse = await _followAppsScriptRedirect(response);
 
     if (resolvedResponse.statusCode < 200 ||
@@ -159,7 +163,16 @@ class ApiService {
       throw Exception('Servidor indisponivel (${resolvedResponse.statusCode}).');
     }
 
-    final body = jsonDecode(resolvedResponse.body) as Map<String, dynamic>;
+    late final Map<String, dynamic> body;
+    try {
+      body = jsonDecode(resolvedResponse.body) as Map<String, dynamic>;
+    } on FormatException {
+      throw const ApiException(
+        code: 'RESPOSTA_INVALIDA',
+        message:
+            'Resposta invalida do servidor. Atualize o deploy do GAS e tente novamente.',
+      );
+    }
     if (body['success'] != true) {
       final error = body['error'] as Map<String, dynamic>?;
       throw ApiException(
@@ -181,9 +194,19 @@ class ApiService {
       return response;
     }
 
-    return http.get(
-      Uri.parse(location),
-      headers: const {'Accept': 'application/json'},
+    return http
+        .get(
+          Uri.parse(location),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(_requestTimeout, onTimeout: _onRequestTimeout);
+  }
+
+  http.Response _onRequestTimeout() {
+    throw const ApiException(
+      code: 'TIMEOUT',
+      message:
+          'Servidor demorou para responder. Verifique a conexao e tente novamente.',
     );
   }
 

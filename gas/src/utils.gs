@@ -1,3 +1,13 @@
+const API_MAX_BODY_CHARS = 9 * 1024 * 1024;
+
+function isTrue_(value) {
+  return value === true || String(value || '').trim().toUpperCase() === 'TRUE';
+}
+
+function normalizeLowerText_(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
 function jsonResponse_(payload) {
   return ContentService
     .createTextOutput(JSON.stringify(payload))
@@ -16,7 +26,13 @@ function parseJsonBody_(e) {
   if (!e || !e.postData || !e.postData.contents) {
     return {};
   }
-  return JSON.parse(e.postData.contents);
+
+  const contents = String(e.postData.contents || '');
+  if (contents.length > API_MAX_BODY_CHARS) {
+    throw new Error('Payload excede o limite permitido.');
+  }
+
+  return JSON.parse(contents);
 }
 
 function getParam_(e, name) {

@@ -1,10 +1,6 @@
 function handleGet(e) {
   const action = getParam_(e, 'action');
 
-  if (action === 'chamados') {
-    return jsonResponse_({ success: true, data: listarChamados(), error: null });
-  }
-
   if (action === 'dashboard') {
     return jsonResponse_(getDashboardData());
   }
@@ -14,7 +10,10 @@ function handleGet(e) {
   }
 
   if (action === 'validar_pos_chuva') {
-    return responderValidacaoPosChuva(getParam_(e, 'token'), getParam_(e, 'resposta'));
+    return renderConfirmacaoValidacaoPosChuva_(
+      getParam_(e, 'token'),
+      getParam_(e, 'resposta')
+    );
   }
 
   if (action === 'config') {

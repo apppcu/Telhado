@@ -7,6 +7,7 @@ import '../services/camera_service.dart';
 import '../services/local_db_service.dart';
 import '../services/location_service.dart';
 import '../services/sync_service.dart';
+import '../widgets/chamado_badges.dart';
 
 class ChamadoDetalhePage extends StatefulWidget {
   final Map<String, dynamic> session;
@@ -136,28 +137,14 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
         _syncMessage = pendingMessage;
       });
 
-      final result = await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        if (result.skippedOffline) {
-          _syncMessage = offlineMessage;
-        } else if (result.failed > 0) {
-          _syncMessage = _syncFailureMessage(result, failureFallback);
-        } else if (result.synced > 0) {
-          _chamado = syncedUpdate?.call(_chamado) ??
-              {
-                ..._chamado,
-                'sync_status': 'SINCRONIZADO',
-              };
-          _syncMessage = syncedMessage;
-        }
-      });
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(snackMessage)),
+      );
+      _sincronizarPendenciasEmSegundoPlano(
+        offlineMessage: offlineMessage,
+        failureFallback: failureFallback,
+        syncedMessage: syncedMessage,
+        syncedUpdate: syncedUpdate,
       );
     } catch (error) {
       if (!mounted) {
@@ -424,6 +411,8 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
       materiais: materiais,
     );
     final observacaoAtual = (_chamado['observacao'] ?? '').toString();
+    final vistoriaToken =
+        'VIST-${_chamado['id'] ?? ''}-${DateTime.now().microsecondsSinceEpoch}';
     final payload = await _withLocation({
       'token': (widget.session['token'] ?? '').toString(),
       'chamado_id': (_chamado['id'] ?? '').toString(),
@@ -431,6 +420,7 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
       'materiais': materiais,
       'ferramentas': '',
       'resolver_na_hora': false,
+      'vistoria_token': vistoriaToken,
     });
     final localChamado = {
       ..._chamado,
@@ -496,29 +486,31 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
         'updated_at': DateTime.now().toIso8601String(),
       };
 
-      await _executarAcaoComSync(
+      await _localDb.salvarChamadoCache(updated);
+      await _sync.enfileirar(
         action: 'upload_foto',
-        payload: await _withLocation({
+        payload: {
           'token': (widget.session['token'] ?? '').toString(),
           'chamado_id': chamadoId,
           'tipo': 'VISTORIA_ANTES',
-        }),
-        localChamado: updated,
-        photoPath: photoPath,
-        setLoading: (value) => _takingBeforePhoto = value,
-        pendingMessage: 'Foto antes salva no aparelho. Sincronizacao pendente.',
-        offlineMessage:
-            'Sem internet. A foto antes sera enviada automaticamente depois.',
-        failureFallback:
-            'Foto antes salva no aparelho. Envio pendente para tentar novamente.',
-        syncedMessage: 'Foto antes sincronizada com sucesso.',
-        snackMessage: 'Foto antes registrada.',
-        syncedUpdate: (chamado) => {
-          ...chamado,
-          'foto_antes_sync_status': 'SINCRONIZADO',
-          'sync_status': 'SINCRONIZADO',
         },
+        photoPath: photoPath,
       );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _chamado = updated;
+        _syncMessage =
+            'Foto antes salva no aparelho. Envio em segundo plano.';
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Foto antes registrada.')),
+      );
+      _sincronizarPendenciasFotoEmSegundoPlano();
     } catch (error) {
       if (!mounted) {
         return;
@@ -565,11 +557,11 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
       await _localDb.salvarChamadoCache(updated);
       await _sync.enfileirar(
         action: 'upload_foto',
-        payload: await _withLocation({
+        payload: {
           'token': (widget.session['token'] ?? '').toString(),
           'chamado_id': chamadoId,
           'tipo': 'CONCLUSAO',
-        }),
+        },
         photoPath: photoPath,
       );
 
@@ -580,12 +572,13 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
       setState(() {
         _chamado = updated;
         _syncMessage =
-            'Foto final salva no aparelho. Ela sera enviada ao encerrar o servico.';
+            'Foto final salva no aparelho. Envio em segundo plano.';
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Foto final registrada.')),
       );
+      _sincronizarPendenciasFotoEmSegundoPlano();
     } catch (error) {
       if (!mounted) {
         return;
@@ -701,6 +694,54 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
 
   String _sessionToken() {
     return (widget.session['token'] ?? '').toString();
+  }
+
+  void _sincronizarPendenciasFotoEmSegundoPlano() {
+    _sincronizarPendenciasEmSegundoPlano(
+      failureFallback: 'Foto salva no aparelho. Ainda ha pendencias para sincronizar.',
+      syncedMessage: 'Pendencias sincronizadas.',
+    );
+  }
+
+  void _sincronizarPendenciasEmSegundoPlano({
+    String? offlineMessage,
+    String? failureFallback,
+    String? syncedMessage,
+    Map<String, dynamic> Function(Map<String, dynamic> chamado)? syncedUpdate,
+  }) {
+    unawaited(() async {
+      final result = await _sync.sincronizarPendencias(tokenAtual: _sessionToken());
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        if (result.skippedOffline) {
+          if (offlineMessage != null && offlineMessage.isNotEmpty) {
+            _syncMessage = offlineMessage;
+          }
+          return;
+        }
+
+        if (result.failed > 0) {
+          if (failureFallback != null && failureFallback.isNotEmpty) {
+            _syncMessage = _syncFailureMessage(result, failureFallback);
+          }
+          return;
+        }
+
+        if (result.synced > 0) {
+          _chamado = syncedUpdate?.call(_chamado) ??
+              {
+                ..._chamado,
+                'sync_status': 'SINCRONIZADO',
+              };
+          if (syncedMessage != null && syncedMessage.isNotEmpty) {
+            _syncMessage = syncedMessage;
+          }
+        }
+      });
+    }());
   }
 
   @override
@@ -969,7 +1010,12 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
   }
 
   String _statusAtual(Map<String, dynamic> chamado) {
-    return (chamado['status'] ?? '').toString().trim().toUpperCase();
+    final normalized = _normalizeStatusValue(chamado['status']);
+    if (normalized == 'ABERTO' &&
+        (chamado['executante_id'] ?? '').toString().trim().isNotEmpty) {
+      return 'ENCAMINHADO';
+    }
+    return normalized;
   }
 
   bool _vistoriaRegistrada(Map<String, dynamic> chamado) {
@@ -996,6 +1042,35 @@ class _ChamadoDetalhePageState extends State<ChamadoDetalhePage> {
     final lastVistoriaTecnica = observacao.lastIndexOf('vistoria tecnica:');
     return lastNovaVistoria > lastVistoriaTecnica;
   }
+}
+
+String _normalizeStatusValue(dynamic value) {
+  final normalized = _normalizeStatusKey(value)
+      .replaceAll(RegExp(r'\s+'), '_')
+      .replaceAll('-', '_');
+  switch (normalized) {
+    case 'EM_EXECUCAO':
+    case 'EM_ANALISE':
+    case 'ENCAMINHADO':
+    case 'ABERTO':
+    case 'CONCLUIDO':
+      return normalized;
+    default:
+      return 'ABERTO';
+  }
+}
+
+String _normalizeStatusKey(dynamic value) {
+  return (value ?? '')
+      .toString()
+      .trim()
+      .toUpperCase()
+      .replaceAll(RegExp(r'[ÁÀÂÃÄ]'), 'A')
+      .replaceAll(RegExp(r'[ÉÈÊË]'), 'E')
+      .replaceAll(RegExp(r'[ÍÌÎÏ]'), 'I')
+      .replaceAll(RegExp(r'[ÓÒÔÕÖ]'), 'O')
+      .replaceAll(RegExp(r'[ÚÙÛÜ]'), 'U')
+      .replaceAll('Ç', 'C');
 }
 
 class _VistoriaFormCard extends StatelessWidget {
@@ -1263,64 +1338,6 @@ class _InlineMessage extends StatelessWidget {
   }
 }
 
-class _StatusBadge extends StatelessWidget {
-  final String label;
-
-  const _StatusBadge({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = _statusColors(context, label);
-
-    return Chip(
-      label: Text(label),
-      visualDensity: VisualDensity.compact,
-      backgroundColor: colors.background,
-      labelStyle: TextStyle(
-        color: colors.foreground,
-        fontWeight: FontWeight.w800,
-      ),
-    );
-  }
-}
-
-class _BadgeColors {
-  final Color background;
-  final Color foreground;
-
-  const _BadgeColors({
-    required this.background,
-    required this.foreground,
-  });
-}
-
-_BadgeColors _statusColors(BuildContext context, String label) {
-  final colorScheme = Theme.of(context).colorScheme;
-
-  switch (label.trim().toUpperCase()) {
-    case 'EM_EXECUCAO':
-      return const _BadgeColors(
-        background: Color(0xFFFFE8B7),
-        foreground: Color(0xFF5A3A00),
-      );
-    case 'EM_ANALISE':
-      return const _BadgeColors(
-        background: Color(0xFFE4EDFF),
-        foreground: Color(0xFF16427D),
-      );
-    case 'CONCLUIDO':
-      return const _BadgeColors(
-        background: Color(0xFFDFF4E9),
-        foreground: Color(0xFF0A5C48),
-      );
-    default:
-      return _BadgeColors(
-        background: colorScheme.surfaceContainerHighest,
-        foreground: colorScheme.onSurfaceVariant,
-      );
-  }
-}
-
 class _HeaderCard extends StatelessWidget {
   final Map<String, dynamic> chamado;
 
@@ -1350,7 +1367,7 @@ class _HeaderCard extends StatelessWidget {
                         ),
                   ),
                 ),
-                _StatusBadge(label: status),
+                ChamadoStatusChip(label: status),
               ],
             ),
             const SizedBox(height: 12),

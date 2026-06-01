@@ -1,17 +1,18 @@
 # Controle Telhado
 
-Sistema institucional para abertura, encaminhamento, execucao e acompanhamento de chamados de telhados da UEL.
+Sistema institucional para abertura, encaminhamento, execução e acompanhamento de chamados de telhados da UEL.
 
 ## Estado atual
 
-- App Flutter offline-first para tecnicos em campo.
+- App Flutter offline-first para técnicos em campo.
 - Backend e dashboard em Google Apps Script.
 - Dados no Google Sheets.
 - Fotos no Google Drive via GAS.
 - Clima via Open-Meteo.
-- Deployment publico atual do GAS: `AKfycbxwO0W0O1Kd8UTVYZMgn62QZIwYVUQJPYgSB2_8b0i4jamcoYerZyPwyrMp5YfpopBQoA`.
-- Versao GAS publicada: `78 - relatorio de chamados`.
-- Ultimo commit funcional: `63debd6 Ajusta fluxo tecnico e relatorios GAS`.
+- Deployment público do GAS: `AKfycbxwO0W0O1Kd8UTVYZMgn62QZIwYVUQJPYgSB2_8b0i4jamcoYerZyPwyrMp5YfpopBQoA`.
+- Publicação: Codex executa `clasp.cmd push --force`; o deploy da nova versão é feito manualmente pelo usuário.
+- Último commit existente: `0228608 refactor: reutiliza contexto mobile de chamados`.
+- Há alterações locais ainda não commitadas.
 
 ## Arquitetura
 
@@ -20,17 +21,17 @@ Flutter APK -> Google Apps Script -> Google Sheets / Drive / Gmail
 Dashboard Web -> Google Apps Script -> Google Sheets / Drive / Open-Meteo
 ```
 
-Regra principal: o Flutter nunca acessa Sheets ou Drive diretamente. Toda operacao passa pelo GAS.
+Regra principal: o Flutter nunca acessa Sheets ou Drive diretamente. Toda operação passa pelo GAS.
 
-## Modulos
+## Módulos
 
 ```text
-app/        App Flutter do tecnico
+app/        App Flutter do técnico
 gas/        Google Apps Script, API e dashboard HTML Service
-docs/       Documentacao tecnica
+docs/       Documentação técnica
 sheets/     Schema e seed das planilhas
 prd.md      Documento de produto
-mem.md      Memoria operacional curta
+mem.md      Memória operacional curta
 ```
 
 Arquivos mais usados:
@@ -50,12 +51,12 @@ Arquivos mais usados:
 ## Fluxo do chamado
 
 1. Solicitante abre chamado no dashboard web.
-2. Admin/gestor encaminha o chamado para manutencao.
-3. Tecnico acessa o APK e ve apenas seus servicos.
-4. Tecnico registra vistoria com foto inicial.
-5. Tecnico registra reparo, foto final e encerra o servico.
-6. GAS sincroniza dados, fotos, historico e status.
-7. Dashboard exibe metricas, chamados recentes, relatorios e previsao de chuva.
+2. Admin/gestor encaminha o chamado para manutenção.
+3. Técnico acessa o APK e vê apenas seus serviços.
+4. Técnico registra vistoria com foto inicial e materiais necessários.
+5. Técnico registra reparo, foto final e encerra o serviço.
+6. GAS sincroniza dados, fotos, histórico e status.
+7. Dashboard exibe métricas, chamados recentes, relatórios, peças e previsão de chuva.
 
 ## Status principais
 
@@ -69,24 +70,42 @@ CONCLUIDO
 
 ## Regras do APK
 
-- Tela do servico mostra apenas os botoes principais:
-  `Nova Vistoria`, `Concluir Reparo`, `Foto Final`, `Encerrar Servico`.
+- Tela do serviço mostra apenas os botões principais:
+  `Nova Vistoria`, `Concluir Reparo`, `Foto Final`, `Encerrar Serviço`.
 - `Nova Vistoria` exige justificativa.
-- Campos de texto de vistoria e reparo sao opcionais.
-- Foto antes e obrigatoria para vistoria normal.
-- Foto final e obrigatoria para encerrar.
-- GPS entra nos payloads quando disponivel.
-- Pendencias offline usam o token atual da sessao ao sincronizar.
-- Pendencia antiga com `CHAMADO_NAO_ENCONTRADO` e descartada para destravar a fila.
+- Campos de texto de vistoria e reparo são opcionais.
+- Foto antes é obrigatória para vistoria normal.
+- Foto final é obrigatória para encerrar.
+- GPS entra nos payloads quando disponível.
+- Ações e fotos são salvas localmente primeiro; o envio ocorre em segundo plano.
+- Cada vistoria envia `vistoria_token` para evitar duplicação no GAS.
+- Pendências offline usam o token atual da sessão ao sincronizar.
+- Pendência antiga com `CHAMADO_NAO_ENCONTRADO` é descartada para destravar a fila.
+- Cache local remove chamados concluídos.
+- Status são normalizados sem acentos para impedir que `Concluído` reapareça offline como `ABERTO`.
 
 ## Dashboard GAS
 
 - Login com conta institucional.
-- Admin ve chamados recentes, tecnicos, solicitacoes pendentes e relatorio.
+- Menu lateral organizado em `Principal`, `Cadastros` e `Operacional`.
+- Admin vê `Chamados`, `Usuários`, `Técnicos`, `Relatório` e `Peças`.
+- Cadastro de usuários permite criar, listar, filtrar, bloquear, alterar e excluir acessos.
 - `Chamados recentes` abre com status `Aberto`.
-- Exportacao fica no botao `Relatorio`, com CSV, Excel `.xls` e PDF.
-- `Gerenciar chamado` encaminha direto para manutencao; nao ha botao separado de salvar.
-- Widget de clima mostra temperatura atual, chuva prevista e icone visual.
+- Exportação fica no botão `Relatório`, com CSV, Excel `.xls` e PDF.
+- `Gerenciar chamado` encaminha direto para manutenção; não há botão separado de salvar.
+- Widget de clima mostra temperatura atual, chuva prevista e ícone visual.
+- Dashboard atualiza automaticamente a cada 10 minutos.
+
+## Peças por chamado
+
+- Cada vistoria gera uma lista de materiais independente.
+- Um mesmo chamado pode ter duas ou mais listas de peças.
+- A tela `Peças` agrupa as listas por chamado e setor de consumo.
+- Exportação disponível por vistoria e consolidada por chamado em PDF e Excel `.xls`.
+- Novas listas são gravadas na aba `pecas_vistoria`.
+- Chamados antigos usam fallback de leitura das observações registradas.
+- O fallback preserva materiais multilinha, como vigas, telhas, parafusos e PU.
+- Itens legados são exibidos como somente leitura.
 
 ## Drive e fotos
 
@@ -121,12 +140,37 @@ Google Apps Script:
 cd gas
 clasp.cmd push --force
 clasp.cmd version "descricao"
-clasp.cmd redeploy <deployment_id> -V <versao> -d "descricao"
+clasp.cmd deploy -i <deployment_id> -V <versao> -d "descricao"
 ```
+
+## Proximos passos
+
+### WhatsApp institucional PCU
+
+- Integrar a WhatsApp Business Platform da Meta como canal adicional, mantendo o e-mail atual.
+- Deixar o envio automatico por WhatsApp desativado por padrao ate o cadastro do numero institucional e das credenciais da Meta.
+- Exibir no dashboard um card executivo `WhatsApp PCU` para apresentacao ao diretor da UEL e ao prefeito da PCU.
+- Mostrar no card o status da integracao, o botao de ativacao, o total enviado e o saldo estimado decrescente de mensagens.
+- Usar como referencia inicial de apresentacao: `1.000 mensagens disponiveis` e `R$ 34,00 de credito estimado`.
+- Disparar mensagens automaticamente apenas para validacoes pos-chuva elegiveis, em paralelo com o e-mail.
+
+### Relatorios com evidencias
+
+- Incluir nos relatorios as fotos inicial e final registradas pelo aplicativo.
+- Incluir nos relatorios a posicao GPS capturada durante o atendimento, com indicacao quando a localizacao estiver indisponivel.
 
 O `dart format` travou neste ambiente anteriormente; evitar repetir sem necessidade.
 
-## Referencias
+## Validação
+
+```bash
+cd app
+flutter analyze --no-pub
+```
+
+Para validar o offline: atualizar a lista online, desligar a internet e confirmar que chamados `CONCLUIDO` não reaparecem.
+
+## Referências
 
 - [PRD](./prd.md)
 - [Arquitetura](./docs/arquitetura.md)
@@ -134,4 +178,5 @@ O `dart format` travou neste ambiente anteriormente; evitar repetir sem necessid
 - [Planilhas](./docs/planilhas.md)
 - [Schema Sheets](./sheets/schema.md)
 
-Ultima atualizacao: 2026-05-29.
+Última atualização: 2026-05-31.
+ Desenvolvido Fábio Dias - DMPE

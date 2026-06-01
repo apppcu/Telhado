@@ -10,7 +10,7 @@ function getDashboardData(payload) {
       return accessError_('USUARIO_NAO_ENCONTRADO', 'Usuario nao encontrado.');
     }
 
-    const active = String(user.ativo).toUpperCase() === 'TRUE' || user.ativo === true;
+    const active = isTrue_(user.ativo);
     if (!active) {
       return accessError_('USUARIO_PENDENTE', 'Usuario ainda aguarda aprovacao.');
     }
@@ -29,11 +29,45 @@ function getDashboardData(payload) {
       chamados: canManageAccess ? chamados.slice(0, 8) : [],
       meusChamados: meusChamados.slice(0, 12),
       pendingAccess: canManageAccess ? pendencias : [],
+      whatsappPcu: canManageAccess ? getWhatsappPcuDashboard_(spreadsheet) : null,
       canManageAccess: canManageAccess
     });
   } catch (error) {
     return accessError_('DASHBOARD_ERROR', error.message);
   }
+}
+
+function getWhatsappPcuDashboard_(spreadsheet) {
+  const config = CONFIG.WHATSAPP_PCU || {};
+  const sheet = spreadsheet.getSheetByName('usuarios');
+  const activeUsers = sheet ? readSheetObjects_(sheet).filter(function(row) {
+    return isTrue_(row.ativo);
+  }) : [];
+  const recipients = activeUsers
+    .filter(function(row) {
+      return String(row.telefone || '').trim();
+    })
+    .map(function(row) {
+      return {
+        nome: row.nome || '-',
+        telefone: String(row.telefone || '').trim(),
+        centro_sigla: row.centro_sigla || '-'
+      };
+    })
+    .sort(function(a, b) {
+      return String(a.nome).localeCompare(String(b.nome));
+    });
+
+  return {
+    configured: config.CONFIGURED === true,
+    enabled: config.ENABLED === true,
+    messages_sent: Number(config.MESSAGES_SENT || 0),
+    estimated_messages_available: Number(config.ESTIMATED_MESSAGES_AVAILABLE || 0),
+    estimated_credit_brl: Number(config.ESTIMATED_CREDIT_BRL || 0),
+    threshold_mm: Number(CONFIG.CHUVA_THRESHOLD_MM || 5),
+    recipients: recipients,
+    active_users_without_phone: activeUsers.length - recipients.length
+  };
 }
 
 function getChamadosDashboard_(spreadsheet) {
@@ -95,7 +129,7 @@ function getPendingAccessRequests_(spreadsheet) {
 
   return rows
     .filter(function(row) {
-      return !(String(row.ativo).toUpperCase() === 'TRUE' || row.ativo === true);
+      return !isTrue_(row.ativo);
     })
     .map(function(row) {
       return {
@@ -115,6 +149,7 @@ function getPendingAccessRequests_(spreadsheet) {
 function buildDashboardMetrics_(chamados, pendencias) {
   const metrics = {
     abertos: 0,
+    em_analise: 0,
     em_execucao: 0,
     encaminhados: 0,
     concluidos: 0,
@@ -130,12 +165,18 @@ function buildDashboardMetrics_(chamados, pendencias) {
       return;
     }
 
+    if (status === 'EM_ANALISE') {
+      metrics.em_analise++;
+      return;
+    }
+
     if (status === 'ENCAMINHADO') {
       metrics.encaminhados++;
       return;
     }
 
     if (status === 'EM_EXECUCAO') {
+      metrics.em_analise++;
       metrics.em_execucao++;
       return;
     }
@@ -145,6 +186,12 @@ function buildDashboardMetrics_(chamados, pendencias) {
       return;
     }
 
+    if (status === 'ABERTO') {
+      metrics.abertos++;
+      return;
+    }
+
+    // Compatibilidade com estados legados/inesperados.
     metrics.abertos++;
   });
 
@@ -261,6 +308,8 @@ function canManageAccess_(user) {
 function normalizeStatus_(status) {
   return String(status || '')
     .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toUpperCase()
     .replace(/\s+/g, '_')
     .replace(/-/g, '_');

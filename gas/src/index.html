@@ -406,15 +406,16 @@
 
     .dashboard {
       display: none;
-      min-height: 100vh;
-      padding: 34px 34px 34px 224px;
+      height: 100vh;
+      overflow: hidden;
+      padding: 16px 16px 16px 206px;
       background:
-        linear-gradient(180deg, rgba(18, 98, 79, 0.08), rgba(18, 98, 79, 0) 280px),
-        #f3f6f4;
+        radial-gradient(circle at 82% 0%, rgba(74, 165, 139, 0.18), transparent 30%),
+        linear-gradient(135deg, #eef6f2, #f8fbf9 55%, #edf5f1);
     }
 
     .dashboard.no-rail {
-      padding-left: 34px;
+      padding-left: 16px;
     }
 
     .dashboard.active {
@@ -422,8 +423,12 @@
     }
 
     .dash-band {
-      max-width: 1240px;
+      height: 100%;
+      max-width: none;
       margin: 0 auto;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      gap: 12px;
     }
 
     .dash-head {
@@ -431,16 +436,14 @@
       justify-content: space-between;
       align-items: center;
       gap: 20px;
-      margin-bottom: 22px;
-      padding-bottom: 18px;
-      border-bottom: 1px solid var(--line);
+      padding: 2px 4px;
     }
 
     .dash-head h2 {
       margin: 0;
       font-family: "Fraunces", serif;
-      font-size: clamp(30px, 4vw, 46px);
-      letter-spacing: 0;
+      font-size: clamp(28px, 3vw, 38px);
+      letter-spacing: -0.04em;
     }
 
     .dash-actions {
@@ -450,24 +453,33 @@
     }
 
     .btn-compact {
-      min-height: 44px;
-      padding: 0 16px;
+      min-height: 36px;
+      padding: 0 13px;
     }
 
     .dash-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
     }
 
     .dashboard-rail {
       position: fixed;
-      left: 24px;
-      top: 34px;
+      left: 16px;
+      top: 16px;
+      bottom: 16px;
       z-index: 4;
-      display: grid;
-      gap: 10px;
-      width: 166px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 174px;
+      padding: 18px 14px;
+      border-radius: 22px;
+      color: #eaf8f3;
+      background:
+        radial-gradient(circle at 22% 7%, rgba(74, 205, 162, 0.28), transparent 23%),
+        linear-gradient(165deg, #17352d, #10251f);
+      box-shadow: 0 20px 40px rgba(8, 38, 31, 0.18);
     }
 
     .dashboard-rail[hidden] {
@@ -475,24 +487,37 @@
     }
 
     .rail-button {
-      min-height: 56px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--white);
-      color: var(--leaf-dark);
-      box-shadow: var(--shadow-soft);
+      min-height: 38px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: rgba(234, 248, 243, 0.78);
       cursor: pointer;
       font-weight: 800;
       line-height: 1.15;
       text-align: left;
-      padding: 10px 12px;
+      padding: 9px;
       transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, border-color 160ms ease;
     }
 
     .rail-button:hover {
-      transform: translateY(-1px);
-      border-color: rgba(18, 98, 79, 0.32);
-      box-shadow: 0 14px 30px rgba(20, 38, 32, 0.12);
+      color: var(--white);
+      background: rgba(255, 255, 255, 0.11);
+    }
+
+    .rail-section-title {
+      color: rgba(234, 248, 243, 0.45);
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      margin-top: 5px;
+    }
+
+    .rail-group {
+      display: grid;
+      gap: 4px;
     }
 
     .admin-only[hidden] {
@@ -500,55 +525,63 @@
     }
 
     .metric {
-      min-height: 118px;
-      background: var(--white);
+      min-height: 78px;
+      background: rgba(255, 255, 255, 0.86);
       border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 16px;
+      border-radius: 15px;
+      padding: 11px 12px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       box-shadow: var(--shadow-soft);
-      border-left: 4px solid var(--leaf);
+      border-bottom: 3px solid var(--leaf);
     }
 
     .metric-open {
-      border-left-color: var(--amber);
+      border-bottom-color: var(--amber);
     }
 
     .metric-progress {
-      border-left-color: var(--rain);
+      border-bottom-color: var(--rain);
     }
 
     .metric-done {
-      border-left-color: var(--success);
+      border-bottom-color: var(--success);
     }
 
     .metric-rain {
-      border-left-color: #4f7f9b;
+      border-bottom-color: #4f7f9b;
     }
 
     .metric-pending {
-      border-left-color: var(--danger);
+      border-bottom-color: var(--danger);
+    }
+
+    .metric-whatsapp {
+      border-bottom-color: #25d366;
+    }
+
+    .metric-whatsapp strong {
+      font-size: 27px;
     }
 
     .metric strong {
-      font-size: 34px;
+      font-size: 27px;
       line-height: 1;
       color: var(--ink);
     }
 
     .metric span {
       color: var(--muted);
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 700;
     }
 
     .dashboard-layout {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 16px;
-      margin-top: 16px;
+      gap: 12px;
+      min-height: 0;
       align-items: start;
     }
 
@@ -567,7 +600,8 @@
     }
 
     .weather-card {
-      min-height: 226px;
+      min-height: 0;
+      height: 100%;
       background:
         radial-gradient(circle at 88% 12%, rgba(255, 255, 255, 0.18), transparent 24%),
         linear-gradient(135deg, rgba(7, 60, 52, 0.96), rgba(39, 95, 122, 0.92)),
@@ -597,7 +631,7 @@
       justify-content: space-between;
       gap: 12px;
       align-items: flex-start;
-      margin-bottom: 18px;
+      margin-bottom: 10px;
     }
 
     .weather-top h3 {
@@ -626,17 +660,17 @@
 
     .weather-current {
       display: grid;
-      grid-template-columns: 76px minmax(0, 1fr);
-      gap: 18px;
+      grid-template-columns: 64px minmax(0, 1fr);
+      gap: 14px;
       align-items: center;
-      margin-bottom: 18px;
+      margin-bottom: 12px;
     }
 
     .weather-icon {
       position: relative;
-      width: 76px;
-      height: 76px;
-      border-radius: 22px;
+      width: 64px;
+      height: 64px;
+      border-radius: 20px;
       background: rgba(255, 255, 255, 0.12);
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
     }
@@ -648,10 +682,10 @@
     }
 
     .weather-icon-sun::before {
-      width: 38px;
-      height: 38px;
-      left: 19px;
-      top: 19px;
+      width: 34px;
+      height: 34px;
+      left: 15px;
+      top: 15px;
       border-radius: 50%;
       background: #FFD166;
       box-shadow:
@@ -670,8 +704,8 @@
     .weather-icon-rain::before {
       width: 46px;
       height: 22px;
-      left: 15px;
-      top: 33px;
+      left: 9px;
+      top: 29px;
       border-radius: 20px;
       background: rgba(255, 255, 255, 0.94);
       box-shadow:
@@ -683,8 +717,8 @@
     .weather-icon-rain::after {
       width: 4px;
       height: 13px;
-      left: 29px;
-      top: 57px;
+      left: 23px;
+      top: 51px;
       border-radius: 3px;
       background: #9EE7FF;
       box-shadow:
@@ -970,7 +1004,7 @@
       }
 
       .dash-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
       }
 
       .filter-bar {
@@ -981,6 +1015,7 @@
         align-items: flex-start;
         flex-direction: column;
       }
+
     }
 
     @media (max-width: 620px) {
@@ -995,6 +1030,9 @@
       }
 
       .dashboard {
+        height: auto;
+        min-height: 100vh;
+        overflow: visible;
         padding: 92px 16px 24px;
       }
 
@@ -1064,24 +1102,36 @@
     <section class="photo-panel" aria-label="Imagem de chuva e paisagem com agua">
       <div class="photo-copy" style="position: relative; z-index: 1;">
         <p>Chuva se transforma em dados,<br>Dados em histórico.</p>
-        <span>O painel centraliza chamados, registros tecnicos e validacoes para reduzir reincidencias nos predios da UEL.</span>
+        <span>O painel centraliza chamados, registros técnicos e validações para reduzir reincidências nos prédios da UEL.</span>
       </div>
     </section>
   </main>
 
   <section id="dashboardView" class="dashboard no-rail">
     <nav id="dashboardRail" class="dashboard-rail" aria-label="Atalhos do dashboard" hidden>
-      <button id="openRecentCallsButton" class="rail-button admin-only" type="button" hidden>Chamados recentes</button>
-      <button id="openReportsButton" class="rail-button admin-only" type="button" hidden>Relatorio</button>
-      <button id="openPendingAccessButton" class="rail-button admin-only" type="button" hidden>Solicitacoes pendentes</button>
-      <button id="openTechniciansButton" class="rail-button admin-only" type="button" hidden>Tecnicos</button>
+      <div class="rail-section-title">Principal</div>
+      <div class="rail-group">
+        <button id="openRecentCallsButton" class="rail-button admin-only" type="button" hidden>Chamados</button>
+        <button id="openMyCallsButton" class="rail-button user-only" type="button" hidden>Meus chamados</button>
+      </div>
+      <div class="rail-section-title">Cadastros</div>
+      <div class="rail-group">
+        <button id="openPendingAccessButton" class="rail-button admin-only" type="button" hidden>Usuários</button>
+        <button id="openTechniciansButton" class="rail-button admin-only" type="button" hidden>Técnicos</button>
+      </div>
+      <div class="rail-section-title">Operacional</div>
+      <div class="rail-group">
+        <button id="openReportsButton" class="rail-button admin-only" type="button" hidden>Relatório</button>
+        <button id="openPartsButton" class="rail-button admin-only" type="button" hidden>Peças</button>
+        <button id="openWhatsappPcuButton" class="rail-button admin-only" type="button" hidden>WhatsApp</button>
+      </div>
     </nav>
 
     <div class="dash-band">
       <div class="dash-head">
         <div>
-          <h2>Controle Telhado</h2>
-          <p id="dashboardGreeting" class="lead">Entrada autorizada.</p>
+          <h2>Visão geral</h2>
+          <p id="dashboardGreeting" class="lead">Resumo operacional.</p>
         </div>
         <div class="dash-actions">
           <button id="newCallButton" class="btn btn-primary btn-compact" type="button">Novo chamado</button>
@@ -1092,17 +1142,21 @@
       <div class="dash-grid">
         <div class="metric metric-open"><span>Chamados abertos</span><strong id="metricOpen">0</strong></div>
         <div class="metric metric-progress"><span>Encaminhados</span><strong id="metricForwarded">0</strong></div>
-        <div class="metric metric-progress"><span>Em execucao</span><strong id="metricProgress">0</strong></div>
-        <div class="metric metric-done"><span>Concluidos</span><strong id="metricDone">0</strong></div>
+        <div class="metric metric-progress"><span>Em análise</span><strong id="metricProgress">0</strong></div>
+        <div class="metric metric-done"><span>Concluídos</span><strong id="metricDone">0</strong></div>
         <div class="metric metric-rain"><span>Alertas de chuva</span><strong id="metricRain">0</strong></div>
-        <div id="pendingMetric" class="metric metric-pending admin-only" hidden><span>Solicitacoes pendentes</span><strong id="metricPendingAccess">0</strong></div>
+        <div id="pendingMetric" class="metric metric-pending admin-only" hidden><span>Usuários pendentes</span><strong id="metricPendingAccess">0</strong></div>
+        <div id="whatsappPcuMetric" class="metric metric-whatsapp admin-only" hidden>
+          <span>WhatsApp PCU</span>
+          <strong id="whatsappPcuAvailable">1.000</strong>
+        </div>
       </div>
 
       <div class="dashboard-layout">
         <section class="dash-card weather-card">
           <div class="weather-top">
             <div>
-              <h3>Previsao de chuva</h3>
+              <h3>Previsão de chuva</h3>
               <span id="weatherCity">Londrina/PR</span>
             </div>
             <div id="weatherRisk" class="risk-pill">Carregando</div>
@@ -1140,23 +1194,23 @@
         <button id="closeRecentCallsPanelButton" class="close" type="button" aria-label="Fechar">x</button>
       </div>
       <div class="filter-bar">
-        <input id="callSearchInput" type="search" placeholder="Buscar numero ou local">
+        <input id="callSearchInput" type="search" placeholder="Buscar número ou local">
         <select id="callStatusFilter" aria-label="Filtrar por status">
           <option value="">Todos os status</option>
           <option value="ABERTO" selected>Aberto</option>
-          <option value="EM_ANALISE">Em analise</option>
+          <option value="EM_ANALISE">Em análise</option>
           <option value="ENCAMINHADO">Encaminhado</option>
-          <option value="EM_EXECUCAO">Em execucao</option>
-          <option value="CONCLUIDO">Concluido</option>
+          <option value="EM_EXECUCAO">Em execução</option>
+          <option value="CONCLUIDO">Concluído</option>
         </select>
         <select id="callPriorityFilter" aria-label="Filtrar por prioridade">
-          <option value="">Todas prioridades</option>
+          <option value="">Todas as prioridades</option>
           <option value="NORMAL">Normal</option>
           <option value="ALTA">Alta</option>
           <option value="URGENTE">Urgente</option>
         </select>
         <select id="callTechnicianFilter" aria-label="Filtrar por tecnico">
-          <option value="">Todos tecnicos</option>
+          <option value="">Todos os técnicos</option>
         </select>
       </div>
       <div id="recentCallsList" class="data-list">
@@ -1169,29 +1223,29 @@
     <div class="modal-card">
       <div class="modal-head">
         <div>
-          <h2 id="reportsTitle">Relatorio</h2>
+          <h2 id="reportsTitle">Relatório</h2>
           <p class="lead">Filtre os chamados e exporte em CSV, Excel ou PDF.</p>
         </div>
         <button id="closeReportsPanelButton" class="close" type="button" aria-label="Fechar">x</button>
       </div>
       <div class="filter-bar">
-        <input id="reportSearchInput" type="search" placeholder="Buscar numero ou local">
-        <select id="reportStatusFilter" aria-label="Status do relatorio">
+        <input id="reportSearchInput" type="search" placeholder="Buscar número ou local">
+        <select id="reportStatusFilter" aria-label="Status do relatório">
           <option value="" selected>Todos os status</option>
           <option value="ABERTO">Aberto</option>
-          <option value="EM_ANALISE">Em analise</option>
+          <option value="EM_ANALISE">Em análise</option>
           <option value="ENCAMINHADO">Encaminhado</option>
-          <option value="EM_EXECUCAO">Em execucao</option>
-          <option value="CONCLUIDO">Concluido</option>
+          <option value="EM_EXECUCAO">Em execução</option>
+          <option value="CONCLUIDO">Concluído</option>
         </select>
         <select id="reportPriorityFilter" aria-label="Prioridade do relatorio">
-          <option value="">Todas prioridades</option>
+          <option value="">Todas as prioridades</option>
           <option value="NORMAL">Normal</option>
           <option value="ALTA">Alta</option>
           <option value="URGENTE">Urgente</option>
         </select>
-        <select id="reportTechnicianFilter" aria-label="Tecnico do relatorio">
-          <option value="">Todos tecnicos</option>
+        <select id="reportTechnicianFilter" aria-label="Técnico do relatório">
+          <option value="">Todos os técnicos</option>
         </select>
       </div>
       <div class="form-actions">
@@ -1203,17 +1257,125 @@
     </div>
   </div>
 
+  <div id="partsPanel" class="modal panel-modal" role="dialog" aria-modal="true" aria-labelledby="partsTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h2 id="partsTitle">Peças por chamado</h2>
+          <p class="lead">Acompanhe solicitações de peças dos chamados em andamento.</p>
+        </div>
+        <button id="closePartsPanelButton" class="close" type="button" aria-label="Fechar">x</button>
+      </div>
+      <div class="filter-bar">
+        <input id="partsSearchInput" type="search" placeholder="Buscar chamado, centro ou local">
+        <select id="partsCallSelect" aria-label="Selecione o chamado">
+          <option value="">Selecione um chamado</option>
+        </select>
+        <button id="partsRefreshButton" class="btn btn-secondary btn-compact" type="button">Atualizar</button>
+        <button id="partsExportPdfButton" class="btn btn-secondary btn-compact" type="button">PDF consolidado</button>
+        <button id="partsExportExcelButton" class="btn btn-primary btn-compact" type="button">Excel consolidado</button>
+      </div>
+      <div id="partsSummary" class="empty-state">Nenhuma solicitação de peças pendente.</div>
+      <div id="partsList" class="data-list">
+        <div class="empty-state">Os chamados concluídos não aparecem neste painel operacional.</div>
+      </div>
+    </div>
+  </div>
+
   <div id="pendingAccessPanel" class="modal panel-modal" role="dialog" aria-modal="true" aria-labelledby="pendingAccessTitle">
     <div class="modal-card">
       <div class="modal-head">
         <div>
-          <h2 id="pendingAccessTitle">Solicitacoes pendentes</h2>
-          <p class="lead">Revise os pedidos de acesso antes de liberar o sistema.</p>
+          <h2 id="pendingAccessTitle">Usuários</h2>
+          <p class="lead">Gerencie acessos, perfis e pendências em um único lugar.</p>
         </div>
         <button id="closePendingAccessPanelButton" class="close" type="button" aria-label="Fechar">x</button>
       </div>
+
+      <form id="userForm" class="form-grid">
+        <div class="field">
+          <label for="user_nome">Nome</label>
+          <input id="user_nome" name="nome" autocomplete="name" required>
+        </div>
+        <div class="field">
+          <label for="user_email">E-mail institucional</label>
+          <input id="user_email" name="email" type="email" autocomplete="email" placeholder="nome@uel.br" required>
+        </div>
+        <div class="field">
+          <label for="user_centro_sigla">Centro</label>
+          <select id="user_centro_sigla" name="centro_sigla" required>
+            <option value="">Carregando centros...</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="user_perfil">Perfil</label>
+          <select id="user_perfil" name="perfil">
+            <option value="USUARIO">Usuário</option>
+            <option value="ADMIN">Admin</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="user_telefone">Telefone</label>
+          <input id="user_telefone" name="telefone" autocomplete="tel">
+        </div>
+        <div class="field">
+          <label for="user_ativo">Status inicial</label>
+          <select id="user_ativo" name="ativo">
+            <option value="true">Ativo</option>
+            <option value="false">Pendente/Bloqueado</option>
+          </select>
+        </div>
+        <div class="field full">
+          <button id="submitUserButton" class="btn btn-primary" type="submit">Criar usuario</button>
+          <div id="usersMessage" class="message"></div>
+        </div>
+      </form>
+
+      <div class="filter-bar">
+        <input id="usersSearchInput" type="search" placeholder="Buscar nome ou e-mail">
+        <select id="usersStatusFilter" aria-label="Filtrar usuários por status">
+          <option value="">Todos os status</option>
+          <option value="PENDENTE">Somente pendentes/bloqueados</option>
+          <option value="ATIVO">Somente ativos</option>
+          <option value="ADMIN">Somente admins</option>
+        </select>
+        <button id="usersOnlyPendingButton" class="btn btn-secondary btn-compact" type="button">Ver apenas pendentes</button>
+      </div>
+
+      <div id="usersSummary" class="empty-state">Carregando usuários...</div>
       <div id="pendingAccessList" class="data-list">
-        <div class="empty-state">Nenhuma solicitacao pendente.</div>
+        <div class="empty-state">Carregando usuários...</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="myCallsPanel" class="modal panel-modal" role="dialog" aria-modal="true" aria-labelledby="myCallsTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h2 id="myCallsTitle">Meus chamados</h2>
+          <p class="lead">Acompanhe suas solicitações e o andamento dos serviços.</p>
+        </div>
+        <button id="closeMyCallsPanelButton" class="close" type="button" aria-label="Fechar">x</button>
+      </div>
+      <div id="myCallsPanelList" class="data-list">
+        <div class="empty-state">Carregando seus chamados...</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="whatsappPcuPanel" class="modal panel-modal" role="dialog" aria-modal="true" aria-labelledby="whatsappPcuTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div>
+          <h2 id="whatsappPcuTitle">WhatsApp PCU</h2>
+          <p class="lead">Números cadastrados para receber validações automáticas pós-chuva.</p>
+        </div>
+        <button id="closeWhatsappPcuPanelButton" class="close" type="button" aria-label="Fechar">x</button>
+      </div>
+      <div id="whatsappPcuRecipientsSummary" class="empty-state">Nenhum destinatário carregado.</div>
+      <div id="whatsappPcuRecipientsList" class="data-list">
+        <div class="empty-state">Nenhum telefone cadastrado.</div>
       </div>
     </div>
   </div>
@@ -1222,8 +1384,8 @@
     <div class="modal-card">
       <div class="modal-head">
         <div>
-          <h2 id="techniciansTitle">Tecnicos</h2>
-          <p class="lead">Cadastre a equipe que recebera os servicos de manutencao.</p>
+          <h2 id="techniciansTitle">Técnicos</h2>
+          <p class="lead">Cadastre a equipe que receberá os serviços de manutenção.</p>
         </div>
         <button id="closeTechniciansPanelButton" class="close" type="button" aria-label="Fechar">x</button>
       </div>
@@ -1247,17 +1409,17 @@
         </div>
         <div class="field">
           <label for="technician_especialidade">Especialidade</label>
-          <input id="technician_especialidade" name="especialidade" placeholder="Ex.: Telhados, calhas, impermeabilizacao">
+          <input id="technician_especialidade" name="especialidade" placeholder="Ex.: Telhados, calhas, impermeabilização">
         </div>
         <div class="field full">
-          <button id="submitTechnicianButton" class="btn btn-primary" type="submit">Cadastrar tecnico</button>
+          <button id="submitTechnicianButton" class="btn btn-primary" type="submit">Cadastrar técnico</button>
           <div id="technicianMessage" class="message"></div>
           <div id="temporaryPasswordBox" class="empty-state" hidden></div>
         </div>
       </form>
 
       <div id="techniciansList" class="data-list">
-        <div class="empty-state">Carregando tecnicos...</div>
+        <div class="empty-state">Carregando técnicos...</div>
       </div>
     </div>
   </div>
@@ -1267,7 +1429,7 @@
       <div class="modal-head">
         <div>
           <h2 id="registerTitle">Registrar acesso</h2>
-          <p class="lead">A solicitacao sera enviada para aprovacao. Apenas e-mails @uel.br sao aceitos.</p>
+          <p class="lead">A solicitação será enviada para aprovação. Apenas e-mails @uel.br são aceitos.</p>
         </div>
         <button id="closeModalButton" class="close" type="button" aria-label="Fechar">x</button>
       </div>
@@ -1294,20 +1456,20 @@
         <div class="field full" hidden>
           <label for="perfil_solicitado">Perfil solicitado</label>
           <select id="perfil_solicitado" name="perfil_solicitado">
-            <option value="VISUALIZACAO">Visualizacao</option>
+            <option value="VISUALIZACAO">Visualização</option>
             <option value="CHEFE_SETOR">Chefe de setor</option>
             <option value="CHEFE_DIVISAO">Chefe de Divisão</option>
             <option value="DIRETOR_CENTRO">Diretor de Centro</option>
-            <option value="MANUTENCAO">Manutencao</option>
+            <option value="MANUTENCAO">Manutenção</option>
             <option value="GESTOR">Gestor</option>
           </select>
         </div>
         <div class="field full">
-          <label for="observacao">Observacao</label>
-          <textarea id="observacao" name="observacao" placeholder="Informe setor, funcao ou justificativa do acesso."></textarea>
+          <label for="observacao">Observação</label>
+          <textarea id="observacao" name="observacao" placeholder="Informe setor, função ou justificativa do acesso."></textarea>
         </div>
         <div class="field full">
-          <button id="submitRegisterButton" class="btn btn-primary" type="submit">Enviar solicitacao</button>
+          <button id="submitRegisterButton" class="btn btn-primary" type="submit">Enviar solicitação</button>
           <div id="registerMessage" class="message"></div>
         </div>
       </form>
@@ -1319,7 +1481,7 @@
       <div class="modal-head">
         <div>
           <h2 id="callTitle">Novo chamado</h2>
-          <p class="lead">Registre uma ocorrencia de telhado para acompanhamento da equipe.</p>
+          <p class="lead">Registre uma ocorrência de telhado para acompanhamento da equipe.</p>
         </div>
         <button id="closeCallModalButton" class="close" type="button" aria-label="Fechar">x</button>
       </div>
@@ -1332,7 +1494,7 @@
           </select>
         </div>
         <div class="field">
-          <label for="call_predio_id">Predio ou local</label>
+          <label for="call_predio_id">Prédio ou local</label>
           <input id="call_predio_id" name="predio_id" placeholder="Ex.: Bloco A, cobertura central">
         </div>
         <div class="field">
@@ -1341,7 +1503,7 @@
             <option value="VAZAMENTO">Vazamento</option>
             <option value="CALHA">Calha</option>
             <option value="TELHA">Telha</option>
-            <option value="INFILTRACAO">Infiltracao</option>
+            <option value="INFILTRACAO">Infiltração</option>
             <option value="OUTROS">Outros</option>
           </select>
         </div>
@@ -1354,8 +1516,8 @@
           </select>
         </div>
         <div class="field full">
-          <label for="call_descricao">Descricao</label>
-          <textarea id="call_descricao" name="descricao" placeholder="Descreva o ponto de vazamento, ambiente afetado e sinais visiveis." required></textarea>
+          <label for="call_descricao">Descrição</label>
+          <textarea id="call_descricao" name="descricao" placeholder="Descreva o ponto de vazamento, ambiente afetado e sinais visíveis." required></textarea>
         </div>
         <div class="field full">
           <button id="submitCallButton" class="btn btn-primary" type="submit">Abrir chamado</button>
@@ -1370,7 +1532,7 @@
       <div class="modal-head">
         <div>
           <h2 id="manageCallTitle">Gerenciar chamado</h2>
-          <p id="manageCallSubtitle" class="lead">Selecione o tecnico e encaminhe o chamado para manutencao.</p>
+          <p id="manageCallSubtitle" class="lead">Selecione o técnico e encaminhe o chamado para manutenção.</p>
         </div>
         <button id="closeManageCallModalButton" class="close" type="button" aria-label="Fechar">x</button>
       </div>
@@ -1381,16 +1543,16 @@
           <label for="manage_call_status">Status atual</label>
           <select id="manage_call_status" name="status" disabled>
             <option value="ABERTO">Aberto</option>
-            <option value="EM_ANALISE">Em analise</option>
+            <option value="EM_ANALISE">Em análise</option>
             <option value="ENCAMINHADO">Encaminhado</option>
-            <option value="EM_EXECUCAO">Em execucao</option>
-            <option value="CONCLUIDO">Concluido</option>
+            <option value="EM_EXECUCAO">Em execução</option>
+            <option value="CONCLUIDO">Concluído</option>
           </select>
         </div>
         <div class="field">
-          <label for="manage_call_technician">Tecnico de manutencao</label>
+          <label for="manage_call_technician">Técnico de manutenção</label>
           <select id="manage_call_technician" name="tecnico_id">
-            <option value="">Carregando tecnicos...</option>
+            <option value="">Carregando técnicos...</option>
           </select>
         </div>
         <div class="field">
@@ -1398,13 +1560,13 @@
           <input id="manage_call_priority" readonly>
         </div>
         <div class="field full">
-          <label for="manage_call_description">Descricao</label>
+          <label for="manage_call_description">Descrição</label>
           <textarea id="manage_call_description" readonly></textarea>
         </div>
         <div class="field full">
-          <label>Historico</label>
+          <label>Histórico</label>
           <div id="manageCallHistory" class="history-list">
-            <div class="empty-state">Carregando historico...</div>
+            <div class="empty-state">Carregando histórico...</div>
           </div>
         </div>
         <div class="field full">
@@ -1418,6 +1580,8 @@
   </div>
 
   <script>
+    const DASHBOARD_AUTO_REFRESH_MS = 10 * 60 * 1000;
+
     const state = {
       session: null,
       authEmail: '',
@@ -1425,8 +1589,18 @@
       centros: [],
       techniciansLoaded: false,
       technicians: [],
+      usersLoaded: false,
+      users: [],
+      usersOnlyPending: false,
+      partsCallsLoaded: false,
+      partsCalls: [],
+      partsItems: [],
+      partsCurrentCallId: '',
+      whatsappPcu: {},
       chamados: [],
-      filteredChamados: []
+      filteredChamados: [],
+      dashboardAutoRefreshTimer: null,
+      dashboardLoading: false
     };
 
     const els = {
@@ -1441,34 +1615,46 @@
       newCallButton: document.getElementById('newCallButton'),
       logoutButton: document.getElementById('logoutButton'),
       openRecentCallsButton: document.getElementById('openRecentCallsButton'),
+      openMyCallsButton: document.getElementById('openMyCallsButton'),
       openReportsButton: document.getElementById('openReportsButton'),
+      openPartsButton: document.getElementById('openPartsButton'),
+      openWhatsappPcuButton: document.getElementById('openWhatsappPcuButton'),
       openPendingAccessButton: document.getElementById('openPendingAccessButton'),
       openTechniciansButton: document.getElementById('openTechniciansButton'),
       registerModal: document.getElementById('registerModal'),
       callModal: document.getElementById('callModal'),
       manageCallModal: document.getElementById('manageCallModal'),
       recentCallsPanel: document.getElementById('recentCallsPanel'),
+      myCallsPanel: document.getElementById('myCallsPanel'),
       reportsPanel: document.getElementById('reportsPanel'),
+      partsPanel: document.getElementById('partsPanel'),
+      whatsappPcuPanel: document.getElementById('whatsappPcuPanel'),
       pendingAccessPanel: document.getElementById('pendingAccessPanel'),
       techniciansPanel: document.getElementById('techniciansPanel'),
       closeModalButton: document.getElementById('closeModalButton'),
       closeCallModalButton: document.getElementById('closeCallModalButton'),
       closeManageCallModalButton: document.getElementById('closeManageCallModalButton'),
       closeRecentCallsPanelButton: document.getElementById('closeRecentCallsPanelButton'),
+      closeMyCallsPanelButton: document.getElementById('closeMyCallsPanelButton'),
       closeReportsPanelButton: document.getElementById('closeReportsPanelButton'),
+      closePartsPanelButton: document.getElementById('closePartsPanelButton'),
+      closeWhatsappPcuPanelButton: document.getElementById('closeWhatsappPcuPanelButton'),
       closePendingAccessPanelButton: document.getElementById('closePendingAccessPanelButton'),
       closeTechniciansPanelButton: document.getElementById('closeTechniciansPanelButton'),
       registerForm: document.getElementById('registerForm'),
       callForm: document.getElementById('callForm'),
       manageCallForm: document.getElementById('manageCallForm'),
+      userForm: document.getElementById('userForm'),
       technicianForm: document.getElementById('technicianForm'),
       registerMessage: document.getElementById('registerMessage'),
       callMessage: document.getElementById('callMessage'),
       manageCallMessage: document.getElementById('manageCallMessage'),
+      usersMessage: document.getElementById('usersMessage'),
       technicianMessage: document.getElementById('technicianMessage'),
       temporaryPasswordBox: document.getElementById('temporaryPasswordBox'),
       submitRegisterButton: document.getElementById('submitRegisterButton'),
       submitCallButton: document.getElementById('submitCallButton'),
+      submitUserButton: document.getElementById('submitUserButton'),
       submitTechnicianButton: document.getElementById('submitTechnicianButton'),
       assignMaintenanceButton: document.getElementById('assignMaintenanceButton'),
       manageCallId: document.getElementById('manage_call_id'),
@@ -1490,9 +1676,14 @@
       metricRain: document.getElementById('metricRain'),
       pendingMetric: document.getElementById('pendingMetric'),
       metricPendingAccess: document.getElementById('metricPendingAccess'),
+      whatsappPcuMetric: document.getElementById('whatsappPcuMetric'),
+      whatsappPcuAvailable: document.getElementById('whatsappPcuAvailable'),
+      whatsappPcuRecipientsSummary: document.getElementById('whatsappPcuRecipientsSummary'),
+      whatsappPcuRecipientsList: document.getElementById('whatsappPcuRecipientsList'),
       recentCallsList: document.getElementById('recentCallsList'),
       myCallsCard: document.getElementById('myCallsCard'),
       myCallsList: document.getElementById('myCallsList'),
+      myCallsPanelList: document.getElementById('myCallsPanelList'),
       callSearchInput: document.getElementById('callSearchInput'),
       callStatusFilter: document.getElementById('callStatusFilter'),
       callPriorityFilter: document.getElementById('callPriorityFilter'),
@@ -1505,6 +1696,14 @@
       exportExcelButton: document.getElementById('exportExcelButton'),
       exportPdfButton: document.getElementById('exportPdfButton'),
       reportSummary: document.getElementById('reportSummary'),
+      partsSearchInput: document.getElementById('partsSearchInput'),
+      partsCallSelect: document.getElementById('partsCallSelect'),
+      partsRefreshButton: document.getElementById('partsRefreshButton'),
+      partsExportPdfButton: document.getElementById('partsExportPdfButton'),
+      partsExportExcelButton: document.getElementById('partsExportExcelButton'),
+      partsSummary: document.getElementById('partsSummary'),
+      partsList: document.getElementById('partsList'),
+      usersSummary: document.getElementById('usersSummary'),
       weatherCity: document.getElementById('weatherCity'),
       weatherRisk: document.getElementById('weatherRisk'),
       weatherIcon: document.getElementById('weatherIcon'),
@@ -1512,6 +1711,10 @@
       weatherTemp: document.getElementById('weatherTemp'),
       weatherValue: document.getElementById('weatherValue'),
       weatherDays: document.getElementById('weatherDays'),
+      usersSearchInput: document.getElementById('usersSearchInput'),
+      usersStatusFilter: document.getElementById('usersStatusFilter'),
+      usersOnlyPendingButton: document.getElementById('usersOnlyPendingButton'),
+      userCentroSelect: document.getElementById('user_centro_sigla'),
       pendingAccessList: document.getElementById('pendingAccessList'),
       techniciansList: document.getElementById('techniciansList')
     };
@@ -1634,38 +1837,69 @@
       els.dashboardView.classList.add('active');
       els.dashboardGreeting.textContent = 'Bem-vindo, ' + (user && user.nome ? user.nome : 'usuario autorizado') + '.';
       loadDashboard();
+      startDashboardAutoRefresh();
     }
 
     function logout() {
+      stopDashboardAutoRefresh();
       state.session = null;
       state.authEmail = '';
       state.chamados = [];
       state.filteredChamados = [];
       state.techniciansLoaded = false;
       state.technicians = [];
+      state.usersLoaded = false;
+      state.users = [];
+      state.usersOnlyPending = false;
+      state.partsCallsLoaded = false;
+      state.partsCalls = [];
+      state.partsItems = [];
+      state.partsCurrentCallId = '';
+      state.whatsappPcu = {};
       closeRegisterModal();
       closeCallModal();
       closeManageCallModal();
       closeRecentCallsPanel();
+      closeMyCallsPanel();
       closeReportsPanel();
+      closePartsPanel();
+      closeWhatsappPcuPanel();
       closePendingAccessPanel();
       closeTechniciansPanel();
       els.dashboardView.classList.remove('active');
       els.dashboardView.classList.add('no-rail');
       els.dashboardRail.hidden = true;
       els.openRecentCallsButton.hidden = true;
+      els.openMyCallsButton.hidden = true;
       els.openReportsButton.hidden = true;
+      els.openPartsButton.hidden = true;
+      els.openWhatsappPcuButton.hidden = true;
       els.openPendingAccessButton.hidden = true;
       els.openTechniciansButton.hidden = true;
       els.pendingMetric.hidden = true;
+      if (els.userForm) {
+        els.userForm.reset();
+      }
+      if (els.usersStatusFilter) {
+        els.usersStatusFilter.value = '';
+      }
       els.loginView.style.display = '';
       els.loginEmail.value = '';
       els.loginEmail.focus();
       setMessage(els.loginMessage, 'Digite seu e-mail @uel.br para acessar.', '');
     }
 
-    function loadDashboard() {
-      setDashboardLoading();
+    function loadDashboard(options) {
+      const preserveView = options && options.preserveView === true;
+      if (state.dashboardLoading) {
+        return;
+      }
+
+      if (!preserveView) {
+        setDashboardLoading();
+      }
+
+      state.dashboardLoading = true;
       els.refreshDashboardButton.disabled = true;
 
       callServer('getDashboardData', getAuthPayload())
@@ -1677,8 +1911,27 @@
           renderDashboardError(error.message || 'Erro ao carregar dashboard.');
         })
         .finally(() => {
+          state.dashboardLoading = false;
           els.refreshDashboardButton.disabled = false;
         });
+    }
+
+    function startDashboardAutoRefresh() {
+      stopDashboardAutoRefresh();
+      state.dashboardAutoRefreshTimer = setInterval(() => {
+        if (document.hidden || !state.session) {
+          return;
+        }
+        loadDashboard({ preserveView: true });
+      }, DASHBOARD_AUTO_REFRESH_MS);
+    }
+
+    function stopDashboardAutoRefresh() {
+      if (!state.dashboardAutoRefreshTimer) {
+        return;
+      }
+      clearInterval(state.dashboardAutoRefreshTimer);
+      state.dashboardAutoRefreshTimer = null;
     }
 
     function setDashboardLoading() {
@@ -1696,31 +1949,75 @@
       const canManageAccess = Boolean(data.canManageAccess);
       els.metricOpen.textContent = metrics.abertos || 0;
       els.metricForwarded.textContent = metrics.encaminhados || 0;
-      els.metricProgress.textContent = metrics.em_execucao || 0;
+      els.metricProgress.textContent = metrics.em_analise || 0;
       els.metricDone.textContent = metrics.concluidos || 0;
       els.metricRain.textContent = metrics.alertas_chuva || 0;
       els.metricPendingAccess.textContent = metrics.pendencias_acesso || 0;
 
       renderDashboardAdminControls(canManageAccess);
+      renderWhatsappPcu(data.whatsappPcu || {}, canManageAccess);
       renderWeather(data.weather || {});
       renderChamados(data.chamados || []);
       renderMyCalls(data.meusChamados || []);
-      renderPendingAccess(data.pendingAccess || [], canManageAccess);
+      if (canManageAccess) {
+        loadUsersAccess(false);
+      } else {
+        renderUsers([], { total: 0, ativos: 0, pendentes: 0, admins: 0 });
+      }
+    }
+
+    function renderWhatsappPcu(whatsappPcu, canManageAccess) {
+      state.whatsappPcu = whatsappPcu || {};
+      if (!canManageAccess) {
+        return;
+      }
+
+      const available = Number(whatsappPcu.estimated_messages_available || 0);
+      els.whatsappPcuAvailable.textContent = available.toLocaleString('pt-BR');
+      renderWhatsappPcuRecipients(whatsappPcu);
+    }
+
+    function renderWhatsappPcuRecipients(whatsappPcu) {
+      const recipients = whatsappPcu.recipients || [];
+      const missingPhone = Number(whatsappPcu.active_users_without_phone || 0);
+
+      els.whatsappPcuRecipientsSummary.textContent =
+        recipients.length.toLocaleString('pt-BR') + ' destinatários cadastrados' +
+        (missingPhone ? ' · ' + missingPhone.toLocaleString('pt-BR') + ' usuários ativos sem telefone' : '');
+
+      if (!recipients.length) {
+        els.whatsappPcuRecipientsList.innerHTML = '<div class="empty-state">Nenhum telefone cadastrado.</div>';
+        return;
+      }
+
+      els.whatsappPcuRecipientsList.innerHTML = recipients.map((recipient) => (
+        '<article class="data-row">' +
+          '<div><strong>' + escapeHtml(recipient.nome || '-') + '</strong><span>Usuário</span></div>' +
+          '<div><strong>' + escapeHtml(recipient.telefone || '-') + '</strong><span>WhatsApp</span></div>' +
+          '<div><strong>' + escapeHtml(recipient.centro_sigla || '-') + '</strong><span>Centro</span></div>' +
+        '</article>'
+      )).join('');
     }
 
     function renderDashboardAdminControls(canManageAccess) {
-      els.dashboardRail.hidden = !canManageAccess;
-      els.dashboardView.classList.toggle('no-rail', !canManageAccess);
+      els.dashboardRail.hidden = false;
+      els.dashboardView.classList.remove('no-rail');
       els.openRecentCallsButton.hidden = !canManageAccess;
+      els.openMyCallsButton.hidden = canManageAccess;
       els.openReportsButton.hidden = !canManageAccess;
+      els.openPartsButton.hidden = !canManageAccess;
+      els.openWhatsappPcuButton.hidden = !canManageAccess;
       els.openPendingAccessButton.hidden = !canManageAccess;
       els.openTechniciansButton.hidden = !canManageAccess;
       els.pendingMetric.hidden = !canManageAccess;
-      els.myCallsCard.hidden = canManageAccess;
+      els.whatsappPcuMetric.hidden = !canManageAccess;
+      els.myCallsCard.hidden = true;
 
       if (!canManageAccess) {
         closeRecentCallsPanel();
         closeReportsPanel();
+        closePartsPanel();
+        closeWhatsappPcuPanel();
         closePendingAccessPanel();
         closeTechniciansPanel();
       } else {
@@ -1731,25 +2028,28 @@
     function renderDashboardError(message) {
       setEmptyState(els.recentCallsList, message);
       setEmptyState(els.pendingAccessList, message);
-      els.weatherRisk.textContent = 'Indisponivel';
+      if (els.usersSummary) {
+        els.usersSummary.innerHTML = '<div>' + escapeHtml(message) + '</div>';
+      }
+      els.weatherRisk.textContent = 'Indisponível';
     }
 
     function renderWeather(weather) {
       els.weatherCity.textContent = weather.city || 'Londrina/PR';
 
       if (!weather.available) {
-        els.weatherRisk.textContent = 'Indisponivel';
+        els.weatherRisk.textContent = 'Indisponível';
         els.weatherIcon.className = 'weather-icon weather-icon-cloud';
         els.weatherCondition.textContent = weather.message || 'Clima indisponivel';
         els.weatherTemp.textContent = '--°C';
         els.weatherValue.textContent = '-- mm';
-        els.weatherDays.innerHTML = '<div class="weather-day"><span>Previsao</span><strong>Indisponivel</strong></div>';
+        els.weatherDays.innerHTML = '<div class="weather-day"><span>Previsão</span><strong>Indisponível</strong></div>';
         return;
       }
 
       els.weatherRisk.textContent = riskLabel(weather.risk);
       els.weatherIcon.className = 'weather-icon weather-icon-' + weatherIconClass(weather.current_icon);
-      els.weatherCondition.textContent = weather.current_condition || 'Previsao atual';
+      els.weatherCondition.textContent = weather.current_condition || 'Previsão atual';
       els.weatherTemp.textContent = weather.current_temperature_c === null || weather.current_temperature_c === undefined
         ? '--°C'
         : formatNumber(weather.current_temperature_c) + '°C';
@@ -1810,10 +2110,11 @@
     function renderMyCalls(chamados) {
       if (!chamados.length) {
         setEmptyState(els.myCallsList, 'Voce ainda nao abriu chamados.');
+        setEmptyState(els.myCallsPanelList, 'Voce ainda nao abriu chamados.');
         return;
       }
 
-      els.myCallsList.innerHTML = chamados.map((chamado) => {
+      const rows = chamados.map((chamado) => {
         return '<div class="list-row user-row">' +
           '<div><strong>' + escapeHtml(chamado.numero || '-') + '</strong><span>' + formatDate(chamado.data_abertura) + '</span></div>' +
           '<div><strong>' + escapeHtml(chamado.descricao || '-') + '</strong><span>' + escapeHtml((chamado.predio_id || 'Local nao informado') + ' - ' + (chamado.centro_sigla || '-')) + '</span></div>' +
@@ -1821,6 +2122,8 @@
           '<div class="status-badge ' + statusBadgeClass(chamado.status) + '">' + escapeHtml(statusLabel(chamado.status)) + '</div>' +
         '</div>';
       }).join('');
+      els.myCallsList.innerHTML = rows;
+      els.myCallsPanelList.innerHTML = rows;
     }
 
     function getReportRows() {
@@ -1864,7 +2167,7 @@
     }
 
     function reportHeader() {
-      return ['Numero', 'Data', 'Centro', 'Local', 'Descricao', 'Prioridade', 'Status', 'Tecnico'];
+      return ['Número', 'Data', 'Centro', 'Local', 'Descrição', 'Prioridade', 'Status', 'Técnico'];
     }
 
     function reportRow(chamado) {
@@ -1900,7 +2203,7 @@
       }
 
       const csvRows = [reportHeader()].concat(rows.map(reportRow));
-      const csv = csvRows.map((row) => row.map(csvValue).join(';')).join('\r\n');
+      const csv = csvRows.map((row) => row.map((value) => csvValue(protectCsvFormula(value))).join(';')).join('\r\n');
       downloadBlob('relatorio-chamados-telhado.csv', '\ufeff' + csv, 'text/csv;charset=utf-8;');
     }
 
@@ -1939,9 +2242,9 @@
       const generatedAt = new Date().toLocaleString('pt-BR');
 
       printWindow.document.write(
-        '<!doctype html><html><head><meta charset="utf-8"><title>Relatorio de chamados</title>' +
+        '<!doctype html><html><head><meta charset="utf-8"><title>Relatório de chamados</title>' +
         '<style>body{font-family:Arial,sans-serif;color:#17231f;margin:24px;}h1{font-size:22px;margin:0 0 6px;}p{margin:0 0 18px;color:#5f6e68;}table{width:100%;border-collapse:collapse;font-size:12px;}th,td{border:1px solid #d7e1dc;padding:8px;text-align:left;vertical-align:top;}th{background:#e7efea;}tr:nth-child(even){background:#f6f8f6;}</style>' +
-        '</head><body><h1>Relatorio de chamados</h1><p>Gerado em ' + escapeHtml(generatedAt) + ' | Total: ' + rows.length + '</p>' +
+        '</head><body><h1>Relatório de chamados</h1><p>Gerado em ' + escapeHtml(generatedAt) + ' | Total: ' + rows.length + '</p>' +
         '<table><thead><tr>' + headerCells + '</tr></thead><tbody>' + bodyRows + '</tbody></table></body></html>'
       );
       printWindow.document.close();
@@ -1949,43 +2252,414 @@
       printWindow.print();
     }
 
+    function openPartsPanel() {
+      if (els.openPartsButton.hidden) {
+        return;
+      }
+
+      els.partsPanel.classList.add('open');
+      loadPartsCalls(false);
+    }
+
+    function closePartsPanel() {
+      els.partsPanel.classList.remove('open');
+    }
+
+    function openWhatsappPcuPanel() {
+      if (els.openWhatsappPcuButton.hidden) {
+        return;
+      }
+
+      renderWhatsappPcuRecipients(state.whatsappPcu || {});
+      els.whatsappPcuPanel.classList.add('open');
+    }
+
+    function closeWhatsappPcuPanel() {
+      els.whatsappPcuPanel.classList.remove('open');
+    }
+
+    function loadPartsCalls(force) {
+      if (state.partsCallsLoaded && !force) {
+        renderPartsCalls(state.partsCalls);
+        return Promise.resolve(state.partsCalls);
+      }
+
+      els.partsSummary.innerHTML = '<div>Carregando chamados com peças...</div>';
+      els.partsList.innerHTML = '<div class="empty-state">Carregando vistorias...</div>';
+
+      return callServer('listarChamadosPecas', getAuthPayload())
+        .then((response) => {
+          response = requireResponse(response, 'Não foi possível carregar peças.');
+          state.partsCalls = response.data || [];
+          state.partsCallsLoaded = true;
+          renderPartsCalls(state.partsCalls);
+          return state.partsCalls;
+        })
+        .catch((error) => {
+          const message = error.message || 'Erro ao carregar peças.';
+          els.partsSummary.innerHTML = '<div>' + escapeHtml(message) + '</div>';
+          els.partsList.innerHTML = '<div class="empty-state">' + escapeHtml(message) + '</div>';
+          return [];
+        });
+    }
+
+    function renderPartsCalls(chamados) {
+      const search = String(els.partsSearchInput.value || '').trim().toLowerCase();
+      const filtered = (chamados || []).filter((item) => {
+        const haystack = [
+          item.chamado_numero,
+          item.centro_sigla,
+          item.predio_id,
+          item.predio_nome
+        ].join(' ').toLowerCase();
+        return !search || haystack.indexOf(search) >= 0;
+      });
+
+      const options = '<option value="">Selecione um chamado</option>' + filtered.map((item) => {
+        const label = (item.chamado_numero || item.chamado_id || '-') + ' - ' + (item.centro_sigla || '-') + ' - ' + (item.predio_id || '-');
+        return '<option value="' + escapeHtml(item.chamado_id) + '">' + escapeHtml(label) + '</option>';
+      }).join('');
+      els.partsCallSelect.innerHTML = options;
+
+      if (!filtered.length) {
+        els.partsSummary.innerHTML = '<div>Nenhuma solicitação de peças pendente.</div>';
+        els.partsList.innerHTML = '<div class="empty-state">Os chamados concluídos não aparecem neste painel operacional.</div>';
+        state.partsCurrentCallId = '';
+        state.partsItems = [];
+        return;
+      }
+
+      if (!state.partsCurrentCallId || !filtered.some((item) => item.chamado_id === state.partsCurrentCallId)) {
+        state.partsCurrentCallId = filtered[0].chamado_id;
+      }
+      els.partsCallSelect.value = state.partsCurrentCallId;
+      loadPartsItems(state.partsCurrentCallId);
+    }
+
+    function loadPartsItems(chamadoId) {
+      if (!chamadoId) {
+        state.partsItems = [];
+        els.partsSummary.innerHTML = '<div>Selecione um chamado para visualizar as vistorias.</div>';
+        els.partsList.innerHTML = '<div class="empty-state">Nenhuma vistoria de peças carregada.</div>';
+        return Promise.resolve([]);
+      }
+
+      state.partsCurrentCallId = chamadoId;
+      els.partsList.innerHTML = '<div class="empty-state">Carregando vistorias...</div>';
+
+      return callServer('listarPecasPorChamado', {
+        auth_email: state.authEmail,
+        chamado_id: chamadoId
+      })
+        .then((response) => {
+          response = requireResponse(response, 'Não foi possível carregar as vistorias de peças.');
+          const data = response.data || {};
+          state.partsItems = data.itens || [];
+          renderPartsSummary(data.resumo || null, state.partsItems);
+          renderPartsItems(state.partsItems);
+          return state.partsItems;
+        })
+        .catch((error) => {
+          const message = error.message || 'Erro ao carregar vistorias de peças.';
+          els.partsSummary.innerHTML = '<div>' + escapeHtml(message) + '</div>';
+          els.partsList.innerHTML = '<div class="empty-state">' + escapeHtml(message) + '</div>';
+          return [];
+        });
+    }
+
+    function renderPartsSummary(resumo, itens) {
+      if (!resumo) {
+        els.partsSummary.innerHTML = '<div>Sem dados de peças para este chamado.</div>';
+        return;
+      }
+
+      const local = resumo.predio_nome ? resumo.predio_nome : resumo.predio_id;
+      els.partsSummary.innerHTML =
+        '<strong>' + escapeHtml(resumo.chamado_numero || resumo.chamado_id || '-') + '</strong>' +
+        '<span> Centro: ' + escapeHtml(resumo.centro_sigla || '-') +
+        ' | Local: ' + escapeHtml(local || '-') +
+        ' | Vistorias: ' + (resumo.total_vistorias || (itens || []).length) +
+        ' | Pendentes: ' + (resumo.pendentes || 0) + '</span>';
+    }
+
+    function renderPartsItems(itens) {
+      const rows = itens || [];
+      if (!rows.length) {
+        els.partsList.innerHTML = '<div class="empty-state">Nenhuma lista de peças encontrada para este chamado.</div>';
+        return;
+      }
+
+      els.partsList.innerHTML = rows.map((item) => {
+        const status = String(item.status_lista || 'PENDENTE').toUpperCase();
+        const statusClass = status === 'EXPORTADO' ? 'status-done' : 'status-pending';
+        const canPersistStatus = String(item.id || '').indexOf('LEG-') !== 0;
+        return '<div class="pending-access-item">' +
+          '<div class="access-main">' +
+            '<div class="access-head">' +
+              '<strong class="access-name">' + escapeHtml(item.vistoria_numero || '-') + ' - ' + formatDateTime(item.vistoria_datahora) + '</strong>' +
+              '<div class="status-badge ' + statusClass + '">' + escapeHtml(status) + '</div>' +
+            '</div>' +
+            '<div class="access-detail">' +
+              '<div><strong>' + escapeHtml(item.tecnico_nome || '-') + '</strong><span>Tecnico</span></div>' +
+              '<div><strong>' + escapeHtml(item.centro_sigla || '-') + '</strong><span>Centro</span></div>' +
+              '<div><strong>' + escapeHtml(item.predio_id || '-') + '</strong><span>Local</span></div>' +
+              '<div><strong>' + escapeHtml(item.chamado_numero || '-') + '</strong><span>Chamado</span></div>' +
+            '</div>' +
+            '<div class="empty-state" style="min-height:auto;display:block;text-align:left;">' + escapeHtml(item.materiais_texto || 'Sem materiais informados.') + '</div>' +
+          '</div>' +
+          '<div class="access-actions">' +
+            '<button class="row-action" type="button" data-parts-item-pdf="' + escapeHtml(item.id) + '">PDF</button>' +
+            '<button class="row-action" type="button" data-parts-item-excel="' + escapeHtml(item.id) + '">Excel</button>' +
+          '</div>' +
+          '<div class="access-actions">' +
+            (canPersistStatus
+              ? '<button class="row-action" type="button" data-parts-item-status="' + escapeHtml(item.id) + '" data-next-status="' + (status === 'EXPORTADO' ? 'PENDENTE' : 'EXPORTADO') + '">' +
+                (status === 'EXPORTADO' ? 'Marcar pendente' : 'Marcar exportado') +
+              '</button>'
+              : '<span class="tag muted">Somente leitura</span>') +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    function buildPartsTableRows(items) {
+      return (items || []).map((item) => [
+        item.chamado_numero || '',
+        item.vistoria_numero || '',
+        formatDateTime(item.vistoria_datahora),
+        item.centro_sigla || '',
+        item.predio_id || '',
+        item.tecnico_nome || '',
+        item.materiais_texto || '',
+        item.status_lista || 'PENDENTE'
+      ]);
+    }
+
+    function exportPartsExcel(items, fileName) {
+      const rows = buildPartsTableRows(items);
+      if (!rows.length) {
+        alert('Não há dados de peças para exportar.');
+        return;
+      }
+
+      const header = ['Chamado', 'Vistoria', 'Data/Hora', 'Centro', 'Local', 'Tecnico', 'Materiais', 'Status'];
+      const htmlRows = [header].concat(rows).map((row, index) => {
+        const tag = index === 0 ? 'th' : 'td';
+        return '<tr>' + row.map((value) => '<' + tag + '>' + escapeHtml(value) + '</' + tag + '>').join('') + '</tr>';
+      }).join('');
+      const workbook = '<html><head><meta charset="utf-8"></head><body><table>' + htmlRows + '</table></body></html>';
+      downloadBlob(fileName, '\ufeff' + workbook, 'application/vnd.ms-excel;charset=utf-8;');
+    }
+
+    function exportPartsPdf(items, title) {
+      const rows = buildPartsTableRows(items);
+      if (!rows.length) {
+        alert('Não há dados de peças para exportar.');
+        return;
+      }
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Permita pop-ups para gerar o PDF.');
+        return;
+      }
+
+      const header = ['Chamado', 'Vistoria', 'Data/Hora', 'Centro', 'Local', 'Tecnico', 'Materiais', 'Status'];
+      const headCells = header.map((value) => '<th>' + escapeHtml(value) + '</th>').join('');
+      const bodyRows = rows.map((row) => {
+        return '<tr>' + row.map((value) => '<td>' + escapeHtml(value) + '</td>').join('') + '</tr>';
+      }).join('');
+      const generatedAt = new Date().toLocaleString('pt-BR');
+
+      printWindow.document.write(
+        '<!doctype html><html><head><meta charset="utf-8"><title>' + escapeHtml(title) + '</title>' +
+        '<style>body{font-family:Arial,sans-serif;color:#17231f;margin:24px;}h1{font-size:22px;margin:0 0 6px;}p{margin:0 0 18px;color:#5f6e68;}table{width:100%;border-collapse:collapse;font-size:11px;}th,td{border:1px solid #d7e1dc;padding:8px;text-align:left;vertical-align:top;}th{background:#e7efea;}tr:nth-child(even){background:#f6f8f6;}</style>' +
+        '</head><body><h1>' + escapeHtml(title) + '</h1><p>Gerado em ' + escapeHtml(generatedAt) + ' | Total: ' + rows.length + '</p>' +
+        '<table><thead><tr>' + headCells + '</tr></thead><tbody>' + bodyRows + '</tbody></table></body></html>'
+      );
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+    }
+
+    function handlePartsStatusUpdate(itemId, nextStatus, button) {
+      button.disabled = true;
+      button.textContent = 'Salvando...';
+
+      callServer('atualizarStatusPecaVistoria', {
+        auth_email: state.authEmail,
+        item_id: itemId,
+        status_lista: nextStatus
+      })
+        .then((response) => {
+          requireResponse(response, 'Erro ao atualizar status da lista de peças.');
+          state.partsCallsLoaded = false;
+          return Promise.all([loadPartsItems(state.partsCurrentCallId), loadPartsCalls(true)]);
+        })
+        .catch((error) => {
+          button.disabled = false;
+          button.textContent = 'Tentar novamente';
+          els.partsList.insertAdjacentHTML('afterbegin', '<div class="empty-state">' + escapeHtml(error.message || 'Erro ao atualizar status da lista de peças.') + '</div>');
+        });
+    }
+
+    function protectCsvFormula(value) {
+      const text = String(value || '');
+      return /^[=+\-@]/.test(text) ? "'" + text : text;
+    }
+
     function csvValue(value) {
       return '"' + String(value || '').replace(/"/g, '""') + '"';
     }
 
-    function renderPendingAccess(items, canManageAccess) {
-      if (!canManageAccess) {
+    function loadUsersAccess(force) {
+      if (state.usersLoaded && !force) {
+        renderUsers(state.users);
+        return Promise.resolve(state.users);
+      }
+
+      els.pendingAccessList.innerHTML = '<div class="empty-state">Carregando usuários...</div>';
+      if (els.usersSummary) {
+        els.usersSummary.innerHTML = '<div>Carregando usuários...</div>';
+      }
+
+      return callServer('listarUsuariosAcesso', getAuthPayload())
+        .then((response) => {
+          response = requireResponse(response, 'Não foi possível carregar usuários.');
+          const payload = response.data || {};
+          state.users = payload.usuarios || [];
+          state.usersLoaded = true;
+          renderUsers(state.users, payload.resumo || null);
+          return state.users;
+        })
+        .catch((error) => {
+          const message = error.message || 'Erro ao carregar usuários.';
+          els.pendingAccessList.innerHTML = '<div class="empty-state">' + escapeHtml(message) + '</div>';
+          if (els.usersSummary) {
+            els.usersSummary.innerHTML = '<div>' + escapeHtml(message) + '</div>';
+          }
+          return [];
+        });
+    }
+
+    function renderUsers(items, resumo) {
+      const users = Array.isArray(items) ? items : [];
+      renderUsersSummary(users, resumo);
+      applyUsersFilters(users);
+    }
+
+    function renderUsersSummary(items, resumo) {
+      if (!els.usersSummary) {
         return;
       }
 
-      if (!items.length) {
-        setEmptyState(els.pendingAccessList, 'Nenhuma solicitacao pendente.');
+      const users = Array.isArray(items) ? items : [];
+      const counts = resumo || users.reduce((acc, user) => {
+        acc.total++;
+        if (isTrueValue(user.ativo)) {
+          acc.ativos++;
+        } else {
+          acc.pendentes++;
+        }
+        if (normalizeProfileValue(user.perfil) === 'ADMIN') {
+          acc.admins++;
+        }
+        return acc;
+      }, { total: 0, ativos: 0, pendentes: 0, admins: 0 });
+
+      els.usersSummary.innerHTML =
+        '<strong>Total: ' + counts.total + '</strong>' +
+        '<span> Ativos: ' + counts.ativos + ' | Pendentes/Bloqueados: ' + counts.pendentes + ' | Admins: ' + counts.admins + '</span>';
+    }
+
+    function applyUsersFilters(items) {
+      const users = Array.isArray(items) ? items : [];
+      const search = String(els.usersSearchInput.value || '').trim().toLowerCase();
+      const statusFilter = String(els.usersStatusFilter.value || '').trim().toUpperCase();
+      const onlyPending = state.usersOnlyPending;
+
+      const filtered = users.filter((user) => {
+        const ativo = isTrueValue(user.ativo);
+        const profile = normalizeProfileValue(user.perfil);
+        const haystack = [
+          user.nome,
+          user.email,
+          user.centro_sigla,
+          user.telefone
+        ].join(' ').toLowerCase();
+
+        if (search && haystack.indexOf(search) < 0) {
+          return false;
+        }
+
+        if (onlyPending && ativo) {
+          return false;
+        }
+
+        if (statusFilter === 'PENDENTE' && ativo) {
+          return false;
+        }
+
+        if (statusFilter === 'ATIVO' && !ativo) {
+          return false;
+        }
+
+        if (statusFilter === 'ADMIN' && profile !== 'ADMIN') {
+          return false;
+        }
+
+        return true;
+      });
+
+      if (!filtered.length) {
+        setEmptyState(els.pendingAccessList, 'Nenhum usuario encontrado para este filtro.');
         return;
       }
 
-      els.pendingAccessList.innerHTML = items.map((item) => {
-        const email = escapeHtml(item.email || '');
+      els.pendingAccessList.innerHTML = filtered.map((user) => {
+        const email = escapeHtml(user.email || '');
+        const name = escapeHtml(user.nome || '-');
+        const statusClass = isTrueValue(user.ativo) ? 'status-done' : 'status-pending';
+        const statusText = isTrueValue(user.ativo) ? 'Ativo' : 'Pendente/Bloqueado';
+        const perfil = normalizeProfileValue(user.perfil);
+        const userId = escapeHtml(user.id || '');
+        const centroSigla = escapeHtml(user.centro_sigla || '');
+        const telefone = escapeHtml(user.telefone || '');
+        const canApprove = !isTrueValue(user.ativo);
+
         return '<div class="pending-access-item">' +
           '<div class="access-main">' +
             '<div class="access-head">' +
-              '<strong class="access-name">' + escapeHtml(item.nome || '-') + '</strong>' +
-              '<div class="status-badge status-pending">Pendente</div>' +
+              '<strong class="access-name">' + name + '</strong>' +
+              '<div class="status-badge ' + statusClass + '">' + statusText + '</div>' +
             '</div>' +
             '<div class="access-detail">' +
               '<div><strong class="access-email">' + email + '</strong><span>E-mail</span></div>' +
-              '<div><strong>' + escapeHtml(item.centro_sigla || '-') + '</strong><span>Centro</span></div>' +
-              '<div><strong>' + escapeHtml(item.telefone || '-') + '</strong><span>Telefone</span></div>' +
-              '<div><strong>' + formatDate(item.created_at) + '</strong><span>Solicitado em</span></div>' +
+              '<div><strong>' + escapeHtml(centroSigla || '-') + '</strong><span>Centro</span></div>' +
+              '<div><strong>' + escapeHtml(telefone || '-') + '</strong><span>Telefone</span></div>' +
+              '<div><strong>' + formatDate(user.updated_at || user.created_at) + '</strong><span>Atualizado em</span></div>' +
             '</div>' +
           '</div>' +
           '<div class="access-controls">' +
             '<select class="access-profile" data-access-profile="' + email + '" aria-label="Perfil de ' + email + '">' +
-              '<option value="USUARIO"' + (normalizeProfileValue(item.perfil) === 'USUARIO' ? ' selected' : '') + '>Usuario</option>' +
-              '<option value="ADMIN"' + (normalizeProfileValue(item.perfil) === 'ADMIN' ? ' selected' : '') + '>Admin</option>' +
+              '<option value="USUARIO"' + (perfil === 'USUARIO' ? ' selected' : '') + '>Usuario</option>' +
+              '<option value="ADMIN"' + (perfil === 'ADMIN' ? ' selected' : '') + '>Admin</option>' +
             '</select>' +
+            '<input class="access-profile" type="text" data-access-centro="' + email + '" value="' + centroSigla + '" placeholder="Centro" aria-label="Centro de ' + email + '">' +
+            '<input class="access-profile" type="text" data-access-telefone="' + email + '" value="' + telefone + '" placeholder="Telefone" aria-label="Telefone de ' + email + '">' +
             '<div class="access-actions">' +
-              '<button class="row-action" type="button" data-approve-email="' + email + '">Aprovar</button>' +
-              '<button class="row-action danger" type="button" data-reject-email="' + email + '">Rejeitar</button>' +
+              (canApprove
+                ? '<button class="row-action" type="button" data-approve-email="' + email + '" data-user-id="' + userId + '">Aprovar</button>'
+                : '<button class="row-action" type="button" data-save-user="' + email + '" data-user-id="' + userId + '">Salvar</button>') +
+              (canApprove
+                ? '<button class="row-action danger" type="button" data-reject-email="' + email + '" data-user-id="' + userId + '">Rejeitar</button>'
+                : '<button class="row-action" type="button" data-toggle-user-active="' + email + '" data-user-id="' + userId + '" data-next-active="false">Bloquear</button>') +
+            '</div>' +
+            '<div class="access-actions">' +
+              (canApprove
+                ? '<button class="row-action" type="button" data-save-user="' + email + '" data-user-id="' + userId + '">Salvar</button>'
+                : '') +
+              '<button class="row-action danger" type="button" data-delete-user="' + email + '" data-user-id="' + userId + '">Excluir</button>' +
             '</div>' +
           '</div>' +
         '</div>';
@@ -1997,7 +2671,7 @@
         BAIXO: 'Baixo',
         ATENCAO: 'Atencao',
         CRITICO: 'Critico',
-        INDISPONIVEL: 'Indisponivel'
+        INDISPONIVEL: 'Indisponível'
       };
       return labels[value] || 'Baixo';
     }
@@ -2034,11 +2708,11 @@
 
     function profileLabel(value) {
       const labels = {
-        VISUALIZACAO: 'Visualizacao',
+        VISUALIZACAO: 'Visualização',
         CHEFE_SETOR: 'Chefe de setor',
         CHEFE_DIVISAO: 'Chefe de Divisão',
         DIRETOR_CENTRO: 'Diretor de Centro',
-        MANUTENCAO: 'Manutencao',
+        MANUTENCAO: 'Manutenção',
         GESTOR: 'Gestor'
       };
       return labels[value] || value || '-';
@@ -2145,6 +2819,17 @@
       els.recentCallsPanel.classList.remove('open');
     }
 
+    function openMyCallsPanel() {
+      if (els.openMyCallsButton.hidden) {
+        return;
+      }
+      els.myCallsPanel.classList.add('open');
+    }
+
+    function closeMyCallsPanel() {
+      els.myCallsPanel.classList.remove('open');
+    }
+
     function openReportsPanel() {
       if (els.openReportsButton.hidden) {
         return;
@@ -2165,7 +2850,12 @@
       if (els.openPendingAccessButton.hidden) {
         return;
       }
-
+      setMessage(els.usersMessage, '', '');
+      els.usersOnlyPendingButton.textContent = state.usersOnlyPending ? 'Mostrar todos' : 'Ver apenas pendentes';
+      loadCentros().then(() => {
+        els.userCentroSelect.innerHTML = els.centroSelect.innerHTML;
+      });
+      loadUsersAccess(false);
       els.pendingAccessPanel.classList.add('open');
     }
 
@@ -2209,16 +2899,22 @@
           const centros = response.data || [];
           state.centros = centros;
           const options = '<option value="">Selecione um centro</option>' + centros.map((centro) => {
-            return '<option value="' + centro.sigla + '">' + centro.sigla + ' - ' + centro.nome + '</option>';
+            return '<option value="' + escapeHtml(centro.sigla) + '">' + escapeHtml(centro.sigla) + ' - ' + escapeHtml(centro.nome) + '</option>';
           }).join('');
           els.centroSelect.innerHTML = options;
           els.callCentroSelect.innerHTML = options;
+          if (els.userCentroSelect) {
+            els.userCentroSelect.innerHTML = options;
+          }
           state.centrosLoaded = true;
           return centros;
         })
         .catch(() => {
           els.centroSelect.innerHTML = '<option value="">Nao foi possivel carregar centros</option>';
           els.callCentroSelect.innerHTML = '<option value="">Nao foi possivel carregar centros</option>';
+          if (els.userCentroSelect) {
+            els.userCentroSelect.innerHTML = '<option value="">Nao foi possivel carregar centros</option>';
+          }
           return [];
         });
     }
@@ -2230,10 +2926,10 @@
         return Promise.resolve(state.technicians);
       }
 
-      setEmptyState(els.techniciansList, 'Carregando tecnicos...');
+      setEmptyState(els.techniciansList, 'Carregando técnicos...');
       return callServer('listarTecnicosManutencao', getAuthPayload())
         .then((response) => {
-          response = requireResponse(response, 'Nao foi possivel carregar tecnicos.');
+          response = requireResponse(response, 'Não foi possível carregar técnicos.');
           const technicians = response.data || [];
           state.technicians = technicians;
           state.techniciansLoaded = true;
@@ -2242,7 +2938,7 @@
           return technicians;
         })
         .catch((error) => {
-          const message = error.message || 'Erro ao carregar tecnicos.';
+          const message = error.message || 'Erro ao carregar técnicos.';
           els.manageCallTechnician.innerHTML = '<option value="">' + escapeHtml(message) + '</option>';
           setEmptyState(els.techniciansList, message);
           return [];
@@ -2258,7 +2954,7 @@
       }).join('');
       els.manageCallTechnician.innerHTML = options;
 
-      const filterOptions = '<option value="">Todos tecnicos</option>' + technicians.map((technician) => {
+      const filterOptions = '<option value="">Todos os técnicos</option>' + technicians.map((technician) => {
         return '<option value="' + escapeHtml(technician.id) + '">' + escapeHtml(technician.nome || '-') + '</option>';
       }).join('');
       els.callTechnicianFilter.innerHTML = filterOptions;
@@ -2312,7 +3008,7 @@
       }
 
       els.submitRegisterButton.disabled = true;
-      setMessage(els.registerMessage, 'Enviando solicitacao...', '');
+      setMessage(els.registerMessage, 'Enviando solicitação...', '');
 
       callServer('registrarAcesso', payload)
         .then((response) => {
@@ -2502,6 +3198,11 @@
     function handleApproveAccess(email, button) {
       const profileSelect = Array.from(els.pendingAccessList.querySelectorAll('[data-access-profile]'))
         .find((select) => select.getAttribute('data-access-profile') === email);
+      const centerInput = Array.from(els.pendingAccessList.querySelectorAll('[data-access-centro]'))
+        .find((input) => input.getAttribute('data-access-centro') === email);
+      const phoneInput = Array.from(els.pendingAccessList.querySelectorAll('[data-access-telefone]'))
+        .find((input) => input.getAttribute('data-access-telefone') === email);
+      const userId = button.getAttribute('data-user-id') || '';
       const payload = {
         auth_email: state.authEmail,
         email: email,
@@ -2514,7 +3215,24 @@
       callServer('aprovarAcesso', payload)
         .then((response) => {
           requireResponse(response, 'Erro ao aprovar acesso.');
-          loadDashboard();
+          if (centerInput || phoneInput) {
+            return callServer('atualizarUsuarioAcesso', {
+              auth_email: state.authEmail,
+              user_id: userId,
+              original_email: email,
+              email: email,
+              nome: getUserNameByEmail(email),
+              perfil: profileSelect ? profileSelect.value : 'USUARIO',
+              centro_sigla: centerInput ? centerInput.value : '',
+              telefone: phoneInput ? phoneInput.value : ''
+            });
+          }
+          return Promise.resolve({ success: true });
+        })
+        .then((response) => {
+          requireResponse(response, 'Erro ao atualizar usuario.');
+          state.usersLoaded = false;
+          return Promise.all([loadUsersAccess(true), loadDashboard({ preserveView: true })]);
         })
         .catch((error) => {
           button.disabled = false;
@@ -2524,7 +3242,7 @@
     }
 
     function handleRejectAccess(email, button) {
-      if (!confirm('Rejeitar a solicitacao de ' + email + '?')) {
+      if (!confirm('Rejeitar a solicitação de ' + email + '?')) {
         return;
       }
 
@@ -2537,7 +3255,8 @@
       })
         .then((response) => {
           requireResponse(response, 'Erro ao rejeitar acesso.');
-          loadDashboard();
+          state.usersLoaded = false;
+          return Promise.all([loadUsersAccess(true), loadDashboard({ preserveView: true })]);
         })
         .catch((error) => {
           button.disabled = false;
@@ -2546,18 +3265,166 @@
         });
     }
 
+    function getUserNameByEmail(email) {
+      const target = String(email || '').trim().toLowerCase();
+      const user = state.users.find((item) => String(item.email || '').trim().toLowerCase() === target);
+      return user && user.nome ? user.nome : '';
+    }
+
+    function getUserEditPayload(email, userId) {
+      const profileSelect = Array.from(els.pendingAccessList.querySelectorAll('[data-access-profile]'))
+        .find((select) => select.getAttribute('data-access-profile') === email);
+      const centerInput = Array.from(els.pendingAccessList.querySelectorAll('[data-access-centro]'))
+        .find((input) => input.getAttribute('data-access-centro') === email);
+      const phoneInput = Array.from(els.pendingAccessList.querySelectorAll('[data-access-telefone]'))
+        .find((input) => input.getAttribute('data-access-telefone') === email);
+      const user = state.users.find((item) => String(item.email || '').toLowerCase() === String(email || '').toLowerCase());
+
+      return {
+        auth_email: state.authEmail,
+        user_id: userId || (user && user.id ? user.id : ''),
+        original_email: user && user.email ? user.email : email,
+        nome: user && user.nome ? user.nome : '',
+        email: user && user.email ? user.email : email,
+        perfil: profileSelect ? profileSelect.value : normalizeProfileValue(user && user.perfil ? user.perfil : 'USUARIO'),
+        centro_sigla: centerInput ? centerInput.value : (user && user.centro_sigla ? user.centro_sigla : ''),
+        telefone: phoneInput ? phoneInput.value : (user && user.telefone ? user.telefone : '')
+      };
+    }
+
+    function handleSaveUser(email, userId, button) {
+      const payload = getUserEditPayload(email, userId);
+      if (!payload.nome) {
+        els.pendingAccessList.insertAdjacentHTML('afterbegin', '<div class="empty-state">Nao foi possivel identificar o nome do usuario para salvar.</div>');
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = 'Salvando';
+
+      callServer('atualizarUsuarioAcesso', payload)
+        .then((response) => {
+          requireResponse(response, 'Erro ao atualizar usuario.');
+          state.usersLoaded = false;
+          return loadUsersAccess(true);
+        })
+        .catch((error) => {
+          button.disabled = false;
+          button.textContent = 'Salvar';
+          els.pendingAccessList.insertAdjacentHTML('afterbegin', '<div class="empty-state">' + escapeHtml(error.message || 'Erro ao salvar usuario.') + '</div>');
+        });
+    }
+
+    function handleToggleUserActive(email, userId, nextActive, button) {
+      const actionLabelText = nextActive ? 'ativar' : 'bloquear';
+      if (!confirm((nextActive ? 'Ativar' : 'Bloquear') + ' o usuario ' + email + '?')) {
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = nextActive ? 'Ativando' : 'Bloqueando';
+
+      callServer('alternarAtivoUsuarioAcesso', {
+        auth_email: state.authEmail,
+        user_id: userId,
+        email: email,
+        ativo: nextActive
+      })
+        .then((response) => {
+          requireResponse(response, 'Erro ao ' + actionLabelText + ' usuario.');
+          state.usersLoaded = false;
+          return Promise.all([loadUsersAccess(true), loadDashboard({ preserveView: true })]);
+        })
+        .catch((error) => {
+          button.disabled = false;
+          button.textContent = nextActive ? 'Ativar' : 'Bloquear';
+          els.pendingAccessList.insertAdjacentHTML('afterbegin', '<div class="empty-state">' + escapeHtml(error.message || ('Erro ao ' + actionLabelText + ' usuario.')) + '</div>');
+        });
+    }
+
+    function handleDeleteUser(email, userId, button) {
+      if (!confirm('Excluir o usuario ' + email + '? Esta acao nao pode ser desfeita.')) {
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = 'Excluindo';
+
+      callServer('excluirUsuarioAcesso', {
+        auth_email: state.authEmail,
+        user_id: userId,
+        email: email
+      })
+        .then((response) => {
+          requireResponse(response, 'Erro ao excluir usuario.');
+          state.usersLoaded = false;
+          return Promise.all([loadUsersAccess(true), loadDashboard({ preserveView: true })]);
+        })
+        .catch((error) => {
+          button.disabled = false;
+          button.textContent = 'Excluir';
+          els.pendingAccessList.insertAdjacentHTML('afterbegin', '<div class="empty-state">' + escapeHtml(error.message || 'Erro ao excluir usuario.') + '</div>');
+        });
+    }
+
+    function handleCreateUser(event) {
+      event.preventDefault();
+      const formData = new FormData(els.userForm);
+      const payload = Object.fromEntries(formData.entries());
+      payload.auth_email = state.authEmail;
+      payload.ativo = String(payload.ativo || '').toLowerCase() === 'true';
+
+      if (!String(payload.nome || '').trim()) {
+        setMessage(els.usersMessage, 'Informe o nome do usuario.', 'error');
+        return;
+      }
+
+      if (!String(payload.email || '').trim().toLowerCase().endsWith('@uel.br')) {
+        setMessage(els.usersMessage, 'Use obrigatoriamente um e-mail @uel.br.', 'error');
+        return;
+      }
+
+      if (!String(payload.centro_sigla || '').trim()) {
+        setMessage(els.usersMessage, 'Selecione o centro do usuario.', 'error');
+        return;
+      }
+
+      els.submitUserButton.disabled = true;
+      setMessage(els.usersMessage, 'Criando usuario...', '');
+
+      callServer('criarUsuarioAcesso', payload)
+        .then((response) => {
+          requireResponse(response, 'Erro ao criar usuario.');
+          els.userForm.reset();
+          state.usersLoaded = false;
+          setMessage(els.usersMessage, 'Usuário criado com sucesso.', '');
+          return Promise.all([loadUsersAccess(true), loadDashboard({ preserveView: true })]);
+        })
+        .catch((error) => {
+          setMessage(els.usersMessage, error.message || 'Erro ao criar usuário.', 'error');
+        })
+        .finally(() => {
+          els.submitUserButton.disabled = false;
+        });
+    }
+
     function normalizeStatusValue(value) {
-      const status = String(value || 'ABERTO').toUpperCase().replace(/\s+/g, '_').replace(/-/g, '_');
+      const status = String(value || 'ABERTO')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase()
+        .replace(/\s+/g, '_')
+        .replace(/-/g, '_');
       const allowed = ['ABERTO', 'EM_ANALISE', 'ENCAMINHADO', 'EM_EXECUCAO', 'CONCLUIDO'];
       return allowed.includes(status) ? status : 'ABERTO';
     }
 
     function loadCallHistory(chamadoId) {
-      setEmptyState(els.manageCallHistory, 'Carregando historico...');
+      setEmptyState(els.manageCallHistory, 'Carregando histórico...');
 
       callServer('getHistoricoChamado', chamadoId, getAuthPayload())
         .then((response) => {
-          response = requireResponse(response, 'Nao foi possivel carregar o historico.');
+          response = requireResponse(response, 'Não foi possível carregar o histórico.');
           renderCallHistory(response.data || []);
         })
         .catch((error) => {
@@ -2567,7 +3434,7 @@
 
     function renderCallHistory(items) {
       if (!items.length) {
-        setEmptyState(els.manageCallHistory, 'Nenhum historico registrado.');
+        setEmptyState(els.manageCallHistory, 'Nenhum histórico registrado.');
         return;
       }
 
@@ -2617,7 +3484,10 @@
     els.newCallButton.addEventListener('click', openCallModal);
     els.logoutButton.addEventListener('click', logout);
     els.openRecentCallsButton.addEventListener('click', openRecentCallsPanel);
+    els.openMyCallsButton.addEventListener('click', openMyCallsPanel);
     els.openReportsButton.addEventListener('click', openReportsPanel);
+    els.openPartsButton.addEventListener('click', openPartsPanel);
+    els.openWhatsappPcuButton.addEventListener('click', openWhatsappPcuPanel);
     els.openPendingAccessButton.addEventListener('click', openPendingAccessPanel);
     els.openTechniciansButton.addEventListener('click', openTechniciansPanel);
     els.registerButton.addEventListener('click', openRegisterModal);
@@ -2625,12 +3495,16 @@
     els.closeCallModalButton.addEventListener('click', closeCallModal);
     els.closeManageCallModalButton.addEventListener('click', closeManageCallModal);
     els.closeRecentCallsPanelButton.addEventListener('click', closeRecentCallsPanel);
+    els.closeMyCallsPanelButton.addEventListener('click', closeMyCallsPanel);
     els.closeReportsPanelButton.addEventListener('click', closeReportsPanel);
+    els.closePartsPanelButton.addEventListener('click', closePartsPanel);
+    els.closeWhatsappPcuPanelButton.addEventListener('click', closeWhatsappPcuPanel);
     els.closePendingAccessPanelButton.addEventListener('click', closePendingAccessPanel);
     els.closeTechniciansPanelButton.addEventListener('click', closeTechniciansPanel);
     els.registerForm.addEventListener('submit', handleRegister);
     els.callForm.addEventListener('submit', handleCreateCall);
     els.manageCallForm.addEventListener('submit', (event) => event.preventDefault());
+    els.userForm.addEventListener('submit', handleCreateUser);
     els.technicianForm.addEventListener('submit', handleTechnicianSubmit);
     els.assignMaintenanceButton.addEventListener('click', handleAssignMaintenance);
     els.callSearchInput.addEventListener('input', applyCallFilters);
@@ -2641,6 +3515,32 @@
     els.reportStatusFilter.addEventListener('change', renderReportSummary);
     els.reportPriorityFilter.addEventListener('change', renderReportSummary);
     els.reportTechnicianFilter.addEventListener('change', renderReportSummary);
+    els.partsSearchInput.addEventListener('input', () => renderPartsCalls(state.partsCalls));
+    els.partsCallSelect.addEventListener('change', () => loadPartsItems(els.partsCallSelect.value));
+    els.partsRefreshButton.addEventListener('click', () => loadPartsCalls(true));
+    els.partsExportPdfButton.addEventListener('click', () => {
+      if (!state.partsItems.length) {
+        alert('Selecione um chamado com vistorias para exportar.');
+        return;
+      }
+      const title = 'Lista de peças - ' + (state.partsItems[0].chamado_numero || state.partsCurrentCallId);
+      exportPartsPdf(state.partsItems, title);
+    });
+    els.partsExportExcelButton.addEventListener('click', () => {
+      if (!state.partsItems.length) {
+        alert('Selecione um chamado com vistorias para exportar.');
+        return;
+      }
+      const fileName = 'pecas-' + (state.partsItems[0].chamado_numero || state.partsCurrentCallId) + '.xls';
+      exportPartsExcel(state.partsItems, fileName);
+    });
+    els.usersSearchInput.addEventListener('input', () => applyUsersFilters(state.users));
+    els.usersStatusFilter.addEventListener('change', () => applyUsersFilters(state.users));
+    els.usersOnlyPendingButton.addEventListener('click', () => {
+      state.usersOnlyPending = !state.usersOnlyPending;
+      els.usersOnlyPendingButton.textContent = state.usersOnlyPending ? 'Mostrar todos' : 'Ver apenas pendentes';
+      applyUsersFilters(state.users);
+    });
     els.exportCsvButton.addEventListener('click', exportReportCsv);
     els.exportExcelButton.addEventListener('click', exportReportExcel);
     els.exportPdfButton.addEventListener('click', exportReportPdf);
@@ -2660,6 +3560,37 @@
       const rejectButton = event.target.closest('[data-reject-email]');
       if (rejectButton) {
         handleRejectAccess(rejectButton.getAttribute('data-reject-email'), rejectButton);
+        return;
+      }
+
+      const saveUserButton = event.target.closest('[data-save-user]');
+      if (saveUserButton) {
+        handleSaveUser(
+          saveUserButton.getAttribute('data-save-user'),
+          saveUserButton.getAttribute('data-user-id'),
+          saveUserButton
+        );
+        return;
+      }
+
+      const toggleUserButton = event.target.closest('[data-toggle-user-active]');
+      if (toggleUserButton) {
+        handleToggleUserActive(
+          toggleUserButton.getAttribute('data-toggle-user-active'),
+          toggleUserButton.getAttribute('data-user-id'),
+          String(toggleUserButton.getAttribute('data-next-active') || '').toLowerCase() === 'true',
+          toggleUserButton
+        );
+        return;
+      }
+
+      const deleteUserButton = event.target.closest('[data-delete-user]');
+      if (deleteUserButton) {
+        handleDeleteUser(
+          deleteUserButton.getAttribute('data-delete-user'),
+          deleteUserButton.getAttribute('data-user-id'),
+          deleteUserButton
+        );
       }
     });
     els.registerModal.addEventListener('click', (event) => {
@@ -2682,14 +3613,59 @@
         closeRecentCallsPanel();
       }
     });
+    els.myCallsPanel.addEventListener('click', (event) => {
+      if (event.target === els.myCallsPanel) {
+        closeMyCallsPanel();
+      }
+    });
     els.reportsPanel.addEventListener('click', (event) => {
       if (event.target === els.reportsPanel) {
         closeReportsPanel();
       }
     });
+    els.partsPanel.addEventListener('click', (event) => {
+      if (event.target === els.partsPanel) {
+        closePartsPanel();
+      }
+    });
+    els.whatsappPcuPanel.addEventListener('click', (event) => {
+      if (event.target === els.whatsappPcuPanel) {
+        closeWhatsappPcuPanel();
+      }
+    });
     els.pendingAccessPanel.addEventListener('click', (event) => {
       if (event.target === els.pendingAccessPanel) {
         closePendingAccessPanel();
+      }
+    });
+    els.partsList.addEventListener('click', (event) => {
+      const pdfButton = event.target.closest('[data-parts-item-pdf]');
+      if (pdfButton) {
+        const itemId = pdfButton.getAttribute('data-parts-item-pdf');
+        const item = state.partsItems.find((row) => row.id === itemId);
+        if (item) {
+          exportPartsPdf([item], 'Lista de peças - ' + (item.chamado_numero || '-') + ' - ' + (item.vistoria_numero || '-'));
+        }
+        return;
+      }
+
+      const excelButton = event.target.closest('[data-parts-item-excel]');
+      if (excelButton) {
+        const itemId = excelButton.getAttribute('data-parts-item-excel');
+        const item = state.partsItems.find((row) => row.id === itemId);
+        if (item) {
+          exportPartsExcel([item], 'pecas-' + (item.chamado_numero || '-') + '-' + (item.vistoria_numero || '-') + '.xls');
+        }
+        return;
+      }
+
+      const statusButton = event.target.closest('[data-parts-item-status]');
+      if (statusButton) {
+        handlePartsStatusUpdate(
+          statusButton.getAttribute('data-parts-item-status'),
+          statusButton.getAttribute('data-next-status'),
+          statusButton
+        );
       }
     });
     els.techniciansList.addEventListener('click', (event) => {
@@ -2707,6 +3683,11 @@
     els.techniciansPanel.addEventListener('click', (event) => {
       if (event.target === els.techniciansPanel) {
         closeTechniciansPanel();
+      }
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && state.session) {
+        loadDashboard({ preserveView: true });
       }
     });
     setMessage(els.loginMessage, 'Digite seu e-mail @uel.br para acessar.', '');

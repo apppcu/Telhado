@@ -22,7 +22,7 @@ function listarChamadosTecnicoMobile(payload) {
 
     const tecnicoIndex = headerIndex_(tecnicoLocation.headers);
     const tecnicoRow = tecnicoLocation.values;
-    const tecnicoAtivo = String(tecnicoRow[tecnicoIndex.ativo]).toUpperCase() === 'TRUE' || tecnicoRow[tecnicoIndex.ativo] === true;
+    const tecnicoAtivo = isTrue_(tecnicoRow[tecnicoIndex.ativo]);
 
     if (!tecnicoAtivo) {
       return accessError_('TECNICO_INATIVO', 'Tecnico inativo.');
@@ -39,23 +39,16 @@ function listarChamadosTecnicoMobile(payload) {
         return String(row.executante_id || '').trim() === tecnicoId && status !== 'CONCLUIDO';
       })
       .map(function(row) {
-        const predioId = row.predio_id || '';
-        const predio = prediosById[predioId] || null;
-        return {
-          id: row.id || '',
-          numero: row.numero || row.id || '-',
-          predio_id: predioId,
-          predio_nome: predio ? predio.nome : predioId,
-          centro_sigla: row.centro_sigla || (predio ? predio.centro_sigla : ''),
-          descricao: row.descricao || '',
-          categoria: row.categoria || '',
-          prioridade: row.prioridade || 'NORMAL',
-          status: row.status || 'ENCAMINHADO',
-          observacao: row.observacao || '',
-          data_abertura: row.data_abertura || row.created_at || '',
-          data_fechamento: row.data_fechamento || '',
-          updated_at: row.updated_at || ''
-        };
+        return buildChamadoMobileResponse_(
+          spreadsheet,
+          row,
+          null,
+          row.id || '',
+          row.status || 'ENCAMINHADO',
+          undefined,
+          row.updated_at || '',
+          prediosById
+        );
       })
       .sort(function(a, b) {
         return dateValue_(b.data_abertura) - dateValue_(a.data_abertura);
@@ -83,10 +76,10 @@ function iniciarVistoriaTecnicoMobile(payload) {
     }
 
     const statusAnterior = String(context.row[context.index.status] || '').trim().toUpperCase();
-    const allowedStatus = ['ENCAMINHADO', 'EM_ANALISE'];
+    const allowedStatus = ['ABERTO', 'ENCAMINHADO', 'EM_ANALISE'];
 
     if (allowedStatus.indexOf(statusAnterior) < 0) {
-      return accessError_('STATUS_INVALIDO_PARA_VISTORIA', 'A vistoria so pode ser iniciada em chamados encaminhados.');
+      return accessError_('STATUS_INVALIDO_PARA_VISTORIA', 'A vistoria so pode ser iniciada em chamados atribuidos ao tecnico.');
     }
 
     const now = now_();
@@ -114,26 +107,15 @@ function iniciarVistoriaTecnicoMobile(payload) {
       });
     }
 
-    const prediosById = getPrediosByIdForChamadosMobile_(context.spreadsheet);
-    const predioId = context.row[context.index.predio_id] || '';
-    const predio = prediosById[predioId] || null;
-
-    return success_({
-      id: context.chamadoId,
-      numero: context.row[context.index.numero] || context.chamadoId,
-      predio_id: predioId,
-      predio_nome: predio ? predio.nome : predioId,
-      centro_sigla: context.row[context.index.centro_sigla] || (predio ? predio.centro_sigla : ''),
-      descricao: context.row[context.index.descricao] || '',
-      categoria: context.row[context.index.categoria] || '',
-      prioridade: context.row[context.index.prioridade] || 'NORMAL',
-      status: 'EM_ANALISE',
-      status_anterior: statusAnterior,
-      observacao: context.row[context.index.observacao] || '',
-      data_abertura: context.row[context.index.data_abertura] || context.row[context.index.created_at] || '',
-      data_fechamento: context.row[context.index.data_fechamento] || '',
-      updated_at: now
-    });
+    return success_(buildChamadoMobileResponse_(
+      context.spreadsheet,
+      context.row,
+      context.index,
+      context.chamadoId,
+      'EM_ANALISE',
+      statusAnterior,
+      now
+    ));
   } catch (error) {
     return accessError_('INICIAR_VISTORIA_ERROR', error.message);
   }
@@ -145,7 +127,8 @@ function salvarVistoriaTecnicoMobile(payload) {
     const observacaoTecnica = String(data.observacao_tecnica || '').trim();
     const materiais = String(data.materiais || '').trim();
     const ferramentas = String(data.ferramentas || '').trim();
-    const resolverNaHora = data.resolver_na_hora === true || String(data.resolver_na_hora).toUpperCase() === 'TRUE';
+    const resolverNaHora = isTrue_(data.resolver_na_hora);
+    const vistoriaToken = String(data.vistoria_token || '').trim();
 
     const context = getChamadoTecnicoMobileContext_(data, 'salvar a vistoria');
     if (!context.ok) {
@@ -187,31 +170,34 @@ function salvarVistoriaTecnicoMobile(payload) {
       status_novo: novoStatus,
       resolver_na_hora: resolverNaHora
     });
+    registrarPecasVistoria_(
+      context.spreadsheet,
+      context,
+      {
+        observacao_tecnica: observacaoTecnica,
+        materiais: materiais,
+        ferramentas: ferramentas,
+        resumo_vistoria: resumoVistoria,
+        vistoria_token: vistoriaToken
+      },
+      now
+    );
 
-    const prediosById = getPrediosByIdForChamadosMobile_(context.spreadsheet);
-    const predioId = context.row[context.index.predio_id] || '';
-    const predio = prediosById[predioId] || null;
-
-    return success_({
-      id: context.chamadoId,
-      numero: context.row[context.index.numero] || context.chamadoId,
-      predio_id: predioId,
-      predio_nome: predio ? predio.nome : predioId,
-      centro_sigla: context.row[context.index.centro_sigla] || (predio ? predio.centro_sigla : ''),
-      descricao: context.row[context.index.descricao] || '',
-      categoria: context.row[context.index.categoria] || '',
-      prioridade: context.row[context.index.prioridade] || 'NORMAL',
-      status: novoStatus,
-      status_anterior: statusAnterior,
-      observacao: observacaoFinal,
-      observacao_tecnica: observacaoTecnica,
-      materiais: materiais,
-      ferramentas: ferramentas,
-      resolver_na_hora: resolverNaHora,
-      data_abertura: context.row[context.index.data_abertura] || context.row[context.index.created_at] || '',
-      data_fechamento: context.row[context.index.data_fechamento] || '',
-      updated_at: now
-    });
+    const response = buildChamadoMobileResponse_(
+      context.spreadsheet,
+      context.row,
+      context.index,
+      context.chamadoId,
+      novoStatus,
+      statusAnterior,
+      now
+    );
+    response.observacao = observacaoFinal;
+    response.observacao_tecnica = observacaoTecnica;
+    response.materiais = materiais;
+    response.ferramentas = ferramentas;
+    response.resolver_na_hora = resolverNaHora;
+    return success_(response);
   } catch (error) {
     return accessError_('SALVAR_VISTORIA_ERROR', error.message);
   }
@@ -274,6 +260,21 @@ function reabrirVistoriaTecnicoMobile(payload) {
     }
 
     const statusAnterior = String(context.row[context.index.status] || '').trim().toUpperCase();
+    if (statusAnterior === 'EM_ANALISE') {
+      const response = buildChamadoMobileResponse_(
+        context.spreadsheet,
+        context.row,
+        context.index,
+        context.chamadoId,
+        'EM_ANALISE',
+        statusAnterior,
+        context.row[context.index.updated_at] || now_()
+      );
+      response.observacao = String(context.row[context.index.observacao] || '').trim();
+      response.nova_vistoria_ja_aberta = true;
+      return success_(response);
+    }
+
     if (statusAnterior !== 'EM_EXECUCAO') {
       return accessError_('STATUS_INVALIDO_PARA_NOVA_VISTORIA', 'A nova vistoria so pode ser aberta durante a execucao.');
     }
@@ -397,7 +398,7 @@ function criarChamado(payload) {
     const email = getAccessEmailFromPayload_(data);
     const user = getAuthorizedUserFromPayload_(data);
 
-    if (!user || !(String(user.ativo).toUpperCase() === 'TRUE' || user.ativo === true)) {
+    if (!user || !isTrue_(user.ativo)) {
       return accessError_('USUARIO_NAO_AUTORIZADO', 'Usuario nao autorizado para abrir chamados.');
     }
 
@@ -477,7 +478,7 @@ function getHistoricoChamado(chamadoId, payload) {
     }
 
     const user = getAuthorizedUserFromPayload_(payload);
-    if (!user || !(String(user.ativo).toUpperCase() === 'TRUE' || user.ativo === true)) {
+    if (!user || !isTrue_(user.ativo)) {
       return accessError_('USUARIO_NAO_AUTORIZADO', 'Usuario nao autorizado para consultar historico.');
     }
 
@@ -535,7 +536,7 @@ function atualizarChamado(item) {
 
     const email = getAccessEmailFromPayload_(data);
     const user = getAuthorizedUserFromPayload_(data);
-    if (!user || !(String(user.ativo).toUpperCase() === 'TRUE' || user.ativo === true)) {
+    if (!user || !isTrue_(user.ativo)) {
       return accessError_('USUARIO_NAO_AUTORIZADO', 'Usuario nao autorizado para atualizar chamados.');
     }
 
@@ -837,7 +838,7 @@ function getChamadoTecnicoMobileContext_(payload, actionLabel) {
 
   const tecnicoIndex = headerIndex_(tecnicoLocation.headers);
   const tecnicoRow = tecnicoLocation.values;
-  const tecnicoAtivo = String(tecnicoRow[tecnicoIndex.ativo]).toUpperCase() === 'TRUE' || tecnicoRow[tecnicoIndex.ativo] === true;
+  const tecnicoAtivo = isTrue_(tecnicoRow[tecnicoIndex.ativo]);
 
   if (!tecnicoAtivo) {
     return {
@@ -878,31 +879,590 @@ function getChamadoTecnicoMobileContext_(payload, actionLabel) {
     index: index,
     row: row,
     chamadoId: chamadoId,
-    tecnicoId: tecnicoId
+    tecnicoId: tecnicoId,
+    tecnicoNome: String(tecnicoRow[tecnicoIndex.nome] || '').trim()
   };
 }
 
-function buildChamadoMobileResponse_(spreadsheet, row, index, chamadoId, status, statusAnterior, updatedAt) {
-  const prediosById = getPrediosByIdForChamadosMobile_(spreadsheet);
-  const predioId = row[index.predio_id] || '';
-  const predio = prediosById[predioId] || null;
+function listarChamadosPecas(payload) {
+  try {
+    const user = getAuthorizedUserFromPayload_(payload);
+    if (!user || !isTrue_(user.ativo) || !canManageAccess_(user)) {
+      return accessError_('ADMIN_NAO_AUTORIZADO', 'Apenas administradores podem acessar o painel de pecas.');
+    }
 
+    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const sheet = ensurePecasVistoriaSheet_(spreadsheet);
+    const rows = readSheetObjects_(sheet);
+    const itens = rows.length
+      ? rows.map(mapPecaVistoriaRow_)
+      : listarPecasFallbackDosChamados_(spreadsheet);
+    const chamadosAtivos = getChamadosAtivosByIdPecas_(spreadsheet);
+    const byChamado = {};
+
+    itens.forEach(function(row) {
+      const chamadoId = String(row.chamado_id || '').trim();
+      if (!chamadoId || !chamadosAtivos[chamadoId]) {
+        return;
+      }
+
+      if (!byChamado[chamadoId]) {
+        byChamado[chamadoId] = {
+          chamado_id: chamadoId,
+          chamado_numero: row.chamado_numero || chamadoId,
+          centro_sigla: row.centro_sigla || '-',
+          predio_id: row.predio_id || '-',
+          predio_nome: row.predio_nome || '',
+          total_vistorias: 0,
+          pendentes: 0,
+          ultima_vistoria_em: ''
+        };
+      }
+
+      const item = byChamado[chamadoId];
+      item.total_vistorias++;
+      if (String(row.status_lista || 'PENDENTE').trim().toUpperCase() === 'PENDENTE') {
+        item.pendentes++;
+      }
+
+      const currentDate = dateValue_(item.ultima_vistoria_em || '');
+      const rowDate = dateValue_(row.vistoria_datahora || row.updated_at || row.created_at || '');
+      if (rowDate >= currentDate) {
+        item.ultima_vistoria_em = row.vistoria_datahora || row.updated_at || row.created_at || '';
+      }
+    });
+
+    const chamados = Object.keys(byChamado)
+      .map(function(key) {
+        return byChamado[key];
+      })
+      .sort(function(a, b) {
+        return dateValue_(b.ultima_vistoria_em) - dateValue_(a.ultima_vistoria_em);
+      });
+
+    return success_(chamados);
+  } catch (error) {
+    return accessError_('LISTAR_CHAMADOS_PECAS_ERROR', error.message);
+  }
+}
+
+function getChamadosAtivosByIdPecas_(spreadsheet) {
+  const sheet = spreadsheet.getSheetByName('chamados');
+  if (!sheet) {
+    return {};
+  }
+
+  return readSheetObjects_(sheet).reduce(function(map, row) {
+    const chamadoId = String(row.id || '').trim();
+    const status = normalizeStatus_(row.status);
+    if (chamadoId && status !== 'CONCLUIDO') {
+      map[chamadoId] = true;
+    }
+    return map;
+  }, {});
+}
+
+function listarPecasPorChamado(payload) {
+  try {
+    const data = payload || {};
+    const user = getAuthorizedUserFromPayload_(data);
+    if (!user || !isTrue_(user.ativo) || !canManageAccess_(user)) {
+      return accessError_('ADMIN_NAO_AUTORIZADO', 'Apenas administradores podem acessar o painel de pecas.');
+    }
+
+    const chamadoId = String(data.chamado_id || '').trim();
+    if (!chamadoId) {
+      return accessError_('CHAMADO_ID_OBRIGATORIO', 'Selecione um chamado para listar as pecas.');
+    }
+
+    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const sheet = ensurePecasVistoriaSheet_(spreadsheet);
+    let rows = readSheetObjects_(sheet)
+      .filter(function(row) {
+        return String(row.chamado_id || '').trim() === chamadoId;
+      })
+      .map(mapPecaVistoriaRow_)
+      .sort(function(a, b) {
+        return a.vistoria_ordem - b.vistoria_ordem;
+      });
+
+    if (!rows.length) {
+      rows = listarPecasFallbackDosChamados_(spreadsheet, chamadoId);
+    }
+
+    const resumo = rows.length ? {
+      chamado_id: rows[0].chamado_id,
+      chamado_numero: rows[0].chamado_numero,
+      centro_sigla: rows[0].centro_sigla,
+      predio_id: rows[0].predio_id,
+      predio_nome: rows[0].predio_nome,
+      total_vistorias: rows.length,
+      pendentes: rows.filter(function(item) {
+        return String(item.status_lista || '').toUpperCase() === 'PENDENTE';
+      }).length
+    } : null;
+
+    return success_({
+      resumo: resumo,
+      itens: rows
+    });
+  } catch (error) {
+    return accessError_('LISTAR_PECAS_CHAMADO_ERROR', error.message);
+  }
+}
+
+function atualizarStatusPecaVistoria(payload) {
+  try {
+    const data = payload || {};
+    const user = getAuthorizedUserFromPayload_(data);
+    if (!user || !isTrue_(user.ativo) || !canManageAccess_(user)) {
+      return accessError_('ADMIN_NAO_AUTORIZADO', 'Apenas administradores podem alterar status da lista de pecas.');
+    }
+
+    const itemId = String(data.item_id || '').trim();
+    const statusLista = String(data.status_lista || '').trim().toUpperCase();
+    const allowed = ['PENDENTE', 'EXPORTADO'];
+
+    if (!itemId) {
+      return accessError_('ITEM_ID_OBRIGATORIO', 'Selecione um item de pecas.');
+    }
+
+    if (allowed.indexOf(statusLista) < 0) {
+      return accessError_('STATUS_LISTA_INVALIDO', 'Status de lista invalido.');
+    }
+
+    const spreadsheet = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+    const sheet = ensurePecasVistoriaSheet_(spreadsheet);
+    const location = findRowById_(sheet, itemId);
+    if (!location) {
+      return accessError_('ITEM_NAO_ENCONTRADO', 'Item de pecas nao encontrado.');
+    }
+
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const index = headerIndex_(headers);
+    const now = now_();
+
+    sheet.getRange(location.rowNumber, index.status_lista + 1).setValue(statusLista);
+    sheet.getRange(location.rowNumber, index.updated_at + 1).setValue(now);
+
+    return success_({
+      item_id: itemId,
+      status_lista: statusLista,
+      updated_at: now
+    });
+  } catch (error) {
+    return accessError_('ATUALIZAR_STATUS_PECA_ERROR', error.message);
+  }
+}
+
+function ensurePecasVistoriaSheet_(spreadsheet) {
+  const headers = [
+    'id',
+    'chamado_id',
+    'chamado_numero',
+    'vistoria_numero',
+    'vistoria_ordem',
+    'vistoria_datahora',
+    'centro_sigla',
+    'predio_id',
+    'predio_nome',
+    'tecnico_id',
+    'tecnico_nome',
+    'materiais_texto',
+    'observacao_tecnica',
+    'status_lista',
+    'origem_token',
+    'created_at',
+    'updated_at'
+  ];
+  let sheet = spreadsheet.getSheetByName('pecas_vistoria');
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet('pecas_vistoria');
+  }
+
+  const lastColumn = Math.max(sheet.getLastColumn(), headers.length);
+  const current = lastColumn > 0 ? sheet.getRange(1, 1, 1, lastColumn).getValues()[0] : [];
+  let changed = false;
+
+  headers.forEach(function(header, position) {
+    if (String(current[position] || '').trim() !== header) {
+      sheet.getRange(1, position + 1).setValue(header);
+      changed = true;
+    }
+  });
+
+  if (changed) {
+    sheet.setFrozenRows(1);
+  }
+
+  return sheet;
+}
+
+function registrarPecasVistoria_(spreadsheet, context, payload, now) {
+  const data = payload || {};
+  const token = String(data.vistoria_token || '').trim();
+  const materiaisTexto = String(data.materiais || '').trim();
+  const observacaoTecnica = String(data.observacao_tecnica || '').trim();
+  const resumo = String(data.resumo_vistoria || '').trim();
+  const materiaisFinal = materiaisTexto || resumo || 'Sem materiais informados na vistoria.';
+  const timestamp = now || now_();
+
+  const sheet = ensurePecasVistoriaSheet_(spreadsheet);
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const index = headerIndex_(headers);
+  const row = context.row || [];
+  const get = function(field) {
+    return row[context.index[field]] || '';
+  };
+
+  if (token) {
+    const existingByToken = findPecaVistoriaRowByToken_(sheet, token);
+    if (existingByToken) {
+      sheet.getRange(existingByToken.rowNumber, index.materiais_texto + 1).setValue(materiaisFinal);
+      sheet.getRange(existingByToken.rowNumber, index.observacao_tecnica + 1).setValue(observacaoTecnica);
+      sheet.getRange(existingByToken.rowNumber, index.updated_at + 1).setValue(timestamp);
+      return;
+    }
+  }
+
+  const ordem = nextVistoriaOrdemPecas_(sheet, context.chamadoId);
+  const vistoriaNumero = 'V' + ordem;
+  const itemId = 'PCV-' + Utilities.getUuid();
+
+  sheet.appendRow([
+    itemId,
+    context.chamadoId,
+    get('numero') || context.chamadoId,
+    vistoriaNumero,
+    ordem,
+    timestamp,
+    get('centro_sigla') || '',
+    get('predio_nome') || get('predio_id') || '',
+    get('predio_id') || '',
+    context.tecnicoId || '',
+    context.tecnicoNome || '',
+    materiaisFinal,
+    observacaoTecnica,
+    'PENDENTE',
+    token,
+    timestamp,
+    timestamp
+  ]);
+}
+
+function nextVistoriaOrdemPecas_(sheet, chamadoId) {
+  if (!sheet || sheet.getLastRow() < 2) {
+    return 1;
+  }
+
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const index = headerIndex_(headers);
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+  const target = String(chamadoId || '').trim();
+  let maxOrdem = 0;
+
+  values.forEach(function(row) {
+    if (String(row[index.chamado_id] || '').trim() !== target) {
+      return;
+    }
+    const ordem = Number(row[index.vistoria_ordem] || 0);
+    if (!isNaN(ordem) && ordem > maxOrdem) {
+      maxOrdem = ordem;
+    }
+  });
+
+  return maxOrdem + 1;
+}
+
+function findPecaVistoriaRowByToken_(sheet, token) {
+  if (!sheet || sheet.getLastRow() < 2) {
+    return null;
+  }
+
+  const target = String(token || '').trim();
+  if (!target) {
+    return null;
+  }
+
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const index = headerIndex_(headers);
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+
+  for (var i = 0; i < values.length; i++) {
+    if (String(values[i][index.origem_token] || '').trim() === target) {
+      return {
+        rowNumber: i + 2
+      };
+    }
+  }
+
+  return null;
+}
+
+function mapPecaVistoriaRow_(row) {
+  const raw = row || {};
   return {
+    id: raw.id || '',
+    chamado_id: raw.chamado_id || '',
+    chamado_numero: raw.chamado_numero || '',
+    vistoria_numero: raw.vistoria_numero || '',
+    vistoria_ordem: Number(raw.vistoria_ordem || 0),
+    vistoria_datahora: raw.vistoria_datahora || '',
+    centro_sigla: raw.centro_sigla || '-',
+    predio_id: raw.predio_id || '-',
+    predio_nome: raw.predio_nome || '',
+    tecnico_id: raw.tecnico_id || '',
+    tecnico_nome: raw.tecnico_nome || '',
+    materiais_texto: raw.materiais_texto || '',
+    observacao_tecnica: raw.observacao_tecnica || '',
+    status_lista: raw.status_lista || 'PENDENTE',
+    created_at: raw.created_at || '',
+    updated_at: raw.updated_at || ''
+  };
+}
+
+function listarPecasFallbackDosChamados_(spreadsheet, chamadoIdFiltro) {
+  const sheet = spreadsheet.getSheetByName('chamados');
+  if (!sheet) {
+    return [];
+  }
+
+  const rows = readSheetObjects_(sheet);
+  if (!rows.length) {
+    return [];
+  }
+
+  const target = String(chamadoIdFiltro || '').trim();
+  const tecnicosById = getTecnicosByIdPecas_(spreadsheet);
+  const allowedStatus = {
+    EM_ANALISE: true,
+    EM_EXECUCAO: true,
+    CONCLUIDO: true
+  };
+  const itens = [];
+
+  rows.forEach(function(row) {
+    const chamadoId = String(row.id || '').trim();
+    if (!chamadoId) {
+      return;
+    }
+    if (target && chamadoId !== target) {
+      return;
+    }
+
+    const status = normalizeChamadoStatusMobile_(row.status, row.executante_id);
+    if (!allowedStatus[status]) {
+      return;
+    }
+
+    const blocos = extrairBlocosVistoriaParaPecas_(row.observacao);
+    if (!blocos.length) {
+      return;
+    }
+
+    const tecnicoId = String(row.executante_id || '').trim();
+    const tecnico = tecnicosById[tecnicoId] || null;
+    const tecnicoNome = tecnico ? tecnico.nome : '';
+    const baseDate = row.updated_at || row.created_at || '';
+
+    blocos.forEach(function(bloco, index) {
+      const ordem = index + 1;
+      itens.push({
+        id: 'LEG-' + chamadoId + '-' + ordem,
+        chamado_id: chamadoId,
+        chamado_numero: row.numero || chamadoId,
+        vistoria_numero: 'V' + ordem,
+        vistoria_ordem: ordem,
+        vistoria_datahora: bloco.vistoria_datahora || baseDate,
+        centro_sigla: row.centro_sigla || '-',
+        predio_id: row.predio_id || '-',
+        predio_nome: row.predio_id || '',
+        tecnico_id: tecnicoId,
+        tecnico_nome: tecnicoNome,
+        materiais_texto: bloco.materiais_texto || 'Sem materiais informados na vistoria.',
+        observacao_tecnica: bloco.observacao_tecnica || '',
+        status_lista: 'PENDENTE',
+        created_at: row.created_at || '',
+        updated_at: row.updated_at || ''
+      });
+    });
+  });
+
+  return itens.sort(function(a, b) {
+    const dateDiff = dateValue_(b.vistoria_datahora || b.updated_at || b.created_at || '') -
+      dateValue_(a.vistoria_datahora || a.updated_at || a.created_at || '');
+    if (dateDiff !== 0) {
+      return dateDiff;
+    }
+    return a.vistoria_ordem - b.vistoria_ordem;
+  });
+}
+
+function getTecnicosByIdPecas_(spreadsheet) {
+  const sheet = spreadsheet.getSheetByName('tecnicos_manutencao');
+  if (!sheet) {
+    return {};
+  }
+
+  return readSheetObjects_(sheet).reduce(function(map, row) {
+    const id = String(row.id || '').trim();
+    if (!id) {
+      return map;
+    }
+    map[id] = row;
+    return map;
+  }, {});
+}
+
+function extrairBlocosVistoriaParaPecas_(texto) {
+  const source = String(texto || '').replace(/\r/g, '').trim();
+  if (!source) {
+    return [];
+  }
+
+  const blocos = source
+    .split(/\n{2,}/)
+    .map(function(item) {
+      return String(item || '').trim();
+    })
+    .filter(Boolean);
+  const result = [];
+
+  blocos.forEach(function(bloco) {
+    const normalized = normalizarTextoComparacaoPecas_(bloco);
+    if (normalized.indexOf('vistoria tecnica:') < 0 && normalized.indexOf('materiais necessarios:') < 0) {
+      return;
+    }
+
+    const observacaoExtraida = extrairCampoMultilinhaVistoria_(bloco, /Vistoria t[eé]cnica:\s*(.*)$/i);
+    const materiaisExtraidos = extrairCampoMultilinhaVistoria_(bloco, /Materiais necess[aá]rios:\s*(.*)$/i);
+    const dataMatch = bloco.match(/GPS capturado em:\s*([^\n]+)/i) || bloco.match(/GPS verificado em:\s*([^\n]+)/i);
+
+    result.push({
+      observacao_tecnica: observacaoExtraida,
+      materiais_texto: materiaisExtraidos,
+      vistoria_datahora: dataMatch ? String(dataMatch[1] || '').trim() : ''
+    });
+  });
+
+  return result;
+}
+
+function extrairCampoMultilinhaVistoria_(bloco, headerPattern) {
+  const linhas = String(bloco || '').replace(/\r/g, '').split('\n');
+  if (!linhas.length) {
+    return '';
+  }
+
+  let inicio = -1;
+  let primeiraLinha = '';
+  for (var i = 0; i < linhas.length; i++) {
+    const match = linhas[i].match(headerPattern);
+    if (match) {
+      inicio = i;
+      primeiraLinha = String(match[1] || '').trim();
+      break;
+    }
+  }
+
+  if (inicio < 0) {
+    return '';
+  }
+
+  const partes = [];
+  if (primeiraLinha) {
+    partes.push(primeiraLinha);
+  }
+
+  for (var j = inicio + 1; j < linhas.length; j++) {
+    const atual = String(linhas[j] || '').trim();
+    if (!atual) {
+      break;
+    }
+
+    const normalizada = normalizarTextoComparacaoPecas_(atual);
+    if (
+      normalizada.indexOf('vistoria tecnica:') === 0 ||
+      normalizada.indexOf('materiais necessarios:') === 0 ||
+      normalizada.indexOf('ferramentas/equipe necessaria:') === 0 ||
+      normalizada.indexOf('resolver na hora:') === 0 ||
+      normalizada.indexOf('localizacao gps:') === 0 ||
+      normalizada.indexOf('gps capturado em:') === 0 ||
+      normalizada.indexOf('gps verificado em:') === 0
+    ) {
+      break;
+    }
+
+    partes.push(atual);
+  }
+
+  return partes.join('\n').trim();
+}
+
+function normalizarTextoComparacaoPecas_(texto) {
+  return String(texto || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function buildChamadoMobileResponse_(spreadsheet, row, index, chamadoId, status, statusAnterior, updatedAt, prediosById) {
+  const getField = function(field) {
+    return index ? row[index[field]] : row[field];
+  };
+  const predios = prediosById || getPrediosByIdForChamadosMobile_(spreadsheet);
+  const predioId = getField('predio_id') || '';
+  const predio = predios[predioId] || null;
+  const statusNormalizado = normalizeChamadoStatusMobile_(
+    status || getField('status'),
+    getField('executante_id')
+  );
+  const response = {
     id: chamadoId,
-    numero: row[index.numero] || chamadoId,
+    numero: getField('numero') || chamadoId || '-',
     predio_id: predioId,
     predio_nome: predio ? predio.nome : predioId,
-    centro_sigla: row[index.centro_sigla] || (predio ? predio.centro_sigla : ''),
-    descricao: row[index.descricao] || '',
-    categoria: row[index.categoria] || '',
-    prioridade: row[index.prioridade] || 'NORMAL',
-    status: status,
-    status_anterior: statusAnterior,
-    observacao: row[index.observacao] || '',
-    data_abertura: row[index.data_abertura] || row[index.created_at] || '',
-    data_fechamento: row[index.data_fechamento] || '',
+    centro_sigla: getField('centro_sigla') || (predio ? predio.centro_sigla : ''),
+    descricao: getField('descricao') || '',
+    categoria: getField('categoria') || '',
+    prioridade: getField('prioridade') || 'NORMAL',
+    status: statusNormalizado,
+    observacao: getField('observacao') || '',
+    data_abertura: getField('data_abertura') || getField('created_at') || '',
+    data_fechamento: getField('data_fechamento') || '',
     updated_at: updatedAt
   };
+
+  if (statusAnterior !== undefined) {
+    response.status_anterior = statusAnterior;
+  }
+
+  return response;
+}
+
+function normalizeChamadoStatusMobile_(status, executanteId) {
+  const normalized = String(status || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/\s+/g, '_')
+    .replace(/-/g, '_');
+  const allowed = ['ABERTO', 'ENCAMINHADO', 'EM_ANALISE', 'EM_EXECUCAO', 'CONCLUIDO'];
+
+  if (normalized === 'ABERTO' && String(executanteId || '').trim()) {
+    return 'ENCAMINHADO';
+  }
+
+  if (allowed.indexOf(normalized) >= 0) {
+    return normalized;
+  }
+
+  if (String(executanteId || '').trim()) {
+    return 'ENCAMINHADO';
+  }
+
+  return 'ABERTO';
 }
 
 function getUsuariosByReferenceForHistorico_(spreadsheet) {

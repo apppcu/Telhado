@@ -21,6 +21,7 @@ build/
 coverage/
 .nyc_output/
 app/android/.kotlin/
+app/.dart_tool/
 
 # Apps Script / clasp
 .clasp.json

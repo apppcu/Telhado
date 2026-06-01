@@ -20,10 +20,21 @@ class LocationService {
         return _unavailable('PERMISSAO_NEGADA');
       }
 
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null) {
+        return {
+          'gps_disponivel': true,
+          'latitude': lastKnown.latitude,
+          'longitude': lastKnown.longitude,
+          'precisao_metros': lastKnown.accuracy,
+          'gps_capturado_em': DateTime.now().toIso8601String(),
+        };
+      }
+
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 8),
+          accuracy: LocationAccuracy.medium,
+          timeLimit: Duration(seconds: 3),
         ),
       );
 
